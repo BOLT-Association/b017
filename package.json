@@ -1,0 +1,36 @@
+{
+  "name": "b017",
+  "version": "0.0.0",
+  "description": "b017 — BOLT layer-1 token templates + off-chain scanner (mint/transfer/split/merge/melt). Pre-compiled contract; no sx compiler required at runtime.",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:contract": "node scripts/build-contract.mjs",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@bsv/sdk": "^2.1.6"
+  },
+  "devDependencies": {
+    "@bsv/sdk": "^2.1.6",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
+  }
+}
