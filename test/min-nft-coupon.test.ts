@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction, TransactionSignature, UnlockingScript } from '@bsv/sdk'
 import { verifyTx, buildOutpoint, createSignature } from '../src/lib/boltLib.js'
-import { scriptChunksFromBin } from '../src/lib/multiBoltLib.js'
+import { scriptChunksFromBin } from '../src/lib/boltLib.js'
 import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscount.sx.template.js'
 
 const SCOPE = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL

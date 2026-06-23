@@ -113,3 +113,68 @@ export const splitCtx = (ctx: number[], unlockBytesLen: number = 0) => {
   const ctxCodeLockLen = writer.writeVarIntNum(ctxCodeLockScriptCode.length).toArray();
   return { ctxHeader, ctxCodeUnlockScriptCode, ctxCodeLen, ctxFooter, ctxCodeLockScriptCode, ctxCodeLockLen };
 };
+
+// ---- layout-agnostic tx-field primitives (one vocabulary, shared by both token streams) ----
+// These replace the duplicated "mirrors" block in multiBoltLib + the inline le32/le64/chunkData/
+// outpointOfInput in the nft helpers. Byte-faithful to those originals.
+
+/** 4-byte little-endian. */
+export const le32 = (n: number): number[] => { const w = new Writer(); w.writeUInt32LE(n); return w.toArray(); };
+/** 8-byte little-endian. */
+export const le64 = (n: number): number[] => { const w = new Writer(); w.writeUInt64LE(n); return w.toArray(); };
+
+/** bin -> Script chunks (one pushdata; OP_0 for empty). */
+export const scriptChunksFromBin = (data: number[]): any[] => new Script().writeBin(data).chunks;
+/** Data of a script's chunk `i` (or []). */
+export const scriptChunk = (s: Script, i: number): number[] => (s.chunks[i]?.data as number[]) ?? [];
+
+/** tx version as 4-byte LE. */
+export const txVersion = (tx: Transaction): number[] => le32(tx.version);
+/** tx lockTime as 4-byte LE. */
+export const txLockTime = (tx: Transaction): number[] => le32(tx.lockTime);
+
+/** The 36-byte outpoint input `vin` spends — from the attached source tx, else the sourceTXID
+ *  (reversed) fallback; [] if neither is available. */
+export const spentOutpoint = (tx: Transaction, vin: number): number[] => {
+  const input = tx.inputs[vin];
+  if (!input) return [];
+  const txid = (input.sourceTransaction?.hash() as number[]) ||
+    Utils.toArray(input.sourceTXID || "", "hex").reverse();
+  if (!txid || txid.length === 0) return [];
+  const w = new Writer();
+  w.write(txid);
+  w.writeUInt32LE(input.sourceOutputIndex);
+  return w.toArray();
+};
+/** Data of input `vin`'s unlocking-script chunk `chunkIdx` (or []). */
+export const vinChunk = (tx: Transaction, vin: number, chunkIdx: number): number[] => {
+  const w = new Writer();
+  w.write(tx.inputs[vin]?.unlockingScript?.chunks?.[chunkIdx]?.data || []);
+  return w.toArray();
+};
+/** Input `vin`'s 4-byte LE nSequence (or []). */
+export const vinSequence = (tx: Transaction, vin: number): number[] => {
+  const input = tx.inputs[vin];
+  if (!input) return [];
+  return le32((input.sequence ?? 0xffffffff) as number);
+};
+/** Input `vin`'s full unlocking-script bytes (or []). */
+export const vinScript = (tx: Transaction, vin: number): number[] =>
+  tx.inputs[vin]?.unlockingScript?.toBinary() || [];
+/** Data of output `vout`'s locking-script chunk `chunkIdx` (or []). */
+export const voutChunk = (tx: Transaction, vout: number, chunkIdx: number): number[] =>
+  scriptChunk(tx.outputs[vout].lockingScript, chunkIdx);
+/** Output `idx`'s 8-byte LE value (or []). */
+export const outputValue = (tx: Transaction, idx: number): number[] => {
+  const output = tx.outputs[idx];
+  if (!output) return [];
+  return le64(output.satoshis || 0);
+};
+/** Output `idx`'s locking-script bytes (or []). */
+export const outputScript = (tx: Transaction, idx: number): number[] => {
+  const output = tx.outputs[idx];
+  if (!output) return [];
+  const w = new Writer();
+  w.write(output.lockingScript.toBinary());
+  return w.toArray();
+};

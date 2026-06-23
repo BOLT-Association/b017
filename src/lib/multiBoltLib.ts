@@ -17,90 +17,16 @@
 // Self-contained: only depends on @bsv/sdk so the standalone package needs no sx tooling.
 
 import { Script, Transaction, Utils } from "@bsv/sdk";
+import {
+  txVersion, txLockTime, spentOutpoint, vinChunk, vinSequence, vinScript,
+  voutChunk, outputValue, outputScript, scriptChunksFromBin,
+} from "./boltLib.js";
 const { Reader, Writer } = Utils;
 
 const ARGS2CTX_SMB = 192;
 const PUSHDATAS_SMB = 11;
 const SKIP_SMB = 178;
 const TXOTYPE_IDX_SMB = 6;
-
-// ---- layout-agnostic primitives (mirrors of boltLib.ts) ----
-
-const getVersion = (tx: Transaction): number[] => {
-  const w = new Utils.Writer();
-  w.writeUInt32LE(tx.version);
-  return w.toArray();
-};
-
-const getVinOutpoint = (tx: Transaction, vinIndex: number): number[] => {
-  const w = new Utils.Writer();
-  const input = tx.inputs[vinIndex];
-  if (!input) return [];
-  const txid = (input.sourceTransaction?.hash() as number[]) ||
-    Utils.toArray(input.sourceTXID || "", "hex").reverse();
-  if (!txid || txid.length === 0) return [];
-  w.write(txid);
-  w.writeUInt32LE(input.sourceOutputIndex);
-  return w.toArray();
-};
-
-const getVinChunk = (tx: Transaction, vinIndex: number, chunkIdx: number): number[] => {
-  const w = new Utils.Writer();
-  const inputScript = tx.inputs[vinIndex].unlockingScript;
-  const chunk = inputScript?.chunks?.[chunkIdx];
-  w.write(chunk?.data || []);
-  return w.toArray();
-};
-
-const getVinNSequence = (tx: Transaction, vinIndex: number): number[] => {
-  const w = new Utils.Writer();
-  const input = tx.inputs[vinIndex];
-  if (!input) return [];
-  w.writeUInt32LE(input.sequence || 0xffffffff);
-  return w.toArray();
-};
-
-const getVinScript = (tx: Transaction, vinIndex: number): number[] => {
-  const input = tx.inputs[vinIndex];
-  if (!input) return [];
-  return input?.unlockingScript?.toBinary() || [];
-};
-
-const getVoutDataArg = (tx: Transaction, voutIndex: number, chunkIdx: number): number[] => {
-  const outputScript = tx.outputs[voutIndex].lockingScript;
-  return (outputScript.chunks[chunkIdx]?.data as number[]) || [];
-};
-
-const getVoutChunk = (tx: Transaction, voutIndex: number, chunkIdx: number): number[] => {
-  const outputScript = tx.outputs[voutIndex].lockingScript;
-  return (outputScript.chunks[chunkIdx]?.data as number[]) || [];
-};
-
-const getChangeValue = (tx: Transaction, index: number): number[] => {
-  const w = new Utils.Writer();
-  const output = tx.outputs[index];
-  if (!output) return [];
-  w.writeUInt64LE(output.satoshis || 0);
-  return w.toArray();
-};
-
-const getChangeScript = (tx: Transaction, index: number): number[] => {
-  const w = new Utils.Writer();
-  const output = tx.outputs[index];
-  if (!output) return [];
-  w.write(output.lockingScript.toBinary());
-  return w.toArray();
-};
-
-const getTxNLockTime = (tx: Transaction): number[] => {
-  const w = new Utils.Writer();
-  w.writeUInt32LE(tx.lockTime);
-  return w.toArray();
-};
-
-export const scriptChunksFromBin = (data: number[]): any[] => {
-  return new Script().writeBin(data).chunks;
-};
 
 // ---- CTX reconstruction from a prior token tx's vin unlocking script ----
 // ctxHeader is at ARGS2CTX_SMB; ctxCodeLockScriptCode/footer/lockLen at +3/+4/+5.
@@ -254,23 +180,23 @@ export const getAncestorPieceFungibleSMB = (piece: string, tx: Transaction): num
   const hasFunding = ancestorTx.inputs.length > (hasTwoTokenInputs ? 2 : 1);
 
   switch (piece) {
-    case "Version": res = getVersion(ancestorTx); break;
+    case "Version": res = txVersion(ancestorTx); break;
     // ---- Vin1 (token, always present) ----
-    case "Vin1Outpoint": res = getVinOutpoint(ancestorTx, 0); break;
-    case "Vin1GrandparentProofVoutIdx": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 0); break;
-    case "Vin1InteropProofVoutIdx": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 1); break;
-    case "Vin1InteropPubKeyHash": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 2); break;
-    case "Vin1InteropOutpoint": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 3); break;
-    case "Vin1InteropParentOutpoint": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 4); break;
-    case "Vin1FundOutpoint": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 5); break;
-    case "Vin1ChangeOutput": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 6); break;
-    case "Vin1PubKeyHash1": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 7); break;
-    case "Vin1PubKeyHash2": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 8); break;
-    case "Vin1NextBalanceCommit": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 9); break;
-    case "Vin1NextTxoType": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 10); break;
-    case "Vin1InputIndexN": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 11); break;
-    case "Vin1Sig": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 12); break;
-    case "Vin1PubKey": res = getVinChunk(ancestorTx, 0, SKIP_SMB + 13); break;
+    case "Vin1Outpoint": res = spentOutpoint(ancestorTx, 0); break;
+    case "Vin1GrandparentProofVoutIdx": res = vinChunk(ancestorTx, 0, SKIP_SMB + 0); break;
+    case "Vin1InteropProofVoutIdx": res = vinChunk(ancestorTx, 0, SKIP_SMB + 1); break;
+    case "Vin1InteropPubKeyHash": res = vinChunk(ancestorTx, 0, SKIP_SMB + 2); break;
+    case "Vin1InteropOutpoint": res = vinChunk(ancestorTx, 0, SKIP_SMB + 3); break;
+    case "Vin1InteropParentOutpoint": res = vinChunk(ancestorTx, 0, SKIP_SMB + 4); break;
+    case "Vin1FundOutpoint": res = vinChunk(ancestorTx, 0, SKIP_SMB + 5); break;
+    case "Vin1ChangeOutput": res = vinChunk(ancestorTx, 0, SKIP_SMB + 6); break;
+    case "Vin1PubKeyHash1": res = vinChunk(ancestorTx, 0, SKIP_SMB + 7); break;
+    case "Vin1PubKeyHash2": res = vinChunk(ancestorTx, 0, SKIP_SMB + 8); break;
+    case "Vin1NextBalanceCommit": res = vinChunk(ancestorTx, 0, SKIP_SMB + 9); break;
+    case "Vin1NextTxoType": res = vinChunk(ancestorTx, 0, SKIP_SMB + 10); break;
+    case "Vin1InputIndexN": res = vinChunk(ancestorTx, 0, SKIP_SMB + 11); break;
+    case "Vin1Sig": res = vinChunk(ancestorTx, 0, SKIP_SMB + 12); break;
+    case "Vin1PubKey": res = vinChunk(ancestorTx, 0, SKIP_SMB + 13); break;
     case "Vin1CTXHeader": res = getVinCTXPieceSMB(ancestorTx, 0, 0); break;
     case "Vin1CTXBalance": res = getVinCTXDataArgSMB(ancestorTx, 0, 0); break;
     case "Vin1CTXBalanceCommit": res = getVinCTXDataArgSMB(ancestorTx, 0, 1); break;
@@ -284,23 +210,23 @@ export const getAncestorPieceFungibleSMB = (piece: string, tx: Transaction): num
     case "Vin1CTXGrandparentOutpoint": res = getVinCTXDataArgSMB(ancestorTx, 0, 9); break;
     case "Vin1CTXIssuerPubKey": res = getVinCTXDataArgSMB(ancestorTx, 0, 10); break;
     case "Vin1CTXFooter": res = getVinCTXPieceSMB(ancestorTx, 0, 2, false); break;
-    case "Vin1NSequence": res = getVinNSequence(ancestorTx, 0); break;
+    case "Vin1NSequence": res = vinSequence(ancestorTx, 0); break;
     // ---- Vin2 (token, only mergeCommit) ----
-    case "Vin2Outpoint": if (hasTwoTokenInputs) res = getVinOutpoint(ancestorTx, 1); break;
-    case "Vin2GrandparentProofVoutIdx": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 0); break;
-    case "Vin2InteropProofVoutIdx": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 1); break;
-    case "Vin2InteropPubKeyHash": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 2); break;
-    case "Vin2InteropOutpoint": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 3); break;
-    case "Vin2InteropParentOutpoint": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 4); break;
-    case "Vin2FundOutpoint": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 5); break;
-    case "Vin2ChangeOutput": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 6); break;
-    case "Vin2PubKeyHash1": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 7); break;
-    case "Vin2PubKeyHash2": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 8); break;
-    case "Vin2NextBalanceCommit": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 9); break;
-    case "Vin2NextTxoType": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 10); break;
-    case "Vin2InputIndexN": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 11); break;
-    case "Vin2Sig": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 12); break;
-    case "Vin2PubKey": if (hasTwoTokenInputs) res = getVinChunk(ancestorTx, 1, SKIP_SMB + 13); break;
+    case "Vin2Outpoint": if (hasTwoTokenInputs) res = spentOutpoint(ancestorTx, 1); break;
+    case "Vin2GrandparentProofVoutIdx": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 0); break;
+    case "Vin2InteropProofVoutIdx": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 1); break;
+    case "Vin2InteropPubKeyHash": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 2); break;
+    case "Vin2InteropOutpoint": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 3); break;
+    case "Vin2InteropParentOutpoint": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 4); break;
+    case "Vin2FundOutpoint": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 5); break;
+    case "Vin2ChangeOutput": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 6); break;
+    case "Vin2PubKeyHash1": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 7); break;
+    case "Vin2PubKeyHash2": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 8); break;
+    case "Vin2NextBalanceCommit": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 9); break;
+    case "Vin2NextTxoType": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 10); break;
+    case "Vin2InputIndexN": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 11); break;
+    case "Vin2Sig": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 12); break;
+    case "Vin2PubKey": if (hasTwoTokenInputs) res = vinChunk(ancestorTx, 1, SKIP_SMB + 13); break;
     case "Vin2CTXHeader": if (hasTwoTokenInputs) res = getVinCTXPieceSMB(ancestorTx, 1, 0); break;
     case "Vin2CTXBalance": if (hasTwoTokenInputs) res = getVinCTXDataArgSMB(ancestorTx, 1, 0); break;
     case "Vin2CTXBalanceCommit": if (hasTwoTokenInputs) res = getVinCTXDataArgSMB(ancestorTx, 1, 1); break;
@@ -314,48 +240,48 @@ export const getAncestorPieceFungibleSMB = (piece: string, tx: Transaction): num
     case "Vin2CTXGrandparentOutpoint": if (hasTwoTokenInputs) res = getVinCTXDataArgSMB(ancestorTx, 1, 9); break;
     case "Vin2CTXIssuerPubKey": if (hasTwoTokenInputs) res = getVinCTXDataArgSMB(ancestorTx, 1, 10); break;
     case "Vin2CTXFooter": if (hasTwoTokenInputs) res = getVinCTXPieceSMB(ancestorTx, 1, 2, false); break;
-    case "Vin2NSequence": if (hasTwoTokenInputs) res = getVinNSequence(ancestorTx, 1); break;
+    case "Vin2NSequence": if (hasTwoTokenInputs) res = vinSequence(ancestorTx, 1); break;
     // ---- Funding vin (always last input) ----
-    case "VinFundOutpoint": if (hasFunding) res = getVinOutpoint(ancestorTx, fundVinIdx); break;
-    case "VinFundScript": if (hasFunding) res = getVinScript(ancestorTx, fundVinIdx); break;
-    case "VinFundNSequence": if (hasFunding) res = getVinNSequence(ancestorTx, fundVinIdx); break;
+    case "VinFundOutpoint": if (hasFunding) res = spentOutpoint(ancestorTx, fundVinIdx); break;
+    case "VinFundScript": if (hasFunding) res = vinScript(ancestorTx, fundVinIdx); break;
+    case "VinFundNSequence": if (hasFunding) res = vinSequence(ancestorTx, fundVinIdx); break;
     // ---- Vout1 (first token output, always present) ----
-    case "Vout1Balance": res = getVoutDataArg(ancestorTx, 0, 0); break;
-    case "Vout1BalanceCommit": res = getVoutDataArg(ancestorTx, 0, 1); break;
-    case "Vout1PubKeyHash": res = getVoutDataArg(ancestorTx, 0, 2); break;
-    case "Vout1PubKeyHashCommit": res = getVoutDataArg(ancestorTx, 0, 3); break;
-    case "Vout1PubKeyHashCommit2": res = getVoutDataArg(ancestorTx, 0, 4); break;
-    case "Vout1OtherGrandparentOutpoint": res = getVoutDataArg(ancestorTx, 0, 5); break;
-    case "Vout1TxoType": res = getVoutDataArg(ancestorTx, 0, 6); break;
-    case "Vout1OutputIndexN": res = getVoutDataArg(ancestorTx, 0, 7); break;
-    case "Vout1ParentOutpoint": res = getVoutDataArg(ancestorTx, 0, 8); break;
-    case "Vout1GrandparentOutpoint": res = getVoutDataArg(ancestorTx, 0, 9); break;
-    case "Vout1IssuerPubKey": res = getVoutDataArg(ancestorTx, 0, 10); break;
+    case "Vout1Balance": res = voutChunk(ancestorTx, 0, 0); break;
+    case "Vout1BalanceCommit": res = voutChunk(ancestorTx, 0, 1); break;
+    case "Vout1PubKeyHash": res = voutChunk(ancestorTx, 0, 2); break;
+    case "Vout1PubKeyHashCommit": res = voutChunk(ancestorTx, 0, 3); break;
+    case "Vout1PubKeyHashCommit2": res = voutChunk(ancestorTx, 0, 4); break;
+    case "Vout1OtherGrandparentOutpoint": res = voutChunk(ancestorTx, 0, 5); break;
+    case "Vout1TxoType": res = voutChunk(ancestorTx, 0, 6); break;
+    case "Vout1OutputIndexN": res = voutChunk(ancestorTx, 0, 7); break;
+    case "Vout1ParentOutpoint": res = voutChunk(ancestorTx, 0, 8); break;
+    case "Vout1GrandparentOutpoint": res = voutChunk(ancestorTx, 0, 9); break;
+    case "Vout1IssuerPubKey": res = voutChunk(ancestorTx, 0, 10); break;
     // ---- Vout2 (second token output, only splitSettle) ----
-    case "Vout2Balance": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 0); break;
-    case "Vout2BalanceCommit": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 1); break;
-    case "Vout2PubKeyHash": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 2); break;
-    case "Vout2PubKeyHashCommit": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 3); break;
-    case "Vout2PubKeyHashCommit2": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 4); break;
-    case "Vout2OtherGrandparentOutpoint": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 5); break;
-    case "Vout2TxoType": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 6); break;
-    case "Vout2OutputIndexN": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 7); break;
-    case "Vout2ParentOutpoint": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 8); break;
-    case "Vout2GrandparentOutpoint": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 9); break;
-    case "Vout2IssuerPubKey": if (hasTwoBolts) res = getVoutDataArg(ancestorTx, 1, 10); break;
+    case "Vout2Balance": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 0); break;
+    case "Vout2BalanceCommit": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 1); break;
+    case "Vout2PubKeyHash": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 2); break;
+    case "Vout2PubKeyHashCommit": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 3); break;
+    case "Vout2PubKeyHashCommit2": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 4); break;
+    case "Vout2OtherGrandparentOutpoint": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 5); break;
+    case "Vout2TxoType": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 6); break;
+    case "Vout2OutputIndexN": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 7); break;
+    case "Vout2ParentOutpoint": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 8); break;
+    case "Vout2GrandparentOutpoint": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 9); break;
+    case "Vout2IssuerPubKey": if (hasTwoBolts) res = voutChunk(ancestorTx, 1, 10); break;
     // ---- Bolt (pay2Bolt) outputs ----
     case "ProofPubKeyHash1":
       // 1 token output always -> bolt1 at vout 1
-      res = getVoutChunk(ancestorTx, 1, 4);
+      res = voutChunk(ancestorTx, 1, 4);
       break;
     case "ProofPubKeyHash2":
       // splitCommit emits a 2nd bolt commitment at vout 2
-      if (hasTwoBolts) res = getVoutChunk(ancestorTx, 2, 4);
+      if (hasTwoBolts) res = voutChunk(ancestorTx, 2, 4);
       break;
     // ---- Change + locktime ----
-    case "ChangeValue": if (hasChange) res = getChangeValue(ancestorTx, changeVoutIdx); break;
-    case "ChangeScript": if (hasChange) res = getChangeScript(ancestorTx, changeVoutIdx); break;
-    case "NLockTime": res = getTxNLockTime(ancestorTx); break;
+    case "ChangeValue": if (hasChange) res = outputValue(ancestorTx, changeVoutIdx); break;
+    case "ChangeScript": if (hasChange) res = outputScript(ancestorTx, changeVoutIdx); break;
+    case "NLockTime": res = txLockTime(ancestorTx); break;
   }
   return res || [];
 };

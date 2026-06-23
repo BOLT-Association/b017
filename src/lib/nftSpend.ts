@@ -32,8 +32,7 @@ import {
   PrivateKey,
   Hash,
 } from "@bsv/sdk";
-import { splitCtx, buildOutpoint, buildChangeOutput, createSignature } from "./boltLib.js";
-import { scriptChunksFromBin } from "./multiBoltLib.js";
+import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "./boltLib.js";
 import { nftAncestorPieces } from "./nftAncestor.js";
 
 /** Number of leading ancestor-reconstruction args in the NFT unlock layout. */

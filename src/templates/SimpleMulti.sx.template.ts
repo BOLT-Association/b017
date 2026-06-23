@@ -18,9 +18,8 @@ import {
   Hash,
   Utils,
 } from "@bsv/sdk";
-import { splitCtx, buildOutpoint, buildChangeOutput, createSignature } from "../lib/boltLib.js";
+import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../lib/boltLib.js";
 import {
-  scriptChunksFromBin,
   getAncestorPieceFungibleSMB,
   createEmptyFungibleAncestorChunksSMB,
   ANCESTOR_PIECES_SMB,
