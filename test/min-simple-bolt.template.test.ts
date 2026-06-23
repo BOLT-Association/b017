@@ -9,11 +9,10 @@ import MinSimpleTemplate from '../src/templates/MinSimpleBolt.sx.template.js'
 import { verifyTx } from '../src/boltLib.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-// the production artifact IS the sx compiler output → its static recombinant is the golden suffix.
-const artifact = JSON.parse(
-  readFileSync(resolve(__dirname, '../../sx/bolt/production/artifacts/MinSimpleBolt.json'), 'utf8'),
-)
-const lockHexSuffix: string = artifact.lockingRecombinants.filter((r: any) => typeof r === 'string').pop()
+// Lock-suffix golden, vendored from the sx artifact by scripts/build-min-simple-bolt.mjs, so the
+// suite runs WITHOUT the sibling sx/ package (isolation). Still catches hand-edits to the template
+// suffix: the template stores hand-editable ASM, this golden is the canonical compiled hex.
+const lockHexSuffix = readFileSync(resolve(__dirname, 'fixtures/MinSimpleBolt.lockSuffix.hex'), 'utf8').trim()
 
 describe('B1 — MinSimpleBolt identity template', () => {
   const issuerKey = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000001', 'hex')

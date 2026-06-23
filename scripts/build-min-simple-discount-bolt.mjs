@@ -33,5 +33,7 @@ tpl = tpl.replace(
   `private readonly UNLOCK_SCRIPT_SUFFIX = "${unlockASM}"`,
 )
 writeFileSync(tplPath, tpl)
+// Vendor the lock-suffix golden so test/min-discount-bolt.template.test.ts runs without the sibling sx/.
+writeFileSync(resolve(PKG, 'test/fixtures/MinSimpleDiscountBolt.lockSuffix.hex'), lockHex)
 console.log('Patched MinSimpleDiscountBolt template — lock suffix', lockASM.length, 'chars (from', lockHex.length / 2,
   'bytes); unlock suffix', unlockASM.length, 'chars (from', unlockHex.length / 2, 'bytes)')

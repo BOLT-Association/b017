@@ -12,10 +12,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const golden = JSON.parse(
   readFileSync(resolve(__dirname, 'fixtures/MinSimpleDiscountBolt.lifecycle.golden.json'), 'utf8'),
 )
-const artifact = JSON.parse(
-  readFileSync(resolve(__dirname, '../../sx/bolt/production/artifacts/MinSimpleDiscountBolt.json'), 'utf8'),
-)
-const lockHexSuffix: string = artifact.lockingRecombinants.filter((r: any) => typeof r === 'string').pop()
+// Lock-suffix golden vendored by scripts/build-min-simple-discount-bolt.mjs (isolation: no sibling sx/).
+const lockHexSuffix = readFileSync(resolve(__dirname, 'fixtures/MinSimpleDiscountBolt.lockSuffix.hex'), 'utf8').trim()
 
 describe('B2a — MinSimpleDiscountBolt LOCK byte-equals the sx golden mint', () => {
   const mintTx = Transaction.fromHex(golden.txs[0].hex)

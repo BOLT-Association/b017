@@ -18,7 +18,3 @@ export type { TokenType, TypeSpec } from "./scan/fingerprints.js";
 // The shared off-chain BOLT token-chain validator (the scanner).
 export { verifyTokenChain } from "./scan/verifyTokenChain.js";
 export type { ScanResult, ScanOpts } from "./scan/verifyTokenChain.js";
-
-// The compiled contract artifact is shipped for reference (consumers never run sx).
-import contractJson from "./contracts/SimpleMultiBolt.sx.json" with { type: "json" };
-export const SimpleMultiBOLTContract = contractJson;

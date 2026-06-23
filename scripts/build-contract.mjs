@@ -1,6 +1,6 @@
-// Maintainer-only: recompile SimpleMultiBolt.sx with the sx toolchain and refresh the
-// shipped artifact (src/contracts/SimpleMultiBolt.sx.json) + patch the template's ASM suffix.
-// Consumers never run this — the package ships the pre-compiled output.
+// Maintainer-only: recompile SimpleMultiBolt.sx with the sx toolchain and patch the SMB
+// template's ASM suffix (src/multi/SimpleMultiBolt.sx.template.ts). Consumers never run this —
+// the package ships the pre-compiled template; the bulky compiled artifact is NOT shipped.
 //
 //   node scripts/build-contract.mjs
 //
@@ -35,10 +35,6 @@ const compiled = {
   lockingRecombinants: toAsm(result.lockingRecombinants),
   unlockingRecombinants: toAsm(result.unlockingRecombinants),
 }
-
-const jsonPath = resolve(PKG, 'src/contracts/SimpleMultiBolt.sx.json')
-writeFileSync(jsonPath, JSON.stringify(compiled, null, 2))
-console.log('Wrote', jsonPath, `(lockArgs ${compiled.lockArgs.length}, unlockArgs ${compiled.unlockArgs.length})`)
 
 const lockASM = compiled.lockingRecombinants.filter(r => typeof r === 'string').pop()
 const unlockASM = compiled.unlockingRecombinants.filter(r => typeof r === 'string').pop() || ''

@@ -1,5 +1,5 @@
 // A2 — b017 must be publishable: no elas, no file: runtime deps, @bsv/sdk as a peer
-// (one shared SDK instance), and the pack ships the dist contract json (not the src copy).
+// (one shared SDK instance), and the pack ships dist/ but no bulky contract json (dropped).
 import { describe, it, expect } from 'vitest'
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -26,11 +26,10 @@ describe('A2 — b017 is publishable', () => {
     expect(pkg.peerDependencies?.['@bsv/sdk']).toBeTruthy()
   })
 
-  it('npm pack ships dist/index.js + the dist contract json, and NOT the src copy', () => {
+  it('npm pack ships dist/index.js and no contract json (the unused artifact was dropped)', () => {
     const out = execSync('npm pack --dry-run --json', { cwd: root, encoding: 'utf8' })
     const files = (JSON.parse(out)[0].files as { path: string }[]).map((f) => f.path)
     expect(files.some((f) => /dist[\\/]index\.js$/.test(f))).toBe(true)
-    expect(files.some((f) => /dist[\\/]contracts[\\/]SimpleMultiBolt\.sx\.json$/.test(f))).toBe(true)
-    expect(files.some((f) => /src[\\/]contracts[\\/]/.test(f))).toBe(false)
+    expect(files.some((f) => /contracts[\\/]SimpleMultiBolt\.sx\.json$/.test(f))).toBe(false)
   })
 })
