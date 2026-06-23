@@ -125,7 +125,7 @@ const determineTxTypeSMB = (tx: Transaction): string => {
 };
 
 // All 89 SimpleMultiBolt ancestor piece names per ancestor (A or B).
-export const ANCESTOR_PIECES_SMB = [
+export const PIECE_NAMES = [
   "Version",
   "Vin1Outpoint",
   "Vin1GrandparentProofVoutIdx", "Vin1InteropProofVoutIdx",
@@ -167,7 +167,7 @@ export const ANCESTOR_PIECES_SMB = [
 ];
 
 // Extract one named ancestor piece from a SimpleMultiBolt transaction.
-export const getAncestorPieceFungibleSMB = (piece: string, tx: Transaction): number[] => {
+export const ancestorPiece = (name: string, tx: Transaction): number[] => {
   let res: number[] = [];
   const ancestorTx = tx;
   const txType = determineTxTypeSMB(ancestorTx);
@@ -179,7 +179,7 @@ export const getAncestorPieceFungibleSMB = (piece: string, tx: Transaction): num
   const hasChange = lastOutput?.lockingScript?.chunks?.length === 5;
   const hasFunding = ancestorTx.inputs.length > (hasTwoTokenInputs ? 2 : 1);
 
-  switch (piece) {
+  switch (name) {
     case "Version": res = txVersion(ancestorTx); break;
     // ---- Vin1 (token, always present) ----
     case "Vin1Outpoint": res = spentOutpoint(ancestorTx, 0); break;

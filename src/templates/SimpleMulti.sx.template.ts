@@ -20,9 +20,9 @@ import {
 } from "@bsv/sdk";
 import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../lib/boltLib.js";
 import {
-  getAncestorPieceFungibleSMB,
+  ancestorPiece,
   createEmptyFungibleAncestorChunksSMB,
-  ANCESTOR_PIECES_SMB,
+  PIECE_NAMES,
 } from "../lib/multiBoltLib.js";
 
 export default class SimpleMultiTemplate implements ScriptTemplate {
@@ -159,15 +159,15 @@ export default class SimpleMultiTemplate implements ScriptTemplate {
 
         // ancestorTxA pieces (89)
         const ancestorAChunks: any[] = [];
-        for (const piece of ANCESTOR_PIECES_SMB) {
-          ancestorAChunks.push(...scriptChunksFromBin(ancestorTx ? getAncestorPieceFungibleSMB(piece, ancestorTx) : []));
+        for (const piece of PIECE_NAMES) {
+          ancestorAChunks.push(...scriptChunksFromBin(ancestorTx ? ancestorPiece(piece, ancestorTx) : []));
         }
 
         // ancestorTxB pieces (89) - populated for merge settles, empty otherwise
         const ancestorBTx = ancestorTxBRef ? Transaction.fromHex(ancestorTxBRef.toHex()) : null;
         const ancestorBChunks: any[] = [];
-        for (const piece of ANCESTOR_PIECES_SMB) {
-          ancestorBChunks.push(...scriptChunksFromBin(ancestorBTx ? getAncestorPieceFungibleSMB(piece, ancestorBTx) : []));
+        for (const piece of PIECE_NAMES) {
+          ancestorBChunks.push(...scriptChunksFromBin(ancestorBTx ? ancestorPiece(piece, ancestorBTx) : []));
         }
 
         const unlockingScript = new UnlockingScript([
