@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/bolt-logo.png" alt="Bolt" width="420">
+</p>
+
 # b017
 
 > **Status: `0.0.0-b` (beta).** The API is working and fully tested (43/43) but may still
@@ -12,7 +16,9 @@ compiler at runtime**. The only runtime dependency is a peer `@bsv/sdk`.
 **Why these tokens can't be counterfeited:** the token state (issuer, lineage, owner, balance)
 is bound into a self-validating Bitcoin Script covenant via a dual hash-commitment, so forging
 a token would require breaking SHA-256 or ECDSA. See [`docs/unforgeability.md`](docs/unforgeability.md)
-for the full argument and the forgery tests that demonstrate it.
+for the argument and the forgery tests that demonstrate it, and
+[`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
+full attack-vector analysis).
 
 ## Install / build
 
