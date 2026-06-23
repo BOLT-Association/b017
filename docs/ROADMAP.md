@@ -41,8 +41,10 @@ Today recognition is shallow: leading push-lengths + a sha256 of the static cont
 - Single source of truth for the two parallel index maps (`LAYOUTS` in `scan/fingerprints.ts`
   + `FIELDS` in `scan/verifyTokenChain.ts`) → derive both from one per-type descriptor.
 - Real fee/size estimation (today `nftSpend.estimateLength` hardcodes `2000`).
-- Resolve the class-vs-file name mismatches; then `npm publish` (it is `0.0.0`) with a
-  README + CHANGELOG + CI (including the hermetic browser walk).
+- Resolve the class-vs-file name mismatches (`SimpleMultiBOLT` lives in `tokens/MultiBOLT.ts`),
+  then cut `0.1.0` and `npm publish`. The release scaffolding is in place as of `0.0.0-b`
+  (README, CHANGELOG, and CI under `.github/workflows/ci.yml`); still wanted is the hermetic
+  browser walk in CI and resolving the naming before the first stable tag.
 
 ## Demo / infrastructure
 - Fix live SPV determinism at the source: on teranode v0.15.2 the merkle-service never

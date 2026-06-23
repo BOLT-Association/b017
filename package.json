@@ -1,8 +1,26 @@
 {
   "name": "b017",
-  "version": "0.0.0",
+  "version": "0.0.0-b",
   "description": "b017 — BOLT layer-1 token templates + off-chain scanner (mint/transfer/split/merge/melt). Pre-compiled contract; no sx compiler required at runtime.",
   "license": "SEE LICENSE IN LICENSE.txt",
+  "keywords": [
+    "bsv",
+    "bitcoin",
+    "bolt",
+    "token",
+    "layer-1",
+    "fungible",
+    "nft",
+    "smart-contract"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BOLT-Association/b017.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BOLT-Association/b017/issues"
+  },
+  "homepage": "https://github.com/BOLT-Association/b017#readme",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -16,10 +34,12 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "build:contract": "node scripts/build-contract.mjs",
     "test": "vitest run",
     "prepublishOnly": "npm run build"
