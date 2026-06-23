@@ -6,9 +6,10 @@ without breaking SHA-256 or ECDSA.** No trusted third party, oracle, or off-chai
 required for the guarantee — it is enforced by the Bitcoin Script covenant the token is locked
 under, and secured by the network's proof-of-work.
 
-The argument below is the accessible form. A fuller formal treatment of the BOLT protocol
-(theorems, lemmas, and an enumerated attack-vector analysis) exists in the protocol
-repository; this file is written to stand on its own for a reader of *this* library.
+The argument below is the accessible form. For the rigorous treatment — formal model,
+hardness assumptions, 4 theorems, 7 lemmas, and an enumerated attack-vector analysis — see
+[`formal-proof.md`](formal-proof.md). This file is written to stand on its own for a reader of
+*this* library.
 
 > **Scope.** "Cannot be counterfeited" means: you cannot create a token that *appears* to
 > descend from a genuine issuer's mint when it does not, nor change ownership or balance
