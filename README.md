@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="docs/assets/bolt-logo.png" alt="Bolt" width="420">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/bolt-logo-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/bolt-logo.png">
+    <img src="docs/assets/bolt-logo-light.png" alt="Bolt" width="420">
+  </picture>
 </p>
 
 # b017
