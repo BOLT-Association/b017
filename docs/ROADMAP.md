@@ -33,6 +33,11 @@ Today recognition is shallow: leading push-lengths + a sha256 of the static cont
 ## Library hardening
 - `tsconfig strict: true`; remove `any` casts; type the `BOLT` abstract methods (today `any`,
   and they diverge from the concrete classes).
+- Drop the stored owner `privKey` on the token class — take a per-op signer instead. The SDK
+  signing injection is already used at the template level (`tpl.unlock(key)` returns the `{sign}`
+  the SDK invokes); the class only caches the owner key to feed those templates across its
+  multi-step builder flow (`process.env.BOLT_VERIFIER` already removed). An API change that ripples
+  through the stateful builder + the demo bridge, so deferred as its own focused PR.
 - Single source of truth for the two parallel index maps (`LAYOUTS` in `scan/fingerprints.ts`
   + `FIELDS` in `scan/verifyTokenChain.ts`) → derive both from one per-type descriptor.
 - Real fee/size estimation (today `nftSpend.estimateLength` hardcodes `2000`).

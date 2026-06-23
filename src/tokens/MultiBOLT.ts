@@ -19,7 +19,7 @@ export type VerifierType = 'bsv';
 // ts-bolt/src/multi/SimpleMultiBolt.sx.template.ts for the runtime assembler.
 export class SimpleMultiBOLT extends BOLT {
   skipVerify: boolean = false;
-  verifier: VerifierType = (process.env.BOLT_VERIFIER as VerifierType) || 'bsv';
+  verifier: VerifierType = 'bsv';
   balance: number[] = [];
   balanceCommit: number[] = new Array(16).fill(0x00);
   outputIndexN: number[] = [0x00];

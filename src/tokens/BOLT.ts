@@ -11,7 +11,11 @@ export abstract class BOLT {
   pubKey: number[] = [];
   issuerPubKey: number[] = [];
   genesisOutpoint: number[] = [];
-  privKey!: PrivateKey; // FOR TESTING ONLY NOT PRODUCTION !!!
+  // Current-owner key the builder feeds to the @bsv/sdk unlock-template signers (tpl.unlock(key)
+  // -> { sign }); rotates on each settle. The signing itself is the SDK's injection; this is just
+  // the stateful builder caching the owner key. (Roadmap: take a per-op signer so the class need
+  // not hold the secret — see docs/ROADMAP.md.)
+  privKey!: PrivateKey;
   // Helpful test duplicates (stored on-chain otherwise)
   mintData?: number[];
   pubKeyHash?: number[];
