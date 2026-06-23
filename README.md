@@ -14,8 +14,13 @@
 Standalone TypeScript library for **BOLT layer-1 tokens** on BSV — the fungible
 **SimpleMultiBOLT** (16-byte balance; mint / transfer / split / merge / melt), a family of
 minimal **NFT** templates, and an off-chain **scanner** that recognises and verifies BOLT
-token chains. The `.sx` contracts are **pre-compiled and embedded**; there is **no sx
+**transactional events**. The `.sx` contracts are **pre-compiled and embedded**; there is **no sx
 compiler at runtime**. The only runtime dependency is a peer `@bsv/sdk`.
+
+Every protocol action is a **transactional event**: a transfer / split / merge is a **commit → settle
+pair** of txs, while a mint (genesis) and a melt (terminal) are single-tx events. Because events
+share this shape, they can be collected into a **batch**, transmitted together, and parsed for
+authenticity by a multistep inspection.
 
 **Why these tokens can't be counterfeited:** the token state (issuer, lineage, owner, balance)
 is bound into a self-validating Bitcoin Script covenant via a dual hash-commitment, so forging
@@ -63,21 +68,34 @@ Every operation builds a real, script-valid Bitcoin transaction, verified by the
 Spend engine before it is returned. **Broadcasting is the caller's responsibility** — the
 library never touches the network. The signed `Transaction` is available as `token.tx`.
 
-## Usage — recognising & verifying tokens (the scanner)
+## Usage — recognising & verifying events (the scanner)
 
 ```ts
 import {
-  recognizeType,        // (lockingScript, expected?) -> TokenType | null
-  verifyTokenChain,     // validate a BOLT lineage end to end
-  verifyEvent,          // classify a single commit/settle token event
+  recognizeType,   // (lockingScript, expected?) -> TokenType | null
+  verifyEvent,     // validate ONE event (a mint, a commit→settle pair, or a melt)
+  verifyEvents,    // validate a BATCH of events end to end
 } from "b017";
 
 const type = recognizeType(tx.outputs[0].lockingScript); // "SimpleMultiBOLT" | "MinSimpleBOLT" | ... | null
+
+// Inspect a batch of transactional events for authenticity. Recognises the type, pins the issuer
+// across the whole batch, fingerprints every interface, then pairs the events: every commit must
+// be matched by a settle that links back via parentOutpoint, and vice-versa.
+const r = verifyEvents(txs, { trustedIssuerPubKey });
+// -> { ok, type, issuerPubKeyHex, events: [{ kind: "transfer" | "split" | ..., txids }] }
 ```
 
 Recognition is strict: a script matches only if **both** the leading data-push layout **and**
 the sha256 of the static contract code match a registered type, so a tampered contract body or
-a non-token script is rejected.
+a non-token script is rejected. An event is well-formed only if its txs pair up — a lone mint or
+melt is a valid single-tx event, but an orphan settle or an unsettled commit is rejected.
+
+A commit and its settle are bound **two** independent ways: the **token lineage** (the settle's
+token `parentOutpoint` references the commit's token output — the binding the scanner asserts), and,
+in general, a **funding chain** (the settle's funding input spends the commit's **change** output, so
+the pair is chained at the satoshi level too). The funding chain is a construction property — a
+caller can fund the settle from elsewhere — so the scanner does not require it.
 
 ## What's inside
 
@@ -90,7 +108,7 @@ a non-token script is rejected.
 | `src/templates/pay2Proof.ts` | The `pay2Proof` UTXO template (P2PKH + b017 proof output). |
 | `src/lib/boltLib.ts` | Layout-agnostic helpers (`verifyTx`, `buildOutpoint`, …). |
 | `src/scan/fingerprints.ts` | Per-type recognition primitive + the type `REGISTRY`. |
-| `src/scan/verifyTokenChain.ts` | Off-chain chain validator + per-event checker (`verifyTokenChain`, `verifyEvent`). |
+| `src/scan/verifyEvents.ts` | Off-chain event validator: batch verifier + per-event checker (`verifyEvents`, `verifyEvent`). |
 
 > Naming note: the `SimpleMultiBOLT` **class** currently lives in `tokens/MultiBOLT.ts`.
 > Resolving that file/class name mismatch is tracked in the ROADMAP.

@@ -2,7 +2,7 @@
 
 Forward-looking direction for the BOLT token library. Not commitments; captured so the
 shape of the work is visible. (The in-flight pass — role folders, primitive dedupe +
-builder convergence, the `verifyEvent`/`verifyTokenChain` token-event model, and signing
+builder convergence, the `verifyEvent`/`verifyEvents` transactional-event model, and signing
 injection — is tracked separately and is not repeated here.)
 
 ## Expand the token library
@@ -23,10 +23,10 @@ Today recognition is shallow: leading push-lengths + a sha256 of the static cont
 - A published **fingerprint spec** so third parties can recognise b017 tokens independently;
   property-based / fuzz tests for the recogniser.
 
-## Strengthen token-chain processing
-- The `verifyEvent` / `verifyTokenChain` model (token event = commit→settle pair; fingerprint
+## Strengthen event processing
+- The `verifyEvent` / `verifyEvents` model (transactional event = commit→settle pair; fingerprint
   every interface — strict golden for tokens, loose for change/funding) extends to validating
-  the lineage as a **DAG** over longer / branched histories.
+  a batch's events as a **DAG** over longer / branched histories.
 - Typed results + machine-readable error reasons; an indexer-friendly streaming / incremental
   API; performance + memory for large BEEFs.
 
@@ -39,7 +39,7 @@ Today recognition is shallow: leading push-lengths + a sha256 of the static cont
   multi-step builder flow (`process.env.BOLT_VERIFIER` already removed). An API change that ripples
   through the stateful builder + the demo bridge, so deferred as its own focused PR.
 - Single source of truth for the two parallel index maps (`LAYOUTS` in `scan/fingerprints.ts`
-  + `FIELDS` in `scan/verifyTokenChain.ts`) → derive both from one per-type descriptor.
+  + `FIELDS` in `scan/verifyEvents.ts`) → derive both from one per-type descriptor.
 - Real fee/size estimation (today `nftSpend.estimateLength` hardcodes `2000`).
 - Resolve the class-vs-file name mismatches (`SimpleMultiBOLT` lives in `tokens/MultiBOLT.ts`),
   then cut `0.1.0` and `npm publish`. The release scaffolding is in place as of `0.0.0-b`

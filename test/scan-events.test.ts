@@ -1,4 +1,4 @@
-// A3 — token events: verifyEvent + verifyTokenChain over REAL SimpleMultiBOLT split / merge / melt
+// A3 — token events: verifyEvent + verifyEvents over REAL SimpleMultiBOLT split / merge / melt
 // chains (the first time the scanner sees the fungible lifecycle). Exercises the fingerprint-every-
 // interface arrangement for the shapes the old scanner couldn't model: split settle = 2 token
 // outputs, split commit = 2 p2p proofs, merge commit = 2 token inputs, merge settle = 2 proof
@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction } from '@bsv/sdk'
 import { SimpleMultiBOLT } from '../src/tokens/MultiBOLT.js'
-import { verifyEvent, verifyTokenChain } from '../src/scan/verifyTokenChain.js'
+import { verifyEvent, verifyEvents } from '../src/scan/verifyEvents.js'
 
 const MASK64 = (1n << 64n) - 1n
 const bal = (amount: bigint): number[] => {
@@ -36,7 +36,7 @@ describe('A3 — token events over the SimpleMultiBOLT lifecycle', () => {
     const ev = verifyEvent([splitC, splitS], { expectedType: T })
     expect(ev.ok, ev.reason).toBe(true)
     expect(ev.kind).toBe('split')
-    const r = verifyTokenChain(chain, { expectedType: T })
+    const r = verifyEvents(chain, { expectedType: T })
     expect(r.ok, r.reason).toBe(true)
   })
 

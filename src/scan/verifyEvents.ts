@@ -1,15 +1,27 @@
-// verifyTokenChain.ts — the shared off-chain BOLT token-chain validator (the scanner).
+// verifyEvents.ts — the shared off-chain BOLT validator (the scanner).
 //
-// A token's lineage is a sequence of TOKEN EVENTS. A transfer/split/merge event is a
-// commit -> settle pair; a mint is the genesis event; a melt is the terminal event.
+// The protocol is a stream of TRANSACTIONAL EVENTS. A transfer/split/merge event is a
+// commit -> settle PAIR of txs; a mint is a single genesis tx; a melt is a single terminal tx.
+// Because most events are two txs, events can be collected into a BATCH, transmitted together,
+// and parsed for authenticity by a multistep inspection.
 //
-//   verifyEvent(txs)       — validate ONE event: categorise its tx(s) by the token's txoType
-//                            action byte, fingerprint EVERY interface (strict golden recognition
-//                            for all token inputs/outputs — including split's 2 token outputs and
-//                            merge's 2 token inputs; loose shape for the p2p proof / change /
-//                            funding), and check the commit<->settle linkage.
-//   verifyTokenChain(txs)  — the whole chain: recognise the type, pin the issuer, then validate
-//                            every token tx's arrangement and confirm a commit->settle lineage.
+//   verifyEvent(txs)   — validate ONE event: categorise its tx(s) by the token's txoType action
+//                        byte, fingerprint EVERY interface (strict golden recognition for all token
+//                        inputs/outputs — including split's 2 token outputs and merge's 2 token
+//                        inputs; loose shape for the p2p proof / change / funding), and check the
+//                        commit<->settle linkage.
+//   verifyEvents(txs)  — validate a BATCH of events: recognise the type, pin the issuer across the
+//                        whole batch, fingerprint every tx's arrangement, then pair the events —
+//                        every commit must be matched by a settle (and vice-versa) via parentOutpoint.
+//                        A lone mint or melt is a valid single-tx event.
+//
+// NOTE — a commit and its settle are bound TWO independent ways:
+//   (1) TOKEN LINEAGE  — the settle's token parentOutpoint references the commit's token output.
+//                        This is the binding verifyEvents/verifyEvent assert.
+//   (2) FUNDING CHAIN  — in general the settle's funding input spends the commit's CHANGE output (the
+//                        commit's last, change=true output). So the pair is also chained at the
+//                        satoshi/funding level. This is a CONSTRUCTION property — a caller-supplied
+//                        fundOverride can fund the settle from elsewhere — so it is NOT asserted here.
 //
 // Strict = golden byte fingerprint (recognizeType: leading-push layout + sha256(static code)).
 // Loose  = shape only (a P2PKH change output / external funding input may carry any pkh + value).
@@ -40,14 +52,14 @@ export interface ScanOpts {
   expectedType?: TokenType;
   trustedIssuerPubKey?: number[] | string;
 }
+export type EventKind = "mint" | "transfer" | "split" | "merge" | "melt";
 export interface ScanResult {
   ok: boolean;
   reason?: string;
   type?: TokenType;
   issuerPubKeyHex?: string;
-  chain?: { txid: string; vout: number; txoType: string }[];
+  events?: { kind: EventKind; txids: string[] }[];
 }
-export type EventKind = "mint" | "transfer" | "split" | "merge" | "melt";
 export interface EventResult {
   ok: boolean;
   reason?: string;
@@ -81,7 +93,7 @@ function classifyOut(lock: Script, type: TokenType): Cls {
 }
 
 /** Classify an input by fingerprinting the output it spends (via the attached source tx, else a
- *  source tx supplied in the chain); "external" when the source is outside the supplied set. */
+ *  source tx supplied in the batch); "external" when the source is outside the supplied set. */
 function classifyIn(input: any, type: TokenType, byId: ById): Cls {
   const src: Transaction | undefined =
     input.sourceTransaction ?? (input.sourceTXID ? byId.get(input.sourceTXID) : undefined);
@@ -199,16 +211,18 @@ export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts =
 }
 
 /**
- * Verify a whole token chain: recognise the type, pin the issuer across every token output, then
- * validate every token tx's interface arrangement (via verifyEvent's primitives) and confirm a
- * commit (txoType 21/23/25) -> settle lineage linked by parentOutpoint.
+ * Verify a BATCH of transactional events end to end. The multistep inspection: recognise the type,
+ * pin the issuer across every token output in the batch, fingerprint every tx's interface
+ * arrangement, then pair the events — every commit (txoType 21/23/25) must be matched by a settle
+ * that links back via parentOutpoint, and every settle must link to a commit in the batch. A lone
+ * mint (genesis) or melt (terminal) is a valid single-tx event.
  */
-export function verifyTokenChain(txsIn: (Transaction | string)[], opts: ScanOpts = {}): ScanResult {
+export function verifyEvents(txsIn: (Transaction | string)[], opts: ScanOpts = {}): ScanResult {
   const txs = txsIn.map(toTx);
-  if (txs.length === 0) return { ok: false, reason: "empty chain" };
+  if (txs.length === 0) return { ok: false, reason: "empty batch" };
   const byId: ById = new Map(txs.map((t) => [t.id("hex"), t]));
 
-  // Every recognised token output across the chain.
+  // Every recognised token output across the batch.
   type TokenRef = { txid: string; vout: number; type: TokenType; lock: Script };
   const tokens: TokenRef[] = [];
   for (const tx of txs) {
@@ -221,40 +235,54 @@ export function verifyTokenChain(txsIn: (Transaction | string)[], opts: ScanOpts
   if (tokens.length === 0) return { ok: false, reason: "no BOLT token output recognised" };
 
   const type = tokens[0].type;
-  if (tokens.some((t) => t.type !== type)) return { ok: false, reason: "mixed token types in chain" };
+  if (tokens.some((t) => t.type !== type)) return { ok: false, reason: "mixed token types in batch" };
   if (opts.expectedType && type !== opts.expectedType)
     return { ok: false, reason: `expected ${opts.expectedType}, got ${type}` };
 
   // Issuer consistent across all token outputs, and == the trusted issuer (if supplied).
   const issuers = new Set(tokens.map((t) => Utils.toHex(issuerPubKeyOf(t.lock, type))));
-  if (issuers.size !== 1) return { ok: false, reason: "inconsistent issuerPubKey across chain" };
+  if (issuers.size !== 1) return { ok: false, reason: "inconsistent issuerPubKey across batch" };
   const issuerPubKeyHex = [...issuers][0];
   const trusted = optHex(opts.trustedIssuerPubKey);
   if (trusted && trusted !== issuerPubKeyHex) return { ok: false, reason: "issuerPubKey != trusted issuer" };
 
-  // Lineage: a commit (txoType 21/23/25) paired with a settle linking back via parentOutpoint.
-  // (Checked before the per-interface arrangement so a structurally-incomplete chain — e.g. a
-  // mint+settle with no commit — reports the missing-commit reason, not an orphaned-input one.)
-  const commits = tokens.filter((t) => ["21", "23", "25"].includes(fieldHex(t.lock, type, "txoType")));
-  if (commits.length === 0) return { ok: false, reason: "no commit token (txoType 21/23/25) in chain" };
-  const settle = tokens.find((s) => {
-    const p = parseOutpoint(field(s.lock, type, "parent"));
-    return commits.some((c) => c.txid === p.txidHex && c.vout === p.vout);
-  });
-  if (!settle) return { ok: false, reason: "no settle token linking back to a commit (parentOutpoint)" };
+  // Categorise every tx — each must be a well-formed BOLT event tx (mint / commit / settle / melt).
+  const cats = txs.map((tx) => ({ tx, cat: categorise(tx, type, byId) }));
+  for (const { tx, cat } of cats)
+    if (!cat) return { ok: false, reason: `tx ${tx.id("hex").slice(0, 8)} is not a BOLT token tx`, type };
 
-  // Categorise + fingerprint every interface of every token tx (mint / commit / settle / melt).
-  for (const tx of txs) {
-    const cat = categorise(tx, type, byId);
-    if (!cat) continue; // a non-token tx (none in the BOLT goldens)
-    const reason = checkArrangement(tx, type, cat.shape, byId);
-    if (reason) return { ok: false, reason };
+  // Pair the events: every settle links back to a commit in the batch, and every commit is settled.
+  // (Checked before the per-interface arrangement so a structurally-incomplete batch reports the
+  // missing-pair reason, not an orphaned-input one.)
+  const key = (txid: string, vout: number) => `${txid}:${vout}`;
+  const commits = cats.filter((c) => c.cat!.shape.kind === "commit");
+  const settled = new Set<string>();
+  const events: { kind: EventKind; txids: string[] }[] = [];
+
+  for (const s of cats.filter((c) => c.cat!.shape.kind === "settle")) {
+    const sLock = s.tx.outputs[s.cat!.tokenOutIdx].lockingScript;
+    const p = parseOutpoint(field(sLock, type, "parent"));
+    const commit = commits.find((c) => c.tx.id("hex") === p.txidHex && c.cat!.tokenOutIdx === p.vout);
+    if (!commit)
+      return { ok: false, reason: `settle ${s.tx.id("hex").slice(0, 8)} links to no commit in the batch (orphan settle)`, type };
+    settled.add(key(commit.tx.id("hex"), commit.cat!.tokenOutIdx));
+    const cLock = commit.tx.outputs[commit.cat!.tokenOutIdx].lockingScript;
+    events.push({ kind: actionKind(fieldHex(cLock, type, "txoType")), txids: [commit.tx.id("hex"), s.tx.id("hex")] });
+  }
+  for (const c of commits)
+    if (!settled.has(key(c.tx.id("hex"), c.cat!.tokenOutIdx)))
+      return { ok: false, reason: `commit ${c.tx.id("hex").slice(0, 8)} has no settle in the batch (unsettled commit)`, type };
+
+  // Per-interface arrangement: categorise + fingerprint every tx.
+  for (const { tx, cat } of cats) {
+    const reason = checkArrangement(tx, type, cat!.shape, byId);
+    if (reason) return { ok: false, reason, type };
   }
 
-  return {
-    ok: true,
-    type,
-    issuerPubKeyHex,
-    chain: tokens.map((t) => ({ txid: t.txid, vout: t.vout, txoType: fieldHex(t.lock, type, "txoType") })),
-  };
+  // Standalone single-tx events (genesis mints, terminal melts).
+  for (const { tx, cat } of cats)
+    if (cat!.shape.kind === "mint" || cat!.shape.kind === "melt")
+      events.push({ kind: cat!.shape.kind as EventKind, txids: [tx.id("hex")] });
+
+  return { ok: true, type, issuerPubKeyHex, events };
 }

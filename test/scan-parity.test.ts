@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { Transaction, Script, P2PKH } from '@bsv/sdk'
-import { verifyTokenChain } from '../src/scan/verifyTokenChain.js'
+import { verifyEvents } from '../src/scan/verifyEvents.js'
 import { appendOutput } from './counterfeit.helper.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -39,10 +39,11 @@ describe('C5 — parity: scanner accept/reject == on-chain BOLT contract', () =>
   ]
 
   // Counterfeit classes — each must be rejected (== the on-chain contract rejecting it).
+  // (A lone mint is NOT here: a genesis mint is a valid single-tx event, accepted below.)
   const counterfeits: { name: string; chain: string[]; opts?: any }[] = [
     { name: 'wrong issuer', chain: discount, opts: { trustedIssuerPubKey: '02' + '00'.repeat(32) } },
-    { name: 'missing commit', chain: [discount[0], discount[2]] },
-    { name: 'mint only', chain: [discount[0]] },
+    { name: 'orphan settle (no commit)', chain: [discount[0], discount[2]] },
+    { name: 'unsettled commit (no settle)', chain: [discount[0], discount[1]] },
     { name: 'uninspected output (extra OP_RETURN)', chain: tamperedSettle },
     { name: 'counterfeit token output (wrong static code)', chain: counterfeitToken },
     { name: 'plain P2PKH masquerade', chain: p2pkhOnly },
@@ -50,18 +51,22 @@ describe('C5 — parity: scanner accept/reject == on-chain BOLT contract', () =>
   ]
 
   it('ACCEPTS every genuine lineage', () => {
-    for (const c of genuine) expect(verifyTokenChain(c).ok).toBe(true)
+    for (const c of genuine) expect(verifyEvents(c).ok).toBe(true)
+  })
+
+  it('ACCEPTS a lone genesis mint as a single-tx event', () => {
+    expect(verifyEvents([discount[0]]).ok).toBe(true)
   })
 
   it('REJECTS every counterfeit class', () => {
     for (const { name, chain, opts } of counterfeits) {
-      const r = verifyTokenChain(chain, opts)
+      const r = verifyEvents(chain, opts)
       expect(r.ok, `${name} should be rejected (got ok; reason=${r.reason})`).toBe(false)
     }
   })
 
   it('parity holds: no genuine rejected, no counterfeit accepted', () => {
-    expect(genuine.every((c) => verifyTokenChain(c).ok)).toBe(true)
-    expect(counterfeits.every((c) => !verifyTokenChain(c.chain, c.opts).ok)).toBe(true)
+    expect(genuine.every((c) => verifyEvents(c).ok)).toBe(true)
+    expect(counterfeits.every((c) => !verifyEvents(c.chain, c.opts).ok)).toBe(true)
   })
 })

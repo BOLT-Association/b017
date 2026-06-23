@@ -138,13 +138,13 @@ further.
 ## 6. The off-chain recognizer (the scanner)
 
 On-chain, the covenant is self-enforcing. Off-chain — when an indexer or wallet inspects a
-transaction it did not build — the library provides `recognizeType` / `verifyTokenChain` /
-`verifyEvent`. Recognition is deliberately **strict**: a script is accepted as a known token
+transaction it did not build — the library provides `recognizeType` / `verifyEvent` /
+`verifyEvents`. Recognition is deliberately **strict**: a script is accepted as a known token
 type only if its leading data-push lengths match the type's layout **and** the SHA-256 of the
 remaining static contract bytes matches that type's fingerprint. A counterfeit that copies the
 *shape* of a token but carries different (or no) covenant code fails the suffix-hash check and
-is classified as untrusted. `verifyTokenChain` additionally checks the commit→settle lineage
-and the trusted issuer key end to end.
+is classified as untrusted. `verifyEvents` additionally checks the commit→settle event pairing
+and the trusted issuer key across a whole batch.
 
 ---
 
