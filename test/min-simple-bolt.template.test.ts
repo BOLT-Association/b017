@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { Hash, P2PKH, PrivateKey, Transaction, Script } from '@bsv/sdk'
-import MinSimpleTemplate from '../src/templates/MinSimpleBolt.sx.template.js'
-import { verifyTx } from '../src/boltLib.js'
+import MinSimpleTemplate from '../src/templates/MinSimple.sx.template.js'
+import { verifyTx } from '../src/lib/boltLib.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 // Lock-suffix golden, vendored from the sx artifact by scripts/build-min-simple-bolt.mjs, so the

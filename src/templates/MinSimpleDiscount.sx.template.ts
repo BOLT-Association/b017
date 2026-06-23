@@ -1,4 +1,4 @@
-// MinSimpleDiscountBolt.sx.template.ts
+// MinSimpleDiscount.sx.template.ts
 // Runtime LOCK assembler for the MinSimpleDiscountBolt NFT (immutable 1-byte whole-% discount).
 // LOCK_SCRIPT_SUFFIX is auto-patched from the pre-compiled artifact by
 // scripts/build-min-simple-discount-bolt.mjs (build-time only) — do NOT hand-edit it.
@@ -9,7 +9,7 @@
 //
 // The spend/unlock path (transfer commit/settle, 37 args) is implemented via nftSpendUnlock (B2b).
 import { ScriptTemplate, LockingScript, Script, PrivateKey, Transaction, UnlockingScript } from "@bsv/sdk";
-import { nftSpendUnlock } from "./nftSpend.js";
+import { nftSpendUnlock } from "../lib/nftSpend.js";
 
 export default class MinSimpleDiscountTemplate implements ScriptTemplate {
   // Static UNLOCK suffix (after the 37 data pushes), patched from the artifact by

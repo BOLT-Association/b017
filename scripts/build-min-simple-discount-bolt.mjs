@@ -1,4 +1,4 @@
-// Maintainer-only: patch MinSimpleDiscountBolt.sx.template.ts's LOCK_SCRIPT_SUFFIX from the
+// Maintainer-only: patch MinSimpleDiscount.sx.template.ts's LOCK_SCRIPT_SUFFIX from the
 // pre-compiled production artifact (sibling sx/, build-time only). Consumers never run this.
 //
 //   node scripts/build-min-simple-discount-bolt.mjs
@@ -18,7 +18,7 @@ const lockHex = artifact.lockingRecombinants.filter((r) => typeof r === 'string'
 if (!lockHex) throw new Error('no string lockingRecombinant in ' + artifactPath)
 const lockASM = Script.fromHex(lockHex).toASM()
 
-const tplPath = resolve(PKG, 'src/templates/MinSimpleDiscountBolt.sx.template.ts')
+const tplPath = resolve(PKG, 'src/templates/MinSimpleDiscount.sx.template.ts')
 const unlockHex = artifact.unlockingRecombinants.filter((r) => typeof r === 'string').pop()
 if (!unlockHex) throw new Error('no string unlockingRecombinant in ' + artifactPath)
 const unlockASM = Script.fromHex(unlockHex).toASM()

@@ -3,10 +3,10 @@
 // A type's fingerprint is { pushLengths (the data-push byte layout) , suffixHash = sha256(static code) }.
 // issuerPubKey is always the LAST dynamic push (33 bytes); it identifies the issuer, not the type.
 import { Hash, Script, Utils } from "@bsv/sdk";
-import MinSimpleTemplate from "../templates/MinSimpleBolt.sx.template.js";
-import MinSimpleDiscountTemplate from "../templates/MinSimpleDiscountBolt.sx.template.js";
-import MinSimpleBalanceTemplate from "../templates/MinSimpleBalanceBolt.sx.template.js";
-import SimpleMultiTemplate from "../multi/SimpleMultiBolt.sx.template.js";
+import MinSimpleTemplate from "../templates/MinSimple.sx.template.js";
+import MinSimpleDiscountTemplate from "../templates/MinSimpleDiscount.sx.template.js";
+import MinSimpleBalanceTemplate from "../templates/MinSimpleBalance.sx.template.js";
+import SimpleMultiTemplate from "../templates/SimpleMulti.sx.template.js";
 
 export type TokenType =
   | "MinSimpleBOLT"

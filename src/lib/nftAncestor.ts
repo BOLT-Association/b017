@@ -9,7 +9,7 @@
 // the front of the lock (0 = MinSimpleBolt identity, 1 = Discount/Balance) so the token-data fields
 // (pubKeyHash/commitment/txoType/parent/grandparent) are read at the right chunk offset.
 import { Transaction, Script, Utils } from "@bsv/sdk";
-import { buildOutpoint } from "../boltLib.js";
+import { buildOutpoint } from "./boltLib.js";
 
 const le32 = (n: number): number[] => { const w = new Utils.Writer(); w.writeUInt32LE(n); return w.toArray(); };
 const le64 = (n: number): number[] => { const w = new Utils.Writer(); w.writeUInt64LE(n); return w.toArray(); };

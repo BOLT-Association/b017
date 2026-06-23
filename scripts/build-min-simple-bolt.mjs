@@ -1,4 +1,4 @@
-// Maintainer-only: patch MinSimpleBolt.sx.template.ts's LOCK_SCRIPT_SUFFIX from the
+// Maintainer-only: patch MinSimple.sx.template.ts's LOCK_SCRIPT_SUFFIX from the
 // pre-compiled production artifact (sibling sx/, build-time only). Consumers never run this.
 //
 //   node scripts/build-min-simple-bolt.mjs
@@ -21,7 +21,7 @@ const unlockHex = artifact.unlockingRecombinants.filter((r) => typeof r === 'str
 if (!unlockHex) throw new Error('no string unlockingRecombinant in ' + artifactPath)
 const unlockASM = Script.fromHex(unlockHex).toASM()
 
-const tplPath = resolve(PKG, 'src/templates/MinSimpleBolt.sx.template.ts')
+const tplPath = resolve(PKG, 'src/templates/MinSimple.sx.template.ts')
 let tpl = readFileSync(tplPath, 'utf8')
 tpl = tpl.replace(
   /private readonly LOCK_SCRIPT_SUFFIX = "[^"]*"/,

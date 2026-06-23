@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { Transaction, Script } from '@bsv/sdk'
-import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscountBolt.sx.template.js'
+import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscount.sx.template.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const golden = JSON.parse(

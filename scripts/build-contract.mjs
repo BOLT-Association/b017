@@ -1,5 +1,5 @@
 // Maintainer-only: recompile SimpleMultiBolt.sx with the sx toolchain and patch the SMB
-// template's ASM suffix (src/multi/SimpleMultiBolt.sx.template.ts). Consumers never run this —
+// template's ASM suffix (src/templates/SimpleMulti.sx.template.ts). Consumers never run this —
 // the package ships the pre-compiled template; the bulky compiled artifact is NOT shipped.
 //
 //   node scripts/build-contract.mjs
@@ -38,7 +38,7 @@ const compiled = {
 
 const lockASM = compiled.lockingRecombinants.filter(r => typeof r === 'string').pop()
 const unlockASM = compiled.unlockingRecombinants.filter(r => typeof r === 'string').pop() || ''
-const tplPath = resolve(PKG, 'src/multi/SimpleMultiBolt.sx.template.ts')
+const tplPath = resolve(PKG, 'src/templates/SimpleMulti.sx.template.ts')
 let tpl = readFileSync(tplPath, 'utf8')
 tpl = tpl.replace(/private readonly UNLOCK_SCRIPT_SUFFIX = "[^"]*"/, `private readonly UNLOCK_SCRIPT_SUFFIX = "${unlockASM}"`)
 tpl = tpl.replace(/private readonly LOCK_SCRIPT_SUFFIX = "[^"]*"/, `private readonly LOCK_SCRIPT_SUFFIX = "${lockASM}"`)

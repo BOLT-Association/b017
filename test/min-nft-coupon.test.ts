@@ -6,9 +6,9 @@
 // reproduces byte-for-byte (see the fixture-derived test). Lineage: issuer(0) -> user(1) -> bucket(2).
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction, TransactionSignature, UnlockingScript } from '@bsv/sdk'
-import { verifyTx, buildOutpoint, createSignature } from '../src/boltLib.js'
-import { scriptChunksFromBin } from '../src/multi/boltLibSMB.js'
-import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscountBolt.sx.template.js'
+import { verifyTx, buildOutpoint, createSignature } from '../src/lib/boltLib.js'
+import { scriptChunksFromBin } from '../src/lib/multiBoltLib.js'
+import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscount.sx.template.js'
 
 const SCOPE = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL
 const issuerKey = PrivateKey.fromString('e9873d79c6d87dc0fb6a5778633389f4453213303da61f20bd67fc233aa33262', 'hex')

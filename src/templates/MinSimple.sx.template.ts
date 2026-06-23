@@ -1,4 +1,4 @@
-// MinSimpleBolt.sx.template.ts
+// MinSimple.sx.template.ts
 // Runtime LOCK assembler for the MinSimpleBolt identity NFT (no value field).
 // LOCK_SCRIPT_SUFFIX is auto-patched from the pre-compiled artifact by
 // scripts/build-min-simple-bolt.mjs (build-time only) — do NOT hand-edit it.
@@ -10,7 +10,7 @@
 // The spend/unlock path (transfer commit/settle, 37 args) is provided in a later
 // step (Lane B2 — the coupon transfers); the identity issuance only needs the lock.
 import { ScriptTemplate, LockingScript, Script, PrivateKey, Transaction, UnlockingScript } from "@bsv/sdk";
-import { nftSpendUnlock } from "./nftSpend.js";
+import { nftSpendUnlock } from "../lib/nftSpend.js";
 
 export default class MinSimpleTemplate implements ScriptTemplate {
   // Static UNLOCK suffix (after the 37 data pushes), patched from the artifact by

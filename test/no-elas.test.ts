@@ -6,8 +6,8 @@ import { readFileSync, readdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { Hash, P2PKH, PrivateKey, Transaction } from '@bsv/sdk'
-import { SimpleMultiBOLT } from '../src/SimpleMultiBolt.js'
-import { verifyTx } from '../src/boltLib.js'
+import { SimpleMultiBOLT } from '../src/tokens/MultiBOLT.js'
+import { verifyTx } from '../src/lib/boltLib.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

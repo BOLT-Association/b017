@@ -1,4 +1,4 @@
-// MinSimpleBalanceBolt.sx.template.ts
+// MinSimpleBalance.sx.template.ts
 // Runtime LOCK assembler for the MinSimpleBalanceBolt NFT (immutable 16-byte balance).
 // LOCK_SCRIPT_SUFFIX is auto-patched from the pre-compiled artifact by
 // scripts/build-min-simple-balance-bolt.mjs (build-time only) — do NOT hand-edit it.
@@ -9,7 +9,7 @@
 //
 // The spend/unlock path (transfer commit/settle, 37 args) lands in Lane B2b (the coupon transfers).
 import { ScriptTemplate, LockingScript, Script, PrivateKey, Transaction, UnlockingScript } from "@bsv/sdk";
-import { nftSpendUnlock } from "./nftSpend.js";
+import { nftSpendUnlock } from "../lib/nftSpend.js";
 
 export default class MinSimpleBalanceTemplate implements ScriptTemplate {
   // Static UNLOCK suffix (after the 37 data pushes), patched from the artifact by

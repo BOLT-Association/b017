@@ -9,10 +9,10 @@
 //      the build scripts) — a truncated suffix corrupts the optimal-sighash (OP_PUSH_TX) s-computation.
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction, LockingScript } from '@bsv/sdk'
-import { verifyTx, buildOutpoint } from '../src/boltLib.js'
-import MinSimpleTemplate from '../src/templates/MinSimpleBolt.sx.template.js'
-import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscountBolt.sx.template.js'
-import MinSimpleBalanceTemplate from '../src/templates/MinSimpleBalanceBolt.sx.template.js'
+import { verifyTx, buildOutpoint } from '../src/lib/boltLib.js'
+import MinSimpleTemplate from '../src/templates/MinSimple.sx.template.js'
+import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscount.sx.template.js'
+import MinSimpleBalanceTemplate from '../src/templates/MinSimpleBalance.sx.template.js'
 
 // Non-degenerate keys: privkey=1 would make pubkey == G (X=79be667e…), colliding with the
 // contract's r-puzzle magic-sig constant. Use high-entropy scalars instead.

@@ -7,10 +7,10 @@ import {
   TransactionOutput,
   TransactionInput
 } from "@bsv/sdk";
-import SimpleMultiTemplate from "./multi/SimpleMultiBolt.sx.template.js";
-import Pay2ProofTemplate from "./templates/pay2Proof.js";
-import { verifyTx, buildOutpoint } from "./boltLib.js";
-import { BOLT } from "./boltToken.js";
+import SimpleMultiTemplate from "../templates/SimpleMulti.sx.template.js";
+import Pay2ProofTemplate from "../templates/pay2Proof.js";
+import { verifyTx, buildOutpoint } from "../lib/boltLib.js";
+import { BOLT } from "./BOLT.js";
 
 export type VerifierType = 'bsv';
 

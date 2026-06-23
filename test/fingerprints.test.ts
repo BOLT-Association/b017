@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { Hash, P2PKH, PrivateKey, Transaction, Script } from '@bsv/sdk'
 import { REGISTRY, recognizeType, issuerPubKeyOf } from '../src/scan/fingerprints.js'
-import { SimpleMultiBOLT } from '../src/SimpleMultiBolt.js'
+import { SimpleMultiBOLT } from '../src/tokens/MultiBOLT.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const goldenLock = (name: string): Script =>

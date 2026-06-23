@@ -1,4 +1,4 @@
-// boltLibSMB.ts
+// multiBoltLib.ts
 // SimpleMultiBolt-specific ancestor reconstruction + CTX helpers.
 //
 // SimpleMultiBolt is the optimised fungible contract (16-byte balance, mandatory

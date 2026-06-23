@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { Transaction } from '@bsv/sdk'
-import { nftAncestorPieces } from '../src/templates/nftAncestor.js'
+import { nftAncestorPieces } from '../src/lib/nftAncestor.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const hx = (a: number[]) => Buffer.from(a).toString('hex')

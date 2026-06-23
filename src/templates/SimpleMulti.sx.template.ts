@@ -3,7 +3,7 @@
 // The two *_SCRIPT_SUFFIX constants are auto-patched from sxFiles/SimpleMultiBolt.sx.json
 // at build time (compileBoltContracts.mjs) - do NOT hand-edit them.
 //
-// Layout (see boltLibSMB.ts):
+// Layout (see multiBoltLib.ts):
 //   lock  = 11 data args + LOCK_SCRIPT_SUFFIX
 //   unlock = 198 data args + UNLOCK_SCRIPT_SUFFIX  (no leading miscData; 5 interop args)
 
@@ -18,13 +18,13 @@ import {
   Hash,
   Utils,
 } from "@bsv/sdk";
-import { splitCtx, buildOutpoint, buildChangeOutput, createSignature } from "../boltLib.js";
+import { splitCtx, buildOutpoint, buildChangeOutput, createSignature } from "../lib/boltLib.js";
 import {
   scriptChunksFromBin,
   getAncestorPieceFungibleSMB,
   createEmptyFungibleAncestorChunksSMB,
   ANCESTOR_PIECES_SMB,
-} from "./boltLibSMB.js";
+} from "../lib/multiBoltLib.js";
 
 export default class SimpleMultiTemplate implements ScriptTemplate {
   private signatureScope = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL;
