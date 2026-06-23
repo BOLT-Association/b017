@@ -1,9 +1,18 @@
 // verifyTokenChain.ts — the shared off-chain BOLT token-chain validator (the scanner).
-// Builds on the B4 fingerprint registry. Validates, over a set of lineage txs:
-//   C2 issuer       — issuerPubKey consistent across every token output, and == trustedIssuerPubKey
-//   C3 lineage      — the bolt appears in BOTH a commit (txoType 21) AND a settle (txoType 20),
-//                     linked by parentOutpoint (settle.parent -> commit token outpoint)
-// C4 (full input/output arrangement) and C5 (parity) build on this in the next steps.
+//
+// A token's lineage is a sequence of TOKEN EVENTS. A transfer/split/merge event is a
+// commit -> settle pair; a mint is the genesis event; a melt is the terminal event.
+//
+//   verifyEvent(txs)       — validate ONE event: categorise its tx(s) by the token's txoType
+//                            action byte, fingerprint EVERY interface (strict golden recognition
+//                            for all token inputs/outputs — including split's 2 token outputs and
+//                            merge's 2 token inputs; loose shape for the p2p proof / change /
+//                            funding), and check the commit<->settle linkage.
+//   verifyTokenChain(txs)  — the whole chain: recognise the type, pin the issuer, then validate
+//                            every token tx's arrangement and confirm a commit->settle lineage.
+//
+// Strict = golden byte fingerprint (recognizeType: leading-push layout + sha256(static code)).
+// Loose  = shape only (a P2PKH change output / external funding input may carry any pkh + value).
 import { OP, Transaction, Script, Utils } from "@bsv/sdk";
 import { recognizeType, issuerPubKeyOf, type TokenType } from "./fingerprints.js";
 
@@ -38,16 +47,168 @@ export interface ScanResult {
   issuerPubKeyHex?: string;
   chain?: { txid: string; vout: number; txoType: string }[];
 }
+export type EventKind = "mint" | "transfer" | "split" | "merge" | "melt";
+export interface EventResult {
+  ok: boolean;
+  reason?: string;
+  type?: TokenType;
+  kind?: EventKind;
+}
 
 const toTx = (t: Transaction | string): Transaction => (typeof t === "string" ? Transaction.fromHex(t) : t);
 const optHex = (b?: number[] | string): string | undefined =>
   b == null ? undefined : typeof b === "string" ? b.toLowerCase() : Utils.toHex(b);
 
+// ---- interface fingerprinting: classify every input / output ----
+type Cls = "token" | "p2p" | "p2pkh" | "external" | "other";
+type ById = Map<string, Transaction>;
+
+/** Classify an output's locking script. token = strict golden fingerprint; p2p = the b017 marker
+ *  proof output; p2pkh = a plain pay-to-pubkey-hash (change); else "other". */
+function classifyOut(lock: Script, type: TokenType): Cls {
+  if (recognizeType(lock, type)) return "token";
+  const c = lock.chunks;
+  if (
+    c.length === 7 && c[0].data?.length === 2 && c[0].data[0] === 0xb0 && c[0].data[1] === 0x17 &&
+    c[1].op === OP.OP_EQUALVERIFY && c[2].op === OP.OP_DUP && c[3].op === OP.OP_HASH160 &&
+    c[4].data?.length === 20 && c[5].op === OP.OP_EQUALVERIFY && c[6].op === OP.OP_CHECKSIG
+  ) return "p2p";
+  if (
+    c.length === 5 && c[0].op === OP.OP_DUP && c[1].op === OP.OP_HASH160 && c[2].data?.length === 20 &&
+    c[3].op === OP.OP_EQUALVERIFY && c[4].op === OP.OP_CHECKSIG
+  ) return "p2pkh";
+  return "other";
+}
+
+/** Classify an input by fingerprinting the output it spends (via the attached source tx, else a
+ *  source tx supplied in the chain); "external" when the source is outside the supplied set. */
+function classifyIn(input: any, type: TokenType, byId: ById): Cls {
+  const src: Transaction | undefined =
+    input.sourceTransaction ?? (input.sourceTXID ? byId.get(input.sourceTXID) : undefined);
+  if (!src) return "external";
+  return classifyOut(src.outputs[input.sourceOutputIndex].lockingScript, type);
+}
+
+// ---- action categorisation: the token's txoType byte -> the event shape ----
+// tokenIn / tokenOut / proofOut are EXACT (strict, golden); proof inputs + change + funding are loose.
+interface Shape { kind: "mint" | "commit" | "settle" | "melt"; tokenIn: number; tokenOut: number; proofOut: number }
+
+function categorise(tx: Transaction, type: TokenType, byId: ById): { shape: Shape; tokenOutIdx: number } | null {
+  const tokenOutIdx = tx.outputs.findIndex((o) => recognizeType(o.lockingScript, type));
+  if (tokenOutIdx >= 0) {
+    const lock = tx.outputs[tokenOutIdx].lockingScript;
+    const parentZero = field(lock, type, "parent").every((b) => b === 0);
+    if (parentZero) return { shape: { kind: "mint", tokenIn: 0, tokenOut: 1, proofOut: 0 }, tokenOutIdx };
+    const S = (kind: Shape["kind"], tokenIn: number, tokenOut: number, proofOut: number) =>
+      ({ shape: { kind, tokenIn, tokenOut, proofOut }, tokenOutIdx });
+    switch (fieldHex(lock, type, "txoType")) {
+      case "21": return S("commit", 1, 1, 1); // transfer commit
+      case "23": return S("commit", 1, 1, 2); // split commit  -> 2 p2p proofs
+      case "25": return S("commit", 2, 1, 1); // merge commit  -> 2 token inputs
+      case "22": return S("settle", 1, 2, 0); // split settle  -> 2 token outputs
+      case "24": return S("settle", 1, 1, 0); // merge settle
+      default:   return S("settle", 1, 1, 0); // transfer settle (txoType 20 / 00) + any resting state
+    }
+  }
+  // No token output — a melt (spends a token, no token output)?
+  if (tx.inputs.some((i) => classifyIn(i, type, byId) === "token"))
+    return { shape: { kind: "melt", tokenIn: 1, tokenOut: 0, proofOut: 0 }, tokenOutIdx: -1 };
+  return null;
+}
+
+const actionKind = (txoTypeHex: string): EventKind =>
+  txoTypeHex === "23" ? "split" : txoTypeHex === "25" ? "merge" : "transfer";
+
+/** Fingerprint every interface of a token tx and check it matches its action's golden shape:
+ *  the leading token in/out are strictly recognised; the p2p proof outputs are exact in count;
+ *  trailing change (p2pkh) + funding/proof inputs are loose; nothing may be "other". */
+function checkArrangement(tx: Transaction, type: TokenType, shape: Shape, byId: ById): string | null {
+  const id = tx.id("hex").slice(0, 8);
+  const outs = tx.outputs.map((o) => classifyOut(o.lockingScript, type));
+  const ins = tx.inputs.map((i) => classifyIn(i, type, byId));
+  if (outs.includes("other")) return `uninspected output in ${id} [${outs}]`;
+  if (ins.includes("other")) return `uninspected input in ${id} [${ins}]`;
+  // outputs: [token × tokenOut] then [p2p × proofOut] then [p2pkh change × rest]
+  for (let k = 0; k < shape.tokenOut; k++)
+    if (outs[k] !== "token") return `${shape.kind} ${id}: token output @${k} (got ${outs[k] ?? "none"}) [${outs}]`;
+  for (let k = 0; k < shape.proofOut; k++)
+    if (outs[shape.tokenOut + k] !== "p2p") return `${shape.kind} ${id}: p2p output @${shape.tokenOut + k} [${outs}]`;
+  for (let k = shape.tokenOut + shape.proofOut; k < outs.length; k++)
+    if (outs[k] !== "p2pkh") return `${shape.kind} ${id}: change p2pkh @${k} (got ${outs[k]}) [${outs}]`;
+  // inputs: [token × tokenIn] then [p2p | external | p2pkh × rest]  (proofs + funding, loose)
+  for (let k = 0; k < shape.tokenIn; k++)
+    if (ins[k] !== "token") return `${shape.kind} ${id}: token input @${k} (got ${ins[k] ?? "none"}) [${ins}]`;
+  for (let k = shape.tokenIn; k < ins.length; k++)
+    if (!(ins[k] === "p2p" || ins[k] === "external" || ins[k] === "p2pkh"))
+      return `${shape.kind} ${id}: unexpected input @${k}: ${ins[k]} [${ins}]`;
+  return null;
+}
+
+/** Resolve the token type of an event from its first recognised token interface (output, then a
+ *  token input's source for a melt). */
+function eventType(txs: Transaction[], byId: ById, expected?: TokenType): TokenType | undefined {
+  for (const tx of txs) {
+    const i = tx.outputs.findIndex((o) => recognizeType(o.lockingScript, expected));
+    if (i >= 0) return recognizeType(tx.outputs[i].lockingScript, expected)!;
+  }
+  for (const tx of txs)
+    for (const inp of tx.inputs) {
+      const s: Transaction | undefined = inp.sourceTransaction ?? (inp.sourceTXID ? byId.get(inp.sourceTXID) : undefined);
+      if (s) {
+        const t = recognizeType(s.outputs[inp.sourceOutputIndex].lockingScript, expected);
+        if (t) return t;
+      }
+    }
+  return undefined;
+}
+
+/**
+ * Verify ONE token event — a mint, a commit->settle pair, or a melt. Categorises each tx by its
+ * token's txoType action, fingerprints EVERY interface against the action's golden shape, and (for
+ * a commit+settle pair) checks the settle links back to the commit via parentOutpoint.
+ */
+export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts = {}): EventResult {
+  const txs = eventTxs.map(toTx);
+  if (txs.length === 0) return { ok: false, reason: "empty event" };
+  const byId: ById = new Map(txs.map((t) => [t.id("hex"), t]));
+
+  const type = eventType(txs, byId, opts.expectedType);
+  if (!type) return { ok: false, reason: "no BOLT token recognised in event" };
+  if (opts.expectedType && type !== opts.expectedType)
+    return { ok: false, reason: `expected ${opts.expectedType}, got ${type}`, type };
+
+  for (const tx of txs) {
+    const cat = categorise(tx, type, byId);
+    if (!cat) return { ok: false, reason: `tx ${tx.id("hex").slice(0, 8)} is not a token tx`, type };
+    const reason = checkArrangement(tx, type, cat.shape, byId);
+    if (reason) return { ok: false, reason, type, kind: cat.shape.kind as EventKind };
+  }
+
+  const commitTx = txs.find((t) => categorise(t, type, byId)?.shape.kind === "commit");
+  const settleTx = txs.find((t) => categorise(t, type, byId)?.shape.kind === "settle");
+  if (commitTx && settleTx) {
+    const cIdx = commitTx.outputs.findIndex((o) => recognizeType(o.lockingScript, type));
+    const sIdx = settleTx.outputs.findIndex((o) => recognizeType(o.lockingScript, type));
+    const p = parseOutpoint(field(settleTx.outputs[sIdx].lockingScript, type, "parent"));
+    if (!(p.txidHex === commitTx.id("hex") && p.vout === cIdx))
+      return { ok: false, reason: "settle.parent does not link to the commit token", type };
+    return { ok: true, type, kind: actionKind(fieldHex(commitTx.outputs[cIdx].lockingScript, type, "txoType")) };
+  }
+  const lone = categorise(txs[txs.length - 1], type, byId);
+  return { ok: true, type, kind: lone?.shape.kind === "melt" ? "melt" : "mint" };
+}
+
+/**
+ * Verify a whole token chain: recognise the type, pin the issuer across every token output, then
+ * validate every token tx's interface arrangement (via verifyEvent's primitives) and confirm a
+ * commit (txoType 21/23/25) -> settle lineage linked by parentOutpoint.
+ */
 export function verifyTokenChain(txsIn: (Transaction | string)[], opts: ScanOpts = {}): ScanResult {
   const txs = txsIn.map(toTx);
   if (txs.length === 0) return { ok: false, reason: "empty chain" };
+  const byId: ById = new Map(txs.map((t) => [t.id("hex"), t]));
 
-  // Find every recognised token output across the chain.
+  // Every recognised token output across the chain.
   type TokenRef = { txid: string; vout: number; type: TokenType; lock: Script };
   const tokens: TokenRef[] = [];
   for (const tx of txs) {
@@ -64,77 +225,30 @@ export function verifyTokenChain(txsIn: (Transaction | string)[], opts: ScanOpts
   if (opts.expectedType && type !== opts.expectedType)
     return { ok: false, reason: `expected ${opts.expectedType}, got ${type}` };
 
-  // C2 — issuerPubKey consistent across all token outputs, and == trusted issuer (if supplied).
+  // Issuer consistent across all token outputs, and == the trusted issuer (if supplied).
   const issuers = new Set(tokens.map((t) => Utils.toHex(issuerPubKeyOf(t.lock, type))));
   if (issuers.size !== 1) return { ok: false, reason: "inconsistent issuerPubKey across chain" };
   const issuerPubKeyHex = [...issuers][0];
   const trusted = optHex(opts.trustedIssuerPubKey);
   if (trusted && trusted !== issuerPubKeyHex) return { ok: false, reason: "issuerPubKey != trusted issuer" };
 
-  // C3 — lineage: the bolt must appear in a commit (txoType 21) AND a settle that links back to it.
-  // The settle's own txoType is the post-commit resting state (00 for the NFTs, 20 for
-  // SimpleMultiBolt), so the universal signal is the parentOutpoint: settle.parent -> commit token.
-  const commits = tokens.filter((t) => fieldHex(t.lock, type, "txoType") === "21");
-  if (commits.length === 0) return { ok: false, reason: "no commit token (txoType 21) in chain" };
+  // Lineage: a commit (txoType 21/23/25) paired with a settle linking back via parentOutpoint.
+  // (Checked before the per-interface arrangement so a structurally-incomplete chain — e.g. a
+  // mint+settle with no commit — reports the missing-commit reason, not an orphaned-input one.)
+  const commits = tokens.filter((t) => ["21", "23", "25"].includes(fieldHex(t.lock, type, "txoType")));
+  if (commits.length === 0) return { ok: false, reason: "no commit token (txoType 21/23/25) in chain" };
   const settle = tokens.find((s) => {
     const p = parseOutpoint(field(s.lock, type, "parent"));
     return commits.some((c) => c.txid === p.txidHex && c.vout === p.vout);
   });
   if (!settle) return { ok: false, reason: "no settle token linking back to a commit (parentOutpoint)" };
 
-  // C4 — full arrangement: classify EVERY input and output of each lineage tx; nothing may be left
-  // unclassified ("other"), and the shape must match the tx's role (mint / commit / settle).
-  type Cls = "token" | "p2p" | "p2pkh" | "external" | "other";
-  const classifyOut = (lock: Script): Cls => {
-    if (recognizeType(lock, type)) return "token";
-    const c = lock.chunks;
-    if (
-      c.length === 7 && c[0].data?.length === 2 && c[0].data[0] === 0xb0 && c[0].data[1] === 0x17 &&
-      c[1].op === OP.OP_EQUALVERIFY && c[2].op === OP.OP_DUP && c[3].op === OP.OP_HASH160 &&
-      c[4].data?.length === 20 && c[5].op === OP.OP_EQUALVERIFY && c[6].op === OP.OP_CHECKSIG
-    ) return "p2p";
-    if (
-      c.length === 5 && c[0].op === OP.OP_DUP && c[1].op === OP.OP_HASH160 && c[2].data?.length === 20 &&
-      c[3].op === OP.OP_EQUALVERIFY && c[4].op === OP.OP_CHECKSIG
-    ) return "p2pkh";
-    return "other";
-  };
-  const byId = new Map(txs.map((t) => [t.id("hex"), t]));
-  const classifyIn = (inp: { sourceTXID?: string; sourceOutputIndex: number }): Cls => {
-    const src = inp.sourceTXID ? byId.get(inp.sourceTXID) : undefined;
-    if (!src) return "external"; // funding from outside the supplied chain
-    return classifyOut(src.outputs[inp.sourceOutputIndex].lockingScript);
-  };
-  const tailOk = (got: Cls[], head: Cls[], tail: Cls[]): boolean =>
-    got.length >= head.length && head.every((h, i) => got[i] === h) &&
-    got.slice(head.length).every((g) => tail.includes(g));
-
+  // Categorise + fingerprint every interface of every token tx (mint / commit / settle / melt).
   for (const tx of txs) {
-    const tokenIdx = tx.outputs.findIndex((o) => recognizeType(o.lockingScript, type));
-    if (tokenIdx < 0) continue; // non-lineage tx (none in the BOLT goldens)
-    const id = tx.id("hex").slice(0, 8);
-    const outs = tx.outputs.map((o) => classifyOut(o.lockingScript));
-    const ins = tx.inputs.map((i) => classifyIn(i as any));
-    if (outs.includes("other")) return { ok: false, reason: `uninspected output in ${id} [${outs}]` };
-    if (ins.includes("other")) return { ok: false, reason: `uninspected input in ${id} [${ins}]` };
-
-    const lock = tx.outputs[tokenIdx].lockingScript;
-    const tt = fieldHex(lock, type, "txoType");
-    const parentZero = field(lock, type, "parent").every((b) => b === 0);
-    const role = tt === "21" ? "commit" : parentZero ? "mint" : "settle";
-
-    if (role === "mint") {
-      if (!tailOk(outs, ["token"], ["p2pkh"])) return { ok: false, reason: `mint ${id} outputs [${outs}]` };
-      if (!ins.every((c) => c === "external" || c === "p2pkh")) return { ok: false, reason: `mint ${id} inputs [${ins}]` };
-    } else if (role === "commit") {
-      if (!tailOk(outs, ["token", "p2p"], ["p2pkh"])) return { ok: false, reason: `commit ${id} outputs [${outs}]` };
-      if (ins[0] !== "token" || !ins.slice(1).every((c) => c === "p2pkh" || c === "external"))
-        return { ok: false, reason: `commit ${id} inputs [${ins}]` };
-    } else {
-      if (!tailOk(outs, ["token"], ["p2pkh"])) return { ok: false, reason: `settle ${id} outputs [${outs}]` };
-      if (ins[0] !== "token" || !ins.slice(1).every((c) => c === "p2pkh" || c === "external" || c === "p2p"))
-        return { ok: false, reason: `settle ${id} inputs [${ins}]` };
-    }
+    const cat = categorise(tx, type, byId);
+    if (!cat) continue; // a non-token tx (none in the BOLT goldens)
+    const reason = checkArrangement(tx, type, cat.shape, byId);
+    if (reason) return { ok: false, reason };
   }
 
   return {

@@ -15,6 +15,6 @@ export { default as MinSimpleBalanceTemplate } from "./templates/MinSimpleBalanc
 export { REGISTRY, recognizeType, issuerPubKeyOf, sha256Hex } from "./scan/fingerprints.js";
 export type { TokenType, TypeSpec } from "./scan/fingerprints.js";
 
-// The shared off-chain BOLT token-chain validator (the scanner).
-export { verifyTokenChain } from "./scan/verifyTokenChain.js";
-export type { ScanResult, ScanOpts } from "./scan/verifyTokenChain.js";
+// The shared off-chain BOLT token-chain validator (the scanner) + the per-event checker.
+export { verifyTokenChain, verifyEvent } from "./scan/verifyTokenChain.js";
+export type { ScanResult, ScanOpts, EventResult, EventKind } from "./scan/verifyTokenChain.js";
