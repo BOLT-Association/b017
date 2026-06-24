@@ -1,7 +1,6 @@
-// boltLib.ts (SimpleMultiBolt standalone package)
-// Trimmed to the layout-agnostic helpers SimpleMultiBolt needs:
-// verifyTx (bsv Spend), buildOutpoint, buildChangeOutput,
-// createSignature, splitCtx. No SimpleBolt/MultiBolt dependencies.
+// boltLib.ts — layout-agnostic helpers shared by both token streams:
+// verifyTx (bsv Spend), buildOutpoint, buildChangeOutput, createSignature, splitCtx,
+// and the tx-field primitives (le32/le64, spentOutpoint, vin*/vout*, …).
 
 import { Script, Spend, Transaction, Utils, PrivateKey, TransactionSignature, Hash } from "@bsv/sdk";
 const { Reader, Writer } = Utils;
@@ -96,6 +95,7 @@ export const splitCtx = (ctx: number[], unlockBytesLen: number = 0) => {
   let scriptLenSize = 1;
   if (firstByte === 0xfd) scriptLenSize = 3;
   else if (firstByte === 0xfe) scriptLenSize = 5;
+  /* v8 ignore next -- 0xff (>4GB scriptCode) is unreachable for any real BIP143 preimage */
   else if (firstByte === 0xff) scriptLenSize = 9;
   const ctxCodeLen = ctx.slice(offset, offset + scriptLenSize);
   offset += scriptLenSize;
@@ -103,6 +103,7 @@ export const splitCtx = (ctx: number[], unlockBytesLen: number = 0) => {
   reader = new Reader(ctx, 104 + 1);
   if (firstByte === 0xfd) actualScriptLen = reader.readUInt16LE();
   else if (firstByte === 0xfe) actualScriptLen = reader.readUInt32LE();
+  /* v8 ignore next -- 0xff (>4GB scriptCode) is unreachable for any real BIP143 preimage */
   else if (firstByte === 0xff) actualScriptLen = Number(reader.readUInt64LEBn());
   const ctxCode = ctx.slice(offset, offset + actualScriptLen);
   offset += actualScriptLen;

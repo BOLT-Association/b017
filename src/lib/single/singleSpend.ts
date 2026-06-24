@@ -1,19 +1,19 @@
 // Shared spend/unlock assembler for the NFT-family BOLT templates (MinSimpleBolt / Discount / Balance).
 //
 // Produces VALID spends on the @bsv/sdk Spend engine for the simple transfer (mint -> commit -> settle):
-// verified live across all three contracts (test/min-nft-spend.test.ts) and byte-identical to the genuine
-// sx golden (modulo the signature's low-S variant). Two caller requirements:
+// verified live across all three contracts (test/lib/singleSpend.test.ts) and byte-identical to the
+// genuine sx golden (modulo the signature's low-S variant). Two caller requirements:
 //   • the spending tx MUST be version >= 2 (the contract asserts it from the preimage);
 //   • the template's UNLOCK_SCRIPT_SUFFIX must be the full compiled unlock (patched from the artifact by
 //     the build scripts) — a truncated suffix corrupts the optimal-sighash s-computation.
 // The ancestor-reconstruction path (a settle reaching back over chains >= 4 txs, e.g. a coupon's 2nd
-// hop) is implemented via nftAncestorPieces (B2b-2), validated against the canonical sx golden.
+// hop) is implemented via singleAncestorPieces, validated against the canonical sx golden.
 //
-// All three compile to an IDENTICAL 37-arg unlock layout (the M-I/M-H stripped contract: no
-// mintData / issuerPubKey / genesisOutpoint / miscData in the ancestor reconstruction):
+// All three compile to an IDENTICAL 37-arg unlock layout (no mintData / issuerPubKey /
+// genesisOutpoint / miscData in the ancestor reconstruction):
 //
 //   [0..25]  ancestor pieces (26)  — EMPTY for the simple transfer (mint->commit->settle); populated
-//            by nftAncestorPieces when a settle reaches back over a chain >= 4 txs (coupon 2nd hop).
+//            by singleAncestorPieces when a settle reaches back over a chain >= 4 txs (coupon 2nd hop).
 //   [26]     fundOutpoint           — the funding input's outpoint (36B)
 //   [27]     changeOutput           — serialised change output (value + varint len + script)
 //   [28]     beneficiaryPubKeyHash  — the next owner's 20-byte pkh
@@ -32,22 +32,22 @@ import {
   PrivateKey,
   Hash,
 } from "@bsv/sdk";
-import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "./boltLib.js";
-import { nftAncestorPieces } from "./nftAncestor.js";
+import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../boltLib.js";
+import { singleAncestorPieces } from "./singleAncestor.js";
 
 /** Number of leading ancestor-reconstruction args in the NFT unlock layout. */
-export const NFT_ANCESTOR_ARG_COUNT = 26;
+export const SINGLE_ANCESTOR_ARG_COUNT = 26;
 
 const SIGNATURE_SCOPE = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL;
 
 /** 26 empty ancestor pushes — the simple-transfer (and melt) case. */
-export const emptyNftAncestorChunks = (): any[] => {
+export const emptySingleAncestorChunks = (): any[] => {
   const out: any[] = [];
-  for (let i = 0; i < NFT_ANCESTOR_ARG_COUNT; i++) out.push(...scriptChunksFromBin([]));
+  for (let i = 0; i < SINGLE_ANCESTOR_ARG_COUNT; i++) out.push(...scriptChunksFromBin([]));
   return out;
 };
 
-export interface NftUnlockParams {
+export interface SingleUnlockParams {
   privateKey: PrivateKey;
   /** The next owner's 20-byte pubKeyHash (commit + settle both commit-to the recipient). */
   beneficiaryPubKeyHash: number[];
@@ -69,7 +69,7 @@ export interface NftUnlockParams {
  * Build a ScriptTemplate-compatible unlocker for an NFT-family bolt spend (transfer commit/settle, and
  * a back-reaching settle that reconstructs its ancestor commit). Requires tx version >= 2.
  */
-export function nftSpendUnlock(params: NftUnlockParams): {
+export function singleSpendUnlock(params: SingleUnlockParams): {
   sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>;
   estimateLength: () => Promise<number>;
 } {
@@ -89,15 +89,15 @@ export function nftSpendUnlock(params: NftUnlockParams): {
       // Detect a settle that reaches back to a prior token (needs the ancestor block). The simple
       // mint->commit->settle lifecycle never does (txIdx <= 2): prevTxs at settle = [mint, commit].
       // A back-reaching settle (e.g. a coupon's 2nd hop settleTx2 at txIdx 4) reconstructs the commit
-      // two hops back (prevTxs[txIdx-3]) where the current owner received the token (B2b-2).
+      // two hops back (prevTxs[txIdx-3]) where the current owner received the token.
       const txIdx = (prevTxs?.length ?? 0);
       const ancestorIdx = txIdx - 3;
       const hasAncestor = ancestorIdx >= 1 && txIdx >= 4 && txIdx % 2 === 0;
       const ancestorChunks = hasAncestor
-        ? nftAncestorPieces(prevTxs![ancestorIdx], params.leadingValuePushes ?? 0).flatMap((p) =>
+        ? singleAncestorPieces(prevTxs![ancestorIdx], params.leadingValuePushes ?? 0).flatMap((p) =>
             scriptChunksFromBin(p),
           )
-        : emptyNftAncestorChunks();
+        : emptySingleAncestorChunks();
 
       const otherInputs = tx.inputs.filter((_: any, i: number) => i !== inputIndex);
       const ocsSubScript = new Script(

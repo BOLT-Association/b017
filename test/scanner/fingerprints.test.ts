@@ -1,18 +1,14 @@
 // B4 — the fingerprint registry recognises genuine tokens by [pushLengths] + sha256(staticCode),
 // and rejects tampered contracts / non-token scripts.
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import { Hash, P2PKH, PrivateKey, Transaction, Script } from '@bsv/sdk'
-import { REGISTRY, recognizeType, issuerPubKeyOf } from '../src/scan/fingerprints.js'
-import { SimpleMultiBOLT } from '../src/tokens/MultiBOLT.js'
+import { REGISTRY, recognizeType, recognizeP2P, issuerPubKeyOf } from '../../src/lib/scanner/fingerprints.js'
+import Pay2ProofTemplate from '../../src/tokens/templates/pay2Proof.js'
+import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
+import { readFixtureJSON } from '../helpers/fixtures.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
 const goldenLock = (name: string): Script =>
-  Transaction.fromHex(
-    JSON.parse(readFileSync(resolve(__dirname, `fixtures/${name}.lifecycle.golden.json`), 'utf8')).txs[0].hex,
-  ).outputs[0].lockingScript
+  Transaction.fromHex(readFixtureJSON(`${name}.lifecycle.golden.json`).txs[0].hex).outputs[0].lockingScript
 
 describe('B4 — fingerprint registry', () => {
   it('every type spec has a 64-hex suffixHash and issuerPubKey (33B) as the last push', () => {
@@ -50,5 +46,36 @@ describe('B4 — fingerprint registry', () => {
   it('issuerPubKeyOf returns the 33-byte last push of a recognised token', () => {
     const lock = goldenLock('MinSimpleBalanceBolt')
     expect(issuerPubKeyOf(lock, 'MinSimpleBalanceBOLT').length).toBe(33)
+  })
+
+  it('recognizeType fails closed on null/empty/garbage scripts', () => {
+    expect(recognizeType(null as any)).toBeNull()
+    expect(recognizeType(undefined as any)).toBeNull()
+    expect(recognizeType(new Script([]))).toBeNull()
+  })
+})
+
+describe('B4 — p2Proof golden fingerprint (recognizeP2P)', () => {
+  const pkh = new Array(20).fill(0x22)
+
+  it('recognises a genuine Pay2ProofTemplate lock', () => {
+    expect(recognizeP2P(new Pay2ProofTemplate().lock(pkh))).toBe(true)
+  })
+
+  it('rejects a tampered b017 marker (same shape, wrong marker bytes)', () => {
+    const lock = new Pay2ProofTemplate().lock(pkh)
+    const bad = new Script(lock.chunks.map((c, i) => (i === 0 ? { op: 2, data: [0xde, 0xad] } : c)))
+    expect(recognizeP2P(bad)).toBe(false)
+  })
+
+  it('rejects a wrong pkh length and a plain P2PKH', () => {
+    expect(recognizeP2P(new Pay2ProofTemplate().lock(new Array(19).fill(0x22)))).toBe(false)
+    expect(recognizeP2P(new P2PKH().lock(pkh))).toBe(false)
+  })
+
+  it('rejects a token lock and null/empty', () => {
+    expect(recognizeP2P(goldenLock('MinSimpleDiscountBolt'))).toBe(false)
+    expect(recognizeP2P(null as any)).toBe(false)
+    expect(recognizeP2P(new Script([]))).toBe(false)
   })
 })

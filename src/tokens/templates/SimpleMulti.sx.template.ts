@@ -18,12 +18,12 @@ import {
   Hash,
   Utils,
 } from "@bsv/sdk";
-import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../lib/boltLib.js";
+import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../../lib/boltLib.js";
 import {
   ancestorPiece,
   createEmptyFungibleAncestorChunksSMB,
   PIECE_NAMES,
-} from "../lib/multiBoltLib.js";
+} from "../../lib/multi/multiBoltLib.js";
 
 export default class SimpleMultiTemplate implements ScriptTemplate {
   private signatureScope = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL;
@@ -127,7 +127,7 @@ export default class SimpleMultiTemplate implements ScriptTemplate {
       sign: async (tx: Transaction, inputIndex: number) => {
         const { input, sourceTXID, sourceSatoshis, lockingScript, otherInputs } = this.extractInputInfo(tx, inputIndex);
         // SimpleMultiBolt's lock tail uses the combined OP_CHECKSIGVERIFY (ad) -> a 2-byte
-        // unlock-script-code prefix, vs canonical MultiBolt's OP_CHECKSIG OP_VERIFY (ac 69).
+        // unlock-script-code prefix.
         const ocsSubScript = new Script(Script.fromASM('OP_CHECKSIGVERIFY OP_ENDIF').chunks.concat(lockingScript.chunks));
         const ctx = TransactionSignature.format({
           sourceTXID,

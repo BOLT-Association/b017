@@ -7,7 +7,7 @@ import {
 export abstract class BOLT {
   tx?: Transaction;
   voutIdx?: number;
-  prevTxs: Transaction[] = []; // We only need to store a maximum of two previous txs (e.g. B2G solved)
+  prevTxs: Transaction[] = []; // prior txs in the token's lineage
   pubKey: number[] = [];
   issuerPubKey: number[] = [];
   genesisOutpoint: number[] = [];

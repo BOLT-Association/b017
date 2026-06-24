@@ -3,18 +3,13 @@
 // (Security bar = the EventListener on-chain scan: fingerprint + issuer + lineage + arrangement.
 // SPV/BEEF on-chain presence is a composable leg the caller supplies; this validates the structure.)
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import { Transaction, Script, P2PKH } from '@bsv/sdk'
-import { verifyEvents } from '../src/scan/verifyEvents.js'
-import { appendOutput } from './counterfeit.helper.js'
+import { verifyEvents } from '../../src/lib/scanner/verifyEvents.js'
+import { appendOutput } from '../helpers/counterfeit.js'
+import { readFixtureJSON } from '../helpers/fixtures.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
 const golden = (name: string): string[] =>
-  JSON.parse(readFileSync(resolve(__dirname, `fixtures/${name}.lifecycle.golden.json`), 'utf8')).txs.map(
-    (t: any) => t.hex,
-  )
+  readFixtureJSON(`${name}.lifecycle.golden.json`).txs.map((t: any) => t.hex)
 
 describe('C5 — parity: scanner accept/reject == on-chain BOLT contract', () => {
   const discount = golden('MinSimpleDiscountBolt')

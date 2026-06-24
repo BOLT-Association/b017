@@ -26,7 +26,7 @@
 // Strict = golden byte fingerprint (recognizeType: leading-push layout + sha256(static code)).
 // Loose  = shape only (a P2PKH change output / external funding input may carry any pkh + value).
 import { OP, Transaction, Script, Utils } from "@bsv/sdk";
-import { recognizeType, issuerPubKeyOf, type TokenType } from "./fingerprints.js";
+import { recognizeType, recognizeP2P, issuerPubKeyOf, type TokenType } from "./fingerprints.js";
 
 // Field push-indices per type (parent/grandparent/issuer are the last 3 pushes; txoType varies).
 type FieldName = "pubKeyHash" | "commitment" | "txoType" | "parent" | "grandparent";
@@ -41,10 +41,14 @@ const field = (lock: Script, type: TokenType, f: FieldName): number[] =>
 const fieldHex = (lock: Script, type: TokenType, f: FieldName): string => Utils.toHex(field(lock, type, f));
 
 // A 36-byte outpoint is txid (32, internal byte order) + vout (4, LE). The display txid is reversed.
+// A short/empty buffer (a tampered or absent field) yields a txid that cannot match any real tx, so
+// the linkage check fails closed rather than throwing.
 function parseOutpoint(op: number[]): { txidHex: string; vout: number } {
-  const txidHex = Utils.toHex([...op.slice(0, 32)].reverse());
-  const v = op.slice(32, 36);
-  const vout = ((v[0] ?? 0) | ((v[1] ?? 0) << 8) | ((v[2] ?? 0) << 16) | ((v[3] ?? 0) << 24)) >>> 0;
+  const bytes = Array.isArray(op) ? op : [];
+  const txidHex = Utils.toHex([...bytes.slice(0, 32)].reverse());
+  const v = new Uint8Array(4);
+  v.set(bytes.slice(32, 36)); // missing bytes stay 0 — a short/absent field can't match a real outpoint
+  const vout = (v[0] | (v[1] << 8) | (v[2] << 16) | (v[3] << 24)) >>> 0;
   return { txidHex, vout };
 }
 
@@ -67,7 +71,17 @@ export interface EventResult {
   kind?: EventKind;
 }
 
-const toTx = (t: Transaction | string): Transaction => (typeof t === "string" ? Transaction.fromHex(t) : t);
+/** Thrown when an input tx (string) cannot be parsed; caught at the verify entry points and turned
+ *  into an `ok: false` result so a malformed batch never escapes as an exception. */
+class ParseError extends Error {}
+const toTx = (t: Transaction | string): Transaction => {
+  if (typeof t !== "string") return t;
+  try {
+    return Transaction.fromHex(t);
+  } catch (e) {
+    throw new ParseError(`malformed transaction hex: ${(e as Error)?.message ?? e}`);
+  }
+};
 const optHex = (b?: number[] | string): string | undefined =>
   b == null ? undefined : typeof b === "string" ? b.toLowerCase() : Utils.toHex(b);
 
@@ -79,12 +93,8 @@ type ById = Map<string, Transaction>;
  *  proof output; p2pkh = a plain pay-to-pubkey-hash (change); else "other". */
 function classifyOut(lock: Script, type: TokenType): Cls {
   if (recognizeType(lock, type)) return "token";
-  const c = lock.chunks;
-  if (
-    c.length === 7 && c[0].data?.length === 2 && c[0].data[0] === 0xb0 && c[0].data[1] === 0x17 &&
-    c[1].op === OP.OP_EQUALVERIFY && c[2].op === OP.OP_DUP && c[3].op === OP.OP_HASH160 &&
-    c[4].data?.length === 20 && c[5].op === OP.OP_EQUALVERIFY && c[6].op === OP.OP_CHECKSIG
-  ) return "p2p";
+  if (recognizeP2P(lock)) return "p2p"; // golden p2Proof fingerprint (b017 marker + static skeleton)
+  const c = lock?.chunks ?? [];
   if (
     c.length === 5 && c[0].op === OP.OP_DUP && c[1].op === OP.OP_HASH160 && c[2].data?.length === 20 &&
     c[3].op === OP.OP_EQUALVERIFY && c[4].op === OP.OP_CHECKSIG
@@ -97,8 +107,9 @@ function classifyOut(lock: Script, type: TokenType): Cls {
 function classifyIn(input: any, type: TokenType, byId: ById): Cls {
   const src: Transaction | undefined =
     input.sourceTransaction ?? (input.sourceTXID ? byId.get(input.sourceTXID) : undefined);
-  if (!src) return "external";
-  return classifyOut(src.outputs[input.sourceOutputIndex].lockingScript, type);
+  const spent = src?.outputs?.[input.sourceOutputIndex]?.lockingScript;
+  if (!spent) return "external"; // source not in the supplied set (or out-of-range vout)
+  return classifyOut(spent, type);
 }
 
 // ---- action categorisation: the token's txoType byte -> the event shape ----
@@ -147,12 +158,17 @@ function checkArrangement(tx: Transaction, type: TokenType, shape: Shape, byId: 
     if (outs[shape.tokenOut + k] !== "p2p") return `${shape.kind} ${id}: p2p output @${shape.tokenOut + k} [${outs}]`;
   for (let k = shape.tokenOut + shape.proofOut; k < outs.length; k++)
     if (outs[k] !== "p2pkh") return `${shape.kind} ${id}: change p2pkh @${k} (got ${outs[k]}) [${outs}]`;
-  // inputs: [token × tokenIn] then [p2p | external | p2pkh × rest]  (proofs + funding, loose)
+  // inputs: [token × tokenIn] then [p2p proof × any (settle only, contiguous)] then [funding: external | p2pkh].
+  // A p2Proof input (consuming a commit's proof output) is STRICTLY fingerprinted (classifyIn ->
+  // recognizeP2P) and is only legitimate on a settle, immediately after the token input(s); a proof
+  // input on any other tx kind, or after the funding region, is rejected.
   for (let k = 0; k < shape.tokenIn; k++)
     if (ins[k] !== "token") return `${shape.kind} ${id}: token input @${k} (got ${ins[k] ?? "none"}) [${ins}]`;
-  for (let k = shape.tokenIn; k < ins.length; k++)
-    if (!(ins[k] === "p2p" || ins[k] === "external" || ins[k] === "p2pkh"))
-      return `${shape.kind} ${id}: unexpected input @${k}: ${ins[k]} [${ins}]`;
+  let k = shape.tokenIn;
+  if (shape.kind === "settle") while (ins[k] === "p2p") k++; // strict, contiguous proof inputs
+  for (; k < ins.length; k++)
+    if (!(ins[k] === "external" || ins[k] === "p2pkh"))
+      return `${shape.kind} ${id}: unexpected input @${k}: ${ins[k]} (a p2Proof input is only valid on a settle, immediately after the token input) [${ins}]`;
   return null;
 }
 
@@ -180,12 +196,19 @@ function eventType(txs: Transaction[], byId: ById, expected?: TokenType): TokenT
  * a commit+settle pair) checks the settle links back to the commit via parentOutpoint.
  */
 export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts = {}): EventResult {
-  const txs = eventTxs.map(toTx);
+  if (!Array.isArray(eventTxs)) return { ok: false, reason: "event must be an array of transactions" };
+  let txs: Transaction[];
+  try {
+    txs = eventTxs.map(toTx);
+  } catch (e) {
+    return { ok: false, reason: e instanceof ParseError ? e.message : `unparseable event: ${e}` };
+  }
   if (txs.length === 0) return { ok: false, reason: "empty event" };
   const byId: ById = new Map(txs.map((t) => [t.id("hex"), t]));
 
   const type = eventType(txs, byId, opts.expectedType);
   if (!type) return { ok: false, reason: "no BOLT token recognised in event" };
+  /* v8 ignore next 2 -- eventType() already filtered by expectedType, so this is unreachable; kept as defense-in-depth */
   if (opts.expectedType && type !== opts.expectedType)
     return { ok: false, reason: `expected ${opts.expectedType}, got ${type}`, type };
 
@@ -218,7 +241,13 @@ export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts =
  * mint (genesis) or melt (terminal) is a valid single-tx event.
  */
 export function verifyEvents(txsIn: (Transaction | string)[], opts: ScanOpts = {}): ScanResult {
-  const txs = txsIn.map(toTx);
+  if (!Array.isArray(txsIn)) return { ok: false, reason: "batch must be an array of transactions" };
+  let txs: Transaction[];
+  try {
+    txs = txsIn.map(toTx);
+  } catch (e) {
+    return { ok: false, reason: e instanceof ParseError ? e.message : `unparseable batch: ${e}` };
+  }
   if (txs.length === 0) return { ok: false, reason: "empty batch" };
   const byId: ById = new Map(txs.map((t) => [t.id("hex"), t]));
 
@@ -236,6 +265,7 @@ export function verifyEvents(txsIn: (Transaction | string)[], opts: ScanOpts = {
 
   const type = tokens[0].type;
   if (tokens.some((t) => t.type !== type)) return { ok: false, reason: "mixed token types in batch" };
+  /* v8 ignore next 2 -- recognizeType() already filtered by expectedType, so this is unreachable; kept as defense-in-depth */
   if (opts.expectedType && type !== opts.expectedType)
     return { ok: false, reason: `expected ${opts.expectedType}, got ${type}` };
 
@@ -243,6 +273,9 @@ export function verifyEvents(txsIn: (Transaction | string)[], opts: ScanOpts = {
   const issuers = new Set(tokens.map((t) => Utils.toHex(issuerPubKeyOf(t.lock, type))));
   if (issuers.size !== 1) return { ok: false, reason: "inconsistent issuerPubKey across batch" };
   const issuerPubKeyHex = [...issuers][0];
+  /* v8 ignore next 2 -- a recognised token's last push is exactly 33 bytes (the registry layout), so this never fires; kept as defense-in-depth */
+  if (issuerPubKeyHex.length !== 66) // a compressed secp256k1 pubkey is exactly 33 bytes
+    return { ok: false, reason: "issuerPubKey is not a 33-byte compressed public key", type };
   const trusted = optHex(opts.trustedIssuerPubKey);
   if (trusted && trusted !== issuerPubKeyHex) return { ok: false, reason: "issuerPubKey != trusted issuer" };
 

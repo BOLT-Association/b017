@@ -5,8 +5,8 @@
 // inputs, melt = a token input with no token output. Chains are built live (same as no-elas).
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction } from '@bsv/sdk'
-import { SimpleMultiBOLT } from '../src/tokens/MultiBOLT.js'
-import { verifyEvent, verifyEvents } from '../src/scan/verifyEvents.js'
+import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
+import { verifyEvent, verifyEvents } from '../../src/lib/scanner/verifyEvents.js'
 
 const MASK64 = (1n << 64n) - 1n
 const bal = (amount: bigint): number[] => {
@@ -63,6 +63,40 @@ describe('A3 — token events over the SimpleMultiBOLT lifecycle', () => {
     const ev = verifyEvent([t.tx!], { expectedType: T })
     expect(ev.ok, ev.reason).toBe(true)
     expect(ev.kind).toBe('mint')
+  })
+
+  it('verifyEvent rejects a settle whose parent does not link to the given commit', async () => {
+    let t1 = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM))
+    t1 = await t1.transfer(child('1'))
+    let t2 = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM))
+    t2 = await t2.transfer(child('2'))
+    const c1 = t1.prevTxs[t1.prevTxs.length - 2] // event 1's commit
+    const s2 = t2.tx!                            // event 2's settle (links to event 2's commit)
+    const r = verifyEvent([c1, s2], { expectedType: T })
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/settle\.parent does not link/)
+  })
+
+  it('verifyEvent resolves a melt type from its token input (no expectedType)', async () => {
+    let t = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM))
+    t = await t.transfer(child('1'))
+    const melted = await t.melt()
+    const r = verifyEvent([melted.tx!]) // no expectedType -> eventType must use the token input's source
+    expect(r.ok, r.reason).toBe(true)
+    expect(r.kind).toBe('melt')
+  })
+
+  it('rejects a batch whose token outputs carry inconsistent issuers', async () => {
+    const a = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM))
+    const otherIssuer = PrivateKey.fromString('00000000000000000000000000000000000000000000000000000000000000a5', 'hex')
+    const otherSrc = new Transaction(1, [], [{
+      satoshis: 1000, change: true,
+      lockingScript: new P2PKH().lock(Hash.hash160(otherIssuer.toPublicKey().encode(true))),
+    }])
+    const b = await new SimpleMultiBOLT().mint(otherIssuer, otherSrc, '', bal(SIM))
+    const r = verifyEvents([a.tx!, b.tx!], { expectedType: T })
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/inconsistent issuerPubKey/)
   })
 
   it('rejects a tampered split settle (an unrecognised extra output)', async () => {

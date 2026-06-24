@@ -7,16 +7,15 @@ import {
   TransactionOutput,
   TransactionInput
 } from "@bsv/sdk";
-import SimpleMultiTemplate from "../templates/SimpleMulti.sx.template.js";
-import Pay2ProofTemplate from "../templates/pay2Proof.js";
+import SimpleMultiTemplate from "./templates/SimpleMulti.sx.template.js";
+import Pay2ProofTemplate from "./templates/pay2Proof.js";
 import { verifyTx, buildOutpoint } from "../lib/boltLib.js";
 import { BOLT } from "./BOLT.js";
 
 export type VerifierType = 'bsv';
 
-// SimpleMultiBolt: optimised fungible token (swap removed, 16-byte balance,
-// mandatory change + funding). Ported from MultiBolt.ts. See
-// ts-bolt/src/multi/SimpleMultiBolt.sx.template.ts for the runtime assembler.
+// SimpleMultiBolt: optimised fungible token (16-byte balance, mandatory change + funding).
+// The runtime lock/unlock/melt assembler is in templates/SimpleMulti.sx.template.ts.
 export class SimpleMultiBOLT extends BOLT {
   skipVerify: boolean = false;
   verifier: VerifierType = 'bsv';

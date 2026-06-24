@@ -7,9 +7,9 @@
 //   balance[16] · pubKeyHash[20] · pubKeyHashCommitment[20] · txoType[1] · parentOutpoint[36] ·
 //   grandparentOutpoint[36] · issuerPubKey[33]  +  LOCK_SCRIPT_SUFFIX
 //
-// The spend/unlock path (transfer commit/settle, 37 args) lands in Lane B2b (the coupon transfers).
+// The spend/unlock path (transfer commit/settle, 37 args) is provided via singleSpendUnlock.
 import { ScriptTemplate, LockingScript, Script, PrivateKey, Transaction, UnlockingScript } from "@bsv/sdk";
-import { nftSpendUnlock } from "../lib/nftSpend.js";
+import { singleSpendUnlock } from "../../lib/single/singleSpend.js";
 
 export default class MinSimpleBalanceTemplate implements ScriptTemplate {
   // Static UNLOCK suffix (after the 37 data pushes), patched from the artifact by
@@ -50,7 +50,7 @@ export default class MinSimpleBalanceTemplate implements ScriptTemplate {
 
   /**
    * Spend (transfer commit/settle) this balance bolt. The balance is immutable and carried by the
-   * lock; the 37-arg unlock layout is contract-agnostic, so it delegates to nftSpendUnlock.
+   * lock; the 37-arg unlock layout is contract-agnostic, so it delegates to singleSpendUnlock.
    * Requires tx version >= 2.
    * @param beneficiaryPubKeyHash the next owner's 20-byte pkh
    * @param prevTxs prior lineage txs (mint, commit, ...); a back-reaching settle (>=4 txs) is B2b-2
@@ -62,7 +62,7 @@ export default class MinSimpleBalanceTemplate implements ScriptTemplate {
     forceNoChange = false,
     forceNoFund = false,
   ): { sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>; estimateLength: () => Promise<number> } {
-    return nftSpendUnlock({
+    return singleSpendUnlock({
       privateKey,
       beneficiaryPubKeyHash,
       unlockScriptSuffixASM: this.UNLOCK_SCRIPT_SUFFIX,

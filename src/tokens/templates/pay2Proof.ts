@@ -1,5 +1,5 @@
 import { OP, ScriptTemplate, LockingScript, Script, PrivateKey, UnlockingScript, Transaction, TransactionSignature, Hash } from '@bsv/sdk'
-import { createSignature } from '../lib/boltLib.js'
+import { createSignature } from '../../lib/boltLib.js'
 
 export default class Pay2ProofTemplate implements ScriptTemplate {
     lock(pubKeyHash: number[]): LockingScript {

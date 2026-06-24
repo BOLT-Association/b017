@@ -7,10 +7,10 @@
 //   pubKeyHash[20] · pubKeyHashCommitment[20] · txoType[1] · parentOutpoint[36] ·
 //   grandparentOutpoint[36] · issuerPubKey[33]  +  LOCK_SCRIPT_SUFFIX
 //
-// The spend/unlock path (transfer commit/settle, 37 args) is provided in a later
-// step (Lane B2 — the coupon transfers); the identity issuance only needs the lock.
+// The spend/unlock path (transfer commit/settle, 37 args) is provided via singleSpendUnlock;
+// the identity issuance only needs the lock.
 import { ScriptTemplate, LockingScript, Script, PrivateKey, Transaction, UnlockingScript } from "@bsv/sdk";
-import { nftSpendUnlock } from "../lib/nftSpend.js";
+import { singleSpendUnlock } from "../../lib/single/singleSpend.js";
 
 export default class MinSimpleTemplate implements ScriptTemplate {
   // Static UNLOCK suffix (after the 37 data pushes), patched from the artifact by
@@ -49,7 +49,7 @@ export default class MinSimpleTemplate implements ScriptTemplate {
 
   /**
    * Spend (transfer commit/settle) this identity bolt. The 37-arg unlock layout is contract-agnostic
-   * across the NFT family, so it delegates to nftSpendUnlock. Requires tx version >= 2.
+   * across the NFT family, so it delegates to singleSpendUnlock. Requires tx version >= 2.
    * @param beneficiaryPubKeyHash the next owner's 20-byte pkh
    * @param prevTxs prior lineage txs (mint, commit, ...); a back-reaching settle (>=4 txs) is B2b-2
    */
@@ -60,7 +60,7 @@ export default class MinSimpleTemplate implements ScriptTemplate {
     forceNoChange = false,
     forceNoFund = false,
   ): { sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>; estimateLength: () => Promise<number> } {
-    return nftSpendUnlock({
+    return singleSpendUnlock({
       privateKey,
       beneficiaryPubKeyHash,
       unlockScriptSuffixASM: this.UNLOCK_SCRIPT_SUFFIX,

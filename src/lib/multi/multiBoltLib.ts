@@ -1,26 +1,23 @@
 // multiBoltLib.ts
 // SimpleMultiBolt-specific ancestor reconstruction + CTX helpers.
 //
-// SimpleMultiBolt is the optimised fungible contract (16-byte balance, mandatory
-// change/funding, swap unused) whose lock/unlock layout differs from canonical MultiBolt:
-//   - 11 lock data chunks (vs 16): mintData / otherParentOutpoint / otherGenesisOutpoint /
-//     otherIssuerPubKey / genesisOutpoint all removed.
-//   - 198 unlock args (vs MultiBolt's ~253): no leading miscData; 89 ancestor pieces per
-//     ancestor (vs 115); interopGenesisOutpoint + interopIssuerPubKey removed from the tail.
+// SimpleMultiBolt is the optimised fungible contract: 16-byte balance, mandatory change/funding.
+//   - 11 lock data chunks.
+//   - 198 unlock args; 89 ancestor pieces per ancestor.
 //
-// Derived constants (see ts-bolt/src/sxFiles/SimpleMultiBolt.sx.json):
-//   - ctxHeader sits at unlock chunk index 192  -> ARGS2CTX_SMB = 192   (MultiBolt: 247)
-//   - lock data-push count                       -> PUSHDATAS_SMB = 11  (MultiBolt: 16)
-//   - live section start in a token unlock script -> SKIP_SMB = 178      (MultiBolt: 231)
-//   - txoType lock chunk index                   -> TXOTYPE_IDX_SMB = 6 (MultiBolt: 10)
+// Layout constants:
+//   - ctxHeader sits at unlock chunk index 192   -> ARGS2CTX_SMB = 192
+//   - lock data-push count                       -> PUSHDATAS_SMB = 11
+//   - live section start in a token unlock script -> SKIP_SMB = 178
+//   - txoType lock chunk index                   -> TXOTYPE_IDX_SMB = 6
 //
-// Self-contained: only depends on @bsv/sdk so the standalone package needs no sx tooling.
+// Self-contained: depends only on @bsv/sdk (no sx tooling at runtime).
 
 import { Script, Transaction, Utils } from "@bsv/sdk";
 import {
   txVersion, txLockTime, spentOutpoint, vinChunk, vinSequence, vinScript,
   voutChunk, outputValue, outputScript, scriptChunksFromBin,
-} from "./boltLib.js";
+} from "../boltLib.js";
 const { Reader, Writer } = Utils;
 
 const ARGS2CTX_SMB = 192;
@@ -31,12 +28,8 @@ const TXOTYPE_IDX_SMB = 6;
 // ---- CTX reconstruction from a prior token tx's vin unlocking script ----
 // ctxHeader is at ARGS2CTX_SMB; ctxCodeLockScriptCode/footer/lockLen at +3/+4/+5.
 
-const getVinCTXPieceSMB = (
-  tx: Transaction,
-  vinIndex: number,
-  piece: number,
-  includeNSequence: boolean = false
-): number[] => {
+// piece 0 = ctxHeader (104 bytes); piece 2 = ctxFooter (the bytes after the scriptCode).
+const getVinCTXPieceSMB = (tx: Transaction, vinIndex: number, piece: number): number[] => {
   const w = new Utils.Writer();
   const inputScript = tx.inputs[vinIndex]?.unlockingScript;
   if (!inputScript?.chunks?.[ARGS2CTX_SMB]) return [];
@@ -50,38 +43,14 @@ const getVinCTXPieceSMB = (
     .concat(ctxCodeLockScriptCode || [])
     .concat(ctxFooter || []);
   const tmpScript = new Script();
-  tmpScript.writeBin(ctx || []);
+  tmpScript.writeBin(ctx);
   const scriptBin = tmpScript.toBinary();
-  const headerLen = scriptBin.length - (ctx?.length || 0);
+  const headerLen = scriptBin.length - ctx.length;
   const scriptCodeStart = 104 + headerLen;
-  const scriptCodeBuf = scriptBin?.slice(scriptCodeStart);
-  const reader = new Utils.Reader(scriptCodeBuf);
+  const reader = new Utils.Reader(scriptBin.slice(scriptCodeStart));
   const scriptCodeLen = reader.readVarIntNum();
-  switch (piece) {
-    case 0:
-      w.write(ctx?.slice(0, 104) || []);
-      break;
-    case 1: {
-      const scriptCode = Script.fromBinary(
-        scriptCodeBuf?.slice(reader.pos, reader.pos + scriptCodeLen || 0)
-      );
-      const scriptData = new Script();
-      for (let i = 0; i < PUSHDATAS_SMB; i++) {
-        scriptData.chunks.push(scriptCode.chunks[i]);
-      }
-      w.write(scriptData.toBinary() || []);
-      break;
-    }
-    case 2: {
-      const remainingCtx = scriptBin.slice(scriptCodeStart + scriptCodeLen + reader.pos);
-      w.write(remainingCtx || []);
-      if (includeNSequence) {
-        const input = tx.inputs[vinIndex];
-        w.writeUInt32LE(input.sequence || 0xffffffff);
-      }
-      break;
-    }
-  }
+  if (piece === 0) w.write(ctx.slice(0, 104));
+  else w.write(scriptBin.slice(scriptCodeStart + scriptCodeLen + reader.pos)); // piece 2: footer
   return w.toArray();
 };
 
@@ -100,19 +69,17 @@ const getVinCTXDataArgSMB = (tx: Transaction, vinIndex: number, argIdx: number):
     .concat(ctxCodeLockScriptCode || [])
     .concat(ctxFooter || []);
   const tmpScript = new Script();
-  tmpScript.writeBin(ctx || []);
+  tmpScript.writeBin(ctx);
   const scriptBin = tmpScript.toBinary();
-  const headerLen = scriptBin.length - (ctx?.length || 0);
+  const headerLen = scriptBin.length - ctx.length;
   const scriptCodeStart = 104 + headerLen;
-  const scriptCodeBuf = scriptBin?.slice(scriptCodeStart);
+  const scriptCodeBuf = scriptBin.slice(scriptCodeStart);
   const reader = new Utils.Reader(scriptCodeBuf);
   const scriptCodeLen = reader.readVarIntNum();
-  const scriptCode = Script.fromBinary(
-    scriptCodeBuf?.slice(reader.pos, reader.pos + scriptCodeLen || 0)
-  );
+  const scriptCode = Script.fromBinary(scriptCodeBuf.slice(reader.pos, reader.pos + scriptCodeLen));
   const chunk = scriptCode.chunks[argIdx];
-  if (!!chunk && chunk.op === 0) return [];
-  return (scriptCode.chunks[argIdx]?.data as number[]) || [];
+  if (chunk && chunk.op === 0) return [];
+  return (chunk?.data as number[]) ?? [];
 };
 
 // SimpleMultiBolt action bytes (no swap): 20 transferSettle, 21 transferCommit,
@@ -124,7 +91,7 @@ const determineTxTypeSMB = (tx: Transaction): string => {
   return typeByte.toString(16);
 };
 
-// All 89 SimpleMultiBolt ancestor piece names per ancestor (A or B).
+// The 89 SimpleMultiBolt ancestor piece names per ancestor.
 export const PIECE_NAMES = [
   "Version",
   "Vin1Outpoint",
@@ -209,7 +176,7 @@ export const ancestorPiece = (name: string, tx: Transaction): number[] => {
     case "Vin1CTXParentOutpoint": res = getVinCTXDataArgSMB(ancestorTx, 0, 8); break;
     case "Vin1CTXGrandparentOutpoint": res = getVinCTXDataArgSMB(ancestorTx, 0, 9); break;
     case "Vin1CTXIssuerPubKey": res = getVinCTXDataArgSMB(ancestorTx, 0, 10); break;
-    case "Vin1CTXFooter": res = getVinCTXPieceSMB(ancestorTx, 0, 2, false); break;
+    case "Vin1CTXFooter": res = getVinCTXPieceSMB(ancestorTx, 0, 2); break;
     case "Vin1NSequence": res = vinSequence(ancestorTx, 0); break;
     // ---- Vin2 (token, only mergeCommit) ----
     case "Vin2Outpoint": if (hasTwoTokenInputs) res = spentOutpoint(ancestorTx, 1); break;
@@ -239,7 +206,7 @@ export const ancestorPiece = (name: string, tx: Transaction): number[] => {
     case "Vin2CTXParentOutpoint": if (hasTwoTokenInputs) res = getVinCTXDataArgSMB(ancestorTx, 1, 8); break;
     case "Vin2CTXGrandparentOutpoint": if (hasTwoTokenInputs) res = getVinCTXDataArgSMB(ancestorTx, 1, 9); break;
     case "Vin2CTXIssuerPubKey": if (hasTwoTokenInputs) res = getVinCTXDataArgSMB(ancestorTx, 1, 10); break;
-    case "Vin2CTXFooter": if (hasTwoTokenInputs) res = getVinCTXPieceSMB(ancestorTx, 1, 2, false); break;
+    case "Vin2CTXFooter": if (hasTwoTokenInputs) res = getVinCTXPieceSMB(ancestorTx, 1, 2); break;
     case "Vin2NSequence": if (hasTwoTokenInputs) res = vinSequence(ancestorTx, 1); break;
     // ---- Funding vin (always last input) ----
     case "VinFundOutpoint": if (hasFunding) res = spentOutpoint(ancestorTx, fundVinIdx); break;
@@ -283,7 +250,7 @@ export const ancestorPiece = (name: string, tx: Transaction): number[] => {
     case "ChangeScript": if (hasChange) res = outputScript(ancestorTx, changeVoutIdx); break;
     case "NLockTime": res = txLockTime(ancestorTx); break;
   }
-  return res || [];
+  return res;
 };
 
 // 89 ancestorA + 89 ancestorB = 178 empty chunks (no leading miscData) for melt.

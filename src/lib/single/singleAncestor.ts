@@ -1,4 +1,4 @@
-// NFT ancestor reconstruction (Lane B2b-2) — the 26 ancestor-piece unlock args [0..25] a settle
+// NFT ancestor reconstruction — the 26 ancestor-piece unlock args [0..25] a settle
 // must carry when it reaches back over a chain of >= 4 txs (e.g. a coupon round-trip's 2nd hop: the
 // settle s2 reconstructs the commit c1 where the current owner received the token). These bytes let
 // the contract rebuild + hash the ancestor commit to verify the lineage binding.
@@ -12,7 +12,7 @@
 // Mirrors the SimpleMultiBolt ancestor idiom (multiBoltLib): a PIECE_NAMES list + an
 // ancestorPiece(name, tx) switch — common naming + shape across both token streams.
 import { Transaction, Script } from "@bsv/sdk";
-import { le32, le64, scriptChunk, spentOutpoint } from "./boltLib.js";
+import { le32, le64, scriptChunk, spentOutpoint } from "../boltLib.js";
 
 /** The 26 NFT ancestor-piece names, in unlockArgs order [0..25]. */
 export const PIECE_NAMES = [
@@ -70,6 +70,6 @@ export function ancestorPiece(name: string, ancestorTx: Transaction, leadingValu
 }
 
 /** All 26 ancestor pieces in unlockArgs order — PIECE_NAMES mapped through ancestorPiece. */
-export function nftAncestorPieces(ancestorTx: Transaction, leadingValuePushes: number): number[][] {
+export function singleAncestorPieces(ancestorTx: Transaction, leadingValuePushes: number): number[][] {
   return PIECE_NAMES.map((name) => ancestorPiece(name, ancestorTx, leadingValuePushes));
 }

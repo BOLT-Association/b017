@@ -9,10 +9,10 @@
 //      the build scripts) — a truncated suffix corrupts the optimal-sighash (OP_PUSH_TX) s-computation.
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction, LockingScript } from '@bsv/sdk'
-import { verifyTx, buildOutpoint } from '../src/lib/boltLib.js'
-import MinSimpleTemplate from '../src/templates/MinSimple.sx.template.js'
-import MinSimpleDiscountTemplate from '../src/templates/MinSimpleDiscount.sx.template.js'
-import MinSimpleBalanceTemplate from '../src/templates/MinSimpleBalance.sx.template.js'
+import { verifyTx, buildOutpoint } from '../../src/lib/boltLib.js'
+import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
+import MinSimpleDiscountTemplate from '../../src/tokens/templates/MinSimpleDiscount.sx.template.js'
+import MinSimpleBalanceTemplate from '../../src/tokens/templates/MinSimpleBalance.sx.template.js'
 
 // Non-degenerate keys: privkey=1 would make pubkey == G (X=79be667e…), colliding with the
 // contract's r-puzzle magic-sig constant. Use high-entropy scalars instead.
@@ -91,6 +91,11 @@ describe('B2b — NFT mint -> commit -> settle verifies on the bsv Spend engine'
       settle.addOutput({ satoshis: 980, lockingScript: new P2PKH().lock(recipientPkh) })
       await settle.sign()
       assertValid(`${name} settle`, settle)
+    })
+
+    it(`${name}: unlock exposes a positive estimateLength`, async () => {
+      const len = await tpl.unlock(issuerKey, recipientPkh, []).estimateLength()
+      expect(len).toBeGreaterThan(0)
     })
   }
 })

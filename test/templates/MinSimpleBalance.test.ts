@@ -2,18 +2,13 @@
 // mint's own args reproduces the golden token output byte-for-byte, and the static suffix
 // is byte-identical to the sx-compiled contract. (The spend/unlock is B2b.)
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import { Transaction, Script } from '@bsv/sdk'
-import MinSimpleBalanceTemplate from '../src/templates/MinSimpleBalance.sx.template.js'
+import MinSimpleBalanceTemplate from '../../src/tokens/templates/MinSimpleBalance.sx.template.js'
+import { readFixture, readFixtureJSON } from '../helpers/fixtures.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const golden = JSON.parse(
-  readFileSync(resolve(__dirname, 'fixtures/MinSimpleBalanceBolt.lifecycle.golden.json'), 'utf8'),
-)
+const golden = readFixtureJSON('MinSimpleBalanceBolt.lifecycle.golden.json')
 // Lock-suffix golden vendored by scripts/build-min-simple-balance-bolt.mjs (isolation: no sibling sx/).
-const lockHexSuffix = readFileSync(resolve(__dirname, 'fixtures/MinSimpleBalanceBolt.lockSuffix.hex'), 'utf8').trim()
+const lockHexSuffix = readFixture('MinSimpleBalanceBolt.lockSuffix.hex')
 
 describe('B3 — MinSimpleBalanceBolt LOCK byte-equals the sx golden mint', () => {
   const mintTx = Transaction.fromHex(golden.txs[0].hex)

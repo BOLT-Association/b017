@@ -1,18 +1,15 @@
 // B1 — MinSimpleBolt identity template: the lock is byte-faithful to the sx-compiled
 // contract (the production artifact) and a genesis mint is well-formed (verifyTx green).
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import { Hash, P2PKH, PrivateKey, Transaction, Script } from '@bsv/sdk'
-import MinSimpleTemplate from '../src/templates/MinSimple.sx.template.js'
-import { verifyTx } from '../src/lib/boltLib.js'
+import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
+import { verifyTx } from '../../src/lib/boltLib.js'
+import { readFixture } from '../helpers/fixtures.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
 // Lock-suffix golden, vendored from the sx artifact by scripts/build-min-simple-bolt.mjs, so the
 // suite runs WITHOUT the sibling sx/ package (isolation). Still catches hand-edits to the template
 // suffix: the template stores hand-editable ASM, this golden is the canonical compiled hex.
-const lockHexSuffix = readFileSync(resolve(__dirname, 'fixtures/MinSimpleBolt.lockSuffix.hex'), 'utf8').trim()
+const lockHexSuffix = readFixture('MinSimpleBolt.lockSuffix.hex')
 
 describe('B1 — MinSimpleBolt identity template', () => {
   const issuerKey = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000001', 'hex')
