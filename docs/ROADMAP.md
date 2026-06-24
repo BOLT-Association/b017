@@ -46,7 +46,3 @@ Today recognition is shallow: leading push-lengths + a sha256 of the static cont
   (README, CHANGELOG, and CI under `.github/workflows/ci.yml`); still wanted is the hermetic
   browser walk in CI and resolving the naming before the first stable tag.
 
-## Demo / infrastructure
-- Fix live SPV determinism at the source: on teranode v0.15.2 the merkle-service never
-  receives `BlockMessage.Coinbase`, so the BUMP is intermittent. Fixing it makes the SPV
-  proof — not just broadcast-acceptance — deterministic for the live demo.
