@@ -14,11 +14,15 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [20.x, 22.x]
+    env:
+      # Surfaced as an env var so the coverage step's `if` can skip when unset (the `secrets`
+      # context isn't available in step-level `if`).
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -33,12 +37,14 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage to Codecov
-        if: matrix.node-version == '22.x'
-        uses: codecov/codecov-action@v4
+        # Only when a token is configured: Codecov v4+ rejects tokenless uploads, so without the
+        # secret the step would just churn. With it set, the badge updates from these uploads.
+        if: matrix.node-version == '22.x' && env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
-          fail_ci_if_error: false # don't red-out CI if the token is unset / upload hiccups
+          fail_ci_if_error: false # don't red-out CI on upload hiccups
 
       - name: Verify package contents (npm pack)
         run: npm pack --dry-run
@@ -56,10 +62,10 @@ jobs:
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
