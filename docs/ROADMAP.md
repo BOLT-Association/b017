@@ -42,7 +42,8 @@ Today recognition is shallow: leading push-lengths + a sha256 of the static cont
   + `FIELDS` in `scan/verifyEvents.ts`) → derive both from one per-type descriptor.
 - Real fee/size estimation (today `nftSpend.estimateLength` hardcodes `2000`).
 - Resolve the class-vs-file name mismatches (`SimpleMultiBOLT` lives in `tokens/MultiBOLT.ts`),
-  then cut `0.1.0` and `npm publish`. The release scaffolding is in place as of `0.0.0-b`
-  (README, CHANGELOG, and CI under `.github/workflows/ci.yml`); still wanted is the hermetic
-  browser walk in CI and resolving the naming before the first stable tag.
+  then cut `0.1.0`. The release scaffolding is in place (README + badges, CHANGELOG, and CI
+  under `.github/workflows/ci.yml` with coverage upload and version-gated `npm publish` on push
+  to `main`); still wanted is the hermetic browser walk in CI and resolving the naming before
+  the first stable tag.
 
