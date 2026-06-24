@@ -11,8 +11,9 @@
 > fungible token carries a **16-byte** balance and there is **no swap** operation (it was
 > removed; the only transitions are transfer, split, merge, and melt). Where the proof refers to
 > "the covenant", it means the pre-compiled locking script embedded in
-> `src/templates/SimpleMulti.sx.template.ts` (and the NFT analogues); the line-level contract
-> source lives in the BOLT protocol repository.
+> `src/tokens/templates/SimpleMulti.sx.template.ts` (and the NFT analogues) — the compiled
+> artifact this package ships and that the tests in §9 execute on a real Script interpreter. §1.6
+> states precisely how the proof's prose relates to those deployed bytes.
 
 ---
 
@@ -42,6 +43,13 @@ but not `sk`:
 **Assumption 3 (Blockchain Finality).** A transaction confirmed at depth d has probability
 ≤ (q/p)^d of being reversed, where q/p < 1 is the adversary's fraction of hash power
 (Nakamoto, 2008). For d ≥ 6 and q/p ≤ 0.25 this is < 10⁻⁴.
+
+> **This assumption is load-bearing and inherited, not proven here.** The anti-forgery argument
+> (Theorem 1, §8.1) ultimately reduces the "forge a genesis / splice an ancestor" attacks to the
+> immutability of confirmed txids — which holds only while `q/p < 1`, i.e. while no adversary
+> controls a hash-power majority. On a chain with low or concentrated hash power this is exactly
+> where real-world risk concentrates; the covenant cannot strengthen it. Network-level security is
+> a property of the chain the tokens live on, not of this protocol (see §1.6).
 
 **Assumption 4 (Script Correctness).** The Bitcoin Script virtual machine is a deterministic
 state machine that correctly evaluates all opcodes per consensus rules. (In this library the
@@ -87,6 +95,49 @@ script against τ's unlocking script and yields `true`.
 A **token chain** of length N is a sequence
 `Γ = (T(0), τ₀, T(1), τ₁, …, τ_{N−1}, T(N))` where each `τ_i : T(i) → T(i+1)` is valid.
 
+### 1.6 Scope, methodology, and what is *not* proven
+
+This section states the boundary of the claim precisely, so the theorems below are read for
+exactly what they establish — no more.
+
+**Methodology.** What follows is a rigorous *hand* proof, paired with an executable test suite
+(§9) that builds real transactions and runs them through the actual `@bsv/sdk` Script
+interpreter. It is **not** a machine-checked proof — there is no Coq/Isabelle/Lean development.
+The tests are strong evidence over the cases they cover (including raw-byte counterfeits that
+*must* be rejected), but a passing suite demonstrates the covered branches; it is not a proof of
+the absence of a covenant bug in an uncovered branch.
+
+**Specification vs deployed bytecode.** The lemmas reason about the compiled covenant embedded in
+`src/tokens/templates/SimpleMulti.sx.template.ts` (and the NFT analogues). Two facts bridge the
+prose to the bytes that actually run:
+
+1. **Enforcement is at layer-1.** On-chain, the exact deployed bytecode is executed and enforced
+   by **miner transaction-script validation** as a consensus rule. There is no oracle, indexer,
+   or trusted party anywhere in the enforcement path — a spend that does not satisfy the covenant
+   is simply not a valid transaction. This is the same trust base as any other Bitcoin Script.
+2. **The bytes are pinned in-repo.** The proof reasons about the exact compiled artifact this
+   package ships — the ASM suffix embedded in the templates. That artifact is byte-frozen in this
+   repository: `src/lib/scanner/fingerprints.ts` pins its SHA-256 by golden equality
+   (`test/scanner/fingerprints.test.ts`), and the template suites assert each lock byte-equals its
+   golden fixture. Any drift between the artifact the lemmas describe and the bytes the package
+   ships fails a test — so "the covenant" in this document and the covenant on the wire are the
+   same bytes, without reference to any external toolchain.
+
+**Out of scope — the two things a stablecoin most needs.** These are deliberately *not* claimed:
+
+- **Supply-honesty.** Theorem 3 conserves balance *within a single genesis lineage*. It says
+  **nothing** about how many independent genesis tokens an issuer mints. Unforgeability guarantees
+  each unit is internally well-formed and traces to *an* issuer-signed mint; it does **not**
+  guarantee the total float matches any reserve or stated cap. That is an issuer-behaviour /
+  off-chain-reserve property, outside Bitcoin Script, and this proof cannot deliver it.
+- **Network security.** As noted under Assumption 3, the anti-reorg guarantee inherits
+  honest-majority hash power. On a low- or concentrated-hash-power chain that assumption is the
+  dominant real-world risk, and it is imported, not proven.
+
+In short: this document proves **third-party per-token unforgeability, ownership, per-genesis
+balance conservation, and state-machine integrity** — conditional on the four assumptions of
+§1.2. It does not prove issuer supply-honesty or network-level security.
+
 ---
 
 ## 2. Security Properties
@@ -102,6 +153,9 @@ corresponding to `owner(T(n))` can produce a valid transition τ: T(n) → T(n+1
 total balance over all live tokens sharing a common genesis is invariant except via melt:
 
     ∀ n: Σ balance(T_i) over live tokens at step n = balance(T(0))
+
+> **Scope:** this is per-genesis conservation. It does **not** bound how many independent genesis
+> tokens the issuer mints — i.e. unforgeability ≠ supply-honesty. See §1.6.
 
 **Theorem 4 (State-Machine Integrity).** Every valid chain alternates commit and settle
 transitions; no transition can skip a step or produce an invalid `txoType`.
@@ -258,6 +312,11 @@ Define `B(n) = Σ balance(T_i)` over all live tokens sharing a genesis. By case 
 
 Therefore, excluding melt, `B(n) = B(0)` for all n. ∎
 
+This conserves the float of *one* genesis lineage. It is **not** a statement about the issuer's
+total supply: an issuer may mint any number of independent genesis tokens, each with its own
+`B(0)`, and this theorem says nothing about their sum. Supply-honesty is an off-chain / issuer
+property (§1.6), not a Script invariant.
+
 ---
 
 ## 7. Proof of Theorem 4 (State-Machine Integrity)
@@ -340,20 +399,21 @@ copies a token's field layout yet carries different code, because the suffix has
 
 ## 9. Empirical Validation
 
-Every property above is exercised by this package's test suite — **43 tests** that build *real*
-Bitcoin transactions and verify them against the actual `@bsv/sdk` Script interpreter (no mocks).
-Run `npm test`.
+Every property above is exercised by this package's test suite — **126 tests across 18 files**
+that build *real* Bitcoin transactions and verify them against the actual `@bsv/sdk` Script
+interpreter (no mocks). Run `npm test`.
 
 | Suite (file) | Validates |
 |--------------|-----------|
-| `test/no-elas.test.ts` | Full `SimpleMultiBOLT` lifecycles (mint → transfer×2 → split; mint×2 → merge → melt) verify on `@bsv/sdk` alone (P1–P4). |
-| `test/min-simple-bolt.template.test.ts`, `min-balance-bolt.template.test.ts`, `min-discount-bolt.template.test.ts` | NFT lock/unlock/melt; immutable balance/discount fields. |
-| `test/nft-ancestor.test.ts`, `min-nft-coupon.test.ts`, `min-nft-spend.test.ts` | Ancestor reconstruction across multi-hop chains (Lemma 3). |
-| `test/scan.test.ts` | **Negative tests:** rejects a wrong trusted issuer, a chain missing its commit, a mint-only chain, an extra-`OP_RETURN`-tampered output, and a right-shape/wrong-code counterfeit (Theorem 1, §8.1/§8.5). |
-| `test/scan-parity.test.ts`, `scan-events.test.ts`, `fingerprints.test.ts` | Recognition, commit/settle event classification, fingerprint matching against tampered inputs (Theorem 4, §8.5). |
-| `test/counterfeit.helper.ts` | Constructs counterfeits at the **raw-byte (on-wire)** level — exactly as an attacker would — so rejection is proven independent of SDK behaviour. |
+| `test/tokens/MultiBOLT.test.ts`, `test/templates/SimpleMulti.test.ts` | Full `SimpleMultiBOLT` lifecycles (mint → transfer×2 → split; mint×2 → merge → melt) build real txs and verify on the `@bsv/sdk` Spend engine; split/merge conserve balance (Theorem 3, Lemma 6). |
+| `test/templates/MinSimple.test.ts`, `MinSimpleBalance.test.ts`, `MinSimpleDiscount.test.ts` | NFT lock/unlock/melt; each lock **byte-equals its golden fixture**; immutable balance/discount fields. |
+| `test/lib/singleAncestor.test.ts`, `singleSpend.test.ts`, `singleCoupon.test.ts`, `multiBoltLib.test.ts` | Multi-hop chains: commit→settle verify on the Spend engine and the rebuilt ancestor matches the real grandparent txid (Lemma 3). |
+| `test/scanner/verifyEvents.test.ts` | **Negative tests:** rejects a wrong trusted issuer, an orphan settle (chain missing its commit), an unsettled commit, an extra-`OP_RETURN`-tampered output, and a right-shape/wrong-code counterfeit; accepts a lone genesis mint as a single-tx event (Theorem 1, §8.1/§8.5). |
+| `test/scanner/parity.test.ts`, `events.test.ts`, `fingerprints.test.ts` | Scanner accept/reject **matches the on-chain contract** (parity); commit/settle event classification; fingerprint registry + p2Proof golden matching against tampered inputs (Theorems 1 & 4, §8.5). |
+| `test/lib/boltLib.test.ts`, `branches.test.ts`, `test/tokens/BOLT.test.ts`, `test/templates/pay2Proof.test.ts`, `test/releasable.test.ts` | Shared layout-agnostic primitives (`splitCtx`, outpoint/output serialisers, `verifyTx` guards), default-value/guard branches, the abstract base contract, the `pay2Proof` marker output, and the release gate. |
+| `test/helpers/counterfeit.ts` | Constructs counterfeits at the **raw-byte (on-wire)** level — exactly as an attacker would — so rejection is proven independent of SDK behaviour. |
 
-**Negative tests must fail; positive tests must hold.** All 43 pass, 0 skipped.
+**Negative tests must fail; positive tests must hold.** All 126 pass, 0 skipped.
 
 ---
 
@@ -376,8 +436,13 @@ The proof of authenticity lives entirely within Bitcoin Script, secured by proof
 **no oracle, trusted party, or off-chain state** in the trust base. Counterfeiting a BOLT token
 is reducible to breaking SHA-256 or ECDSA. ∎
 
+These four results are the whole claim. They establish **third-party per-token unforgeability**;
+they do **not** establish issuer supply-honesty or network-level security, and this is a hand
+proof validated by tests rather than a machine-checked one — see §1.6 for the exact boundary.
+
 ---
 
 *Adapted for the `b017` package (SimpleMultiBOLT, 16-byte balance, no swap; minimal NFT
-templates). Validated against the package's 43 automated tests. Contract source of truth: the
-BOLT protocol repository; compiled artifacts embedded in `src/templates/`.*
+templates). Validated against the package's 126 automated tests. The covenant is the compiled
+artifact embedded in `src/tokens/templates/`, byte-pinned in-repo by the golden fingerprints of
+§9; on-chain it is enforced by miner transaction-script validation at layer-1.*

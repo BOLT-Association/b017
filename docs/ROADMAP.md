@@ -30,6 +30,34 @@ Today recognition is shallow: leading push-lengths + a sha256 of the static cont
 - Typed results + machine-readable error reasons; an indexer-friendly streaming / incremental
   API; performance + memory for large BEEFs.
 
+## The internet as a sidechain — why this is trustworthy
+
+The direction this library points at is treating **the public internet as a sidechain**: BOLT
+events (a mint, a commit→settle pair, a melt) are self-proving, so they don't have to travel over
+the main chain to be trusted — they can be handed peer-to-peer over any transport (HTTP, a
+message bus, a file) and **verified locally** by the recipient with `verifyEvents` before they
+act. The chain is where things *settle*; the internet is where they *move*.
+
+The reason you can trust that arrangement is not optimism — it is that **it shrinks the set of
+parties who can cheat you**. With a conventional ledger you are exposed to a long line of
+intermediaries who *could* defraud you (a custodian, an indexer, a bridge, a validator set), and
+your safety depends on all of them behaving. A self-proving BOLT event removes that line almost
+entirely: per-token unforgeability (proven — see [`formal-proof.md`](formal-proof.md)) means a
+counterfeit, a stolen token, an inflated balance, or a spliced history is cryptographically
+rejected by the recipient *regardless of who relayed it*. A bad actor in the middle cannot forge,
+alter, or substitute the asset; the worst they can do is fail to deliver it, which you detect
+immediately. So you are simply **dealing with fewer bad actors** — the protocol designs the
+cheatable middlemen out, instead of asking you to trust them.
+
+What that leaves is a short, honest list of who you *do* still have to trust — exactly the two
+residual assumptions called out in [`formal-proof.md`](formal-proof.md) §1.6: the **issuer**
+(for supply-honesty — the protocol proves each token is genuine, not that the issuer hasn't
+over-minted) and the **chain's hash power** (for final settlement). Everyone else on the wire —
+relays, caches, indexers, counterparties you've never met — moves from "trusted" to "irrelevant",
+because the event proves itself. Writing this architecture down as a referenceable spec (transport
+envelope, batch/DAG verification semantics, the trust-surface argument above) is itself a roadmap
+item, so the claim can be engaged with on its own terms rather than as a slogan.
+
 ## Library hardening
 - `tsconfig strict: true`; remove `any` casts; type the `BOLT` abstract methods (today `any`,
   and they diverge from the concrete classes).

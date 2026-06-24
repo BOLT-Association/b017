@@ -151,19 +151,19 @@ and the trusted issuer key across a whole batch.
 ## 7. Executable evidence
 
 The claims above are not just prose — the test suite constructs **real, byte-level
-counterfeits** (see `test/counterfeit.helper.ts`, which forges on the wire exactly as an
+counterfeits** (see `test/helpers/counterfeit.ts`, which forges on the wire exactly as an
 attacker would, independent of any SDK quirk) and asserts they are rejected:
 
-- `test/scan.test.ts` — accepts genuine mint→commit→settle lifecycles (`C2`); **rejects** a
-  wrong trusted issuer, a chain missing its commit, a mint-only chain (`C3`), an output tampered
-  with an extra `OP_RETURN`, and a counterfeit token output with the right push-shape but wrong
-  static code (`C4`).
-- `test/scan-parity.test.ts`, `test/scan-events.test.ts`, `test/fingerprints.test.ts` — exercise
-  recognition, event classification, and fingerprint matching against tampered inputs.
+- `test/scanner/verifyEvents.test.ts` — accepts genuine mint→commit→settle lifecycles (and a lone
+  genesis mint as a single-tx event); **rejects** a wrong trusted issuer, an orphan settle (a chain
+  missing its commit), an unsettled commit, an output tampered with an extra `OP_RETURN`, and a
+  counterfeit token output with the right push-shape but wrong static code.
+- `test/scanner/parity.test.ts`, `test/scanner/events.test.ts`, `test/scanner/fingerprints.test.ts`
+  — exercise recognition, event classification, and fingerprint matching against tampered inputs.
 - The NFT and balance template suites build full lifecycles and verify each transaction against
   the actual `@bsv/sdk` Script interpreter — not a mock.
 
-Run them with `npm test` (all green).
+Run them with `npm test` (126 tests across 18 files, all green).
 
 ---
 
@@ -178,3 +178,17 @@ The guarantee rests on three standard assumptions and nothing else:
 
 No trusted issuer server, no off-chain database, and no privileged validator is part of the
 trust base. The proof lives in Bitcoin Script and is secured by the chain itself.
+
+**What this does *not* cover.** Two things a stablecoin needs are out of scope here, because they
+are not properties of the covenant:
+
+- **Supply-honesty.** "Cannot be counterfeited" is a *per-token* statement: every unit is
+  internally well-formed and traces to an issuer-signed mint. It does **not** mean the issuer is
+  honest about how *much* it mints — an issuer can create any number of independent genesis tokens.
+  Trusting the total supply against a reserve is an issuer / off-chain matter, not something the
+  contract proves.
+- **Network security.** Assumption 3 (proof-of-work immutability) holds only while no adversary
+  controls a hash-power majority. On a low- or concentrated-hash-power chain that is the dominant
+  real-world risk, and it is inherited from the underlying chain, not established here.
+
+The rigorous companion [`formal-proof.md`](formal-proof.md) §1.6 states this boundary precisely.

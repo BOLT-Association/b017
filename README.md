@@ -26,6 +26,12 @@ for the argument and the forgery tests that demonstrate it, and
 [`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
 full attack-vector analysis).
 
+This is **third-party per-token unforgeability**: each unit is internally well-formed and traces
+to an issuer-signed mint. It is *not* a claim about **supply-honesty** (an issuer can mint many
+independent genesis tokens — reserve/cap trust is an issuer matter) or **network-level security**
+(reorg resistance inherits honest-majority hash power). See [`formal-proof.md`](docs/formal-proof.md)
+§1.6 for the exact boundary.
+
 ## Install / build
 
 ```
@@ -192,6 +198,17 @@ autonomous agents can move and verify without intermediaries (Emergent Automatio
 needs cheap unbounded settlement, trustless verifiable integrity, and programmable automation
 *simultaneously* — and this is the only stack where all three reinforce each other instead of
 trading off. That is what makes it not just *a* stablecoin platform, but the killer one.
+
+**What is proven vs. assumed.** To be precise about the integrity layer: what the BOLT covenant
+*proves* (see [`docs/formal-proof.md`](docs/formal-proof.md)) is **third-party per-token
+unforgeability** — authenticity, ownership, per-genesis balance conservation, and state-machine
+integrity — plus local, SPV-friendly verification of all of the above. Two things this layer does
+*not* prove, and that a stablecoin still depends on, are **trust assumptions, not theorems**:
+**issuer supply-honesty** (the protocol stops anyone from forging *a* token, but an issuer can
+mint as many genesis tokens as it likes — matching the float to a reserve is an issuer/governance
+matter) and **honest-majority settlement** (final settlement is only as immutable as the chain's
+hash power). The stack is designed so those two assumptions are the *only* ones left standing —
+but they are assumptions, and §1.6 of the proof says exactly where the proven part ends.
 
 ## License
 
