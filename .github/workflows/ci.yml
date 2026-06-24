@@ -14,10 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [20.x, 22.x]
-    env:
-      # Surfaced as an env var so the coverage step's `if` can skip when unset (the `secrets`
-      # context isn't available in step-level `if`).
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@v5
 
@@ -36,18 +32,67 @@ jobs:
       - name: Test (with coverage)
         run: npm run test:coverage
 
-      - name: Upload coverage to Codecov
-        # Only when a token is configured: Codecov v4+ rejects tokenless uploads, so without the
-        # secret the step would just churn. With it set, the badge updates from these uploads.
-        if: matrix.node-version == '22.x' && env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@v5
+      - name: Upload coverage summary (for the badge job)
+        if: matrix.node-version == '22.x'
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false # don't red-out CI on upload hiccups
+          name: coverage-summary
+          path: coverage/coverage-summary.json
 
       - name: Verify package contents (npm pack)
         run: npm pack --dry-run
+
+  # Self-hosted coverage badge — no third-party service. Computes the statements % from the
+  # coverage summary produced by build-test and writes a shields.io "endpoint" JSON to a dedicated
+  # `badges` branch using the built-in GITHUB_TOKEN. The README badge points shields.io at that
+  # file's raw URL. The commit carries [skip ci] so it never re-triggers this workflow.
+  coverage-badge:
+    needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download coverage summary
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-summary
+          path: cov
+
+      - name: Build shields endpoint JSON
+        run: |
+          PCT=$(node -e "console.log(Math.round(require('./cov/coverage-summary.json').total.statements.pct))")
+          if   [ "$PCT" -ge 90 ]; then COLOR=brightgreen
+          elif [ "$PCT" -ge 80 ]; then COLOR=green
+          elif [ "$PCT" -ge 70 ]; then COLOR=yellowgreen
+          elif [ "$PCT" -ge 60 ]; then COLOR=yellow
+          else COLOR=red; fi
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s%%","color":"%s"}\n' "$PCT" "$COLOR" > /tmp/coverage.json
+          cat /tmp/coverage.json
+
+      - name: Publish badge to the badges branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin badges >/dev/null 2>&1; then
+            git fetch --depth 1 origin badges
+            git worktree add --detach bw FETCH_HEAD
+            git -C bw checkout -B badges
+          else
+            git worktree add --detach bw
+            git -C bw checkout --orphan badges
+            git -C bw rm -rf . >/dev/null 2>&1 || true
+          fi
+          cp /tmp/coverage.json bw/coverage.json
+          git -C bw add coverage.json
+          if git -C bw diff --cached --quiet; then
+            echo "coverage badge unchanged — nothing to push."
+            exit 0
+          fi
+          git -C bw commit -m "chore: update coverage badge [skip ci]"
+          git -C bw push origin badges
 
   # Publish to npm when the version in package.json is new. Runs only on a push to main (i.e. after a
   # PR is merged), and only after build-test passes. Safely no-ops if NPM_TOKEN isn't set yet or the
