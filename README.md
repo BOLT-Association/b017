@@ -1,15 +1,15 @@
-# b017; Bicoin Original Layer-1 Token Protocol
+# b017; Bitcoin Original Layer-1 Token Protocol
 
 [![CI](https://github.com/BOLT-Association/b017/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BOLT-Association/b017/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/BOLT-Association/b017/branch/main/graph/badge.svg)](https://codecov.io/gh/BOLT-Association/b017)
 [![npm version](https://img.shields.io/npm/v/b017.svg?logo=npm)](https://www.npmjs.com/package/b017)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-> **Status: `0.0.0-b` (beta).** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
+> **Status: `0.0.0-b1` (beta).** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
 > (126/126 unit tests, **99% statement / 98% function / 95% branch coverage**) but may still change before `0.1.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
-Standalone TypeScript library for the **Bicoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
+Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
 **SimpleMultiBOLT** (16-byte balance (x2 Bitcoin's base layer limit); mint / transfer / split / merge / melt), a family of
 minimal **NFT** templates, and an off-chain **scanner** that recognises and verifies
 **transactional events**. The only runtime dependency is a peer `@bsv/sdk`.

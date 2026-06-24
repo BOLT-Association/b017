@@ -1,6 +1,6 @@
 {
   "name": "b017",
-  "version": "0.0.0-b",
+  "version": "0.0.0-b1",
   "description": "b017 — BOLT layer-1 token templates + off-chain scanner (mint/transfer/split/merge/melt). Pre-compiled contract; no sx compiler required at runtime.",
   "license": "SEE LICENSE IN LICENSE.txt",
   "keywords": [

@@ -8,6 +8,11 @@ All notable changes to **b017** are documented here. The format is based on
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for planned work.
 
+## [0.0.0-b1] — 2026-06-24
+
+### Fixed
+- README title typo: "Bicoin" → "Bitcoin". Docs-only republish (no code changes).
+
 ## [0.0.0-b] — 2026-06-23
 
 First public beta. The library is functional and fully tested; the API may still change
@@ -30,4 +35,5 @@ before `0.1.0`.
 - Added `repository`, `bugs`, `homepage`, and `keywords` metadata.
 
 [Unreleased]: https://github.com/BOLT-Association/b017
+[0.0.0-b1]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b1
 [0.0.0-b]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b
