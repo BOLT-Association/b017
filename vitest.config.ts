@@ -11,7 +11,7 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.ts'],
       exclude: ['src/index.ts'], // pure re-export barrel
-      reporter: ['text', 'text-summary', 'html', 'json', 'json-summary'],
+      reporter: ['text', 'text-summary', 'html', 'json', 'json-summary', 'lcov'],
       reportsDirectory: 'coverage',
     },
   },

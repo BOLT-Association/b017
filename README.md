@@ -1,6 +1,7 @@
 # b017; Bicoin Original Layer-1 Token Protocol
 
 [![CI](https://github.com/BOLT-Association/b017/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BOLT-Association/b017/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/BOLT-Association/b017/branch/main/graph/badge.svg)](https://codecov.io/gh/BOLT-Association/b017)
 [![npm version](https://img.shields.io/npm/v/b017.svg?logo=npm)](https://www.npmjs.com/package/b017)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
