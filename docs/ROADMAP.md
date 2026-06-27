@@ -12,6 +12,9 @@ injection — is tracked separately and is not repeated here.)
   optional **swap** action to the fungible contract.
 - Give the NFT family symmetric token **classes** (today template-only) so the high-level
   API matches `SimpleMultiBOLT`.
+- **AutoBOLT** — a *commit & auto-settle* variant whose settlement is **permissionless** (no
+  recipient signature; the transfer self-finalizes), unlocking automated machine-to-machine
+  payments, hands-off treasuries, and currency-agnostic donations.
 
 ## Deepen fingerprinting
 Today recognition is shallow: leading push-lengths + a sha256 of the static contract suffix.
