@@ -16,14 +16,22 @@ injection — is tracked separately and is not repeated here.)
   recipient signature; the transfer self-finalizes), unlocking automated machine-to-machine
   payments, hands-off treasuries, and currency-agnostic donations.
 
-## Deepen fingerprinting
-Today recognition is shallow: leading push-lengths + a sha256 of the static contract suffix.
+## Harden fingerprinting & validation
+Recognition is no longer a shallow per-script check. Golden recognition — `recognizeType`
+(leading-push layout + `sha256` of the static contract code) and `recognizeP2P` (the b017 proof
+output) — now feeds the `verifyEvent` / `verifyEvents` scanner, which validates whole
+**transactional events**: it categorises each tx by its `txoType` action, fingerprints *every*
+interface (strict-golden for token in/out and proof outputs; loose shape for change/funding), pins
+the issuer across a batch, and pairs every commit with its settle via `parentOutpoint` — failing
+closed with machine-readable reasons, off a single-source `REGISTRY` derived from the templates.
+
+Remaining **hardening** (the future-validation direction):
 - Registry/contract **versioning** — recognise multiple revisions per type; `recognizeType`
   returns `{ type, version }`.
-- **Semantic field validation**, not just lengths: `txoType` in the known set, issuerPubKey a
-  valid compressed point, well-formed outpoints; tolerate trailing ops; classify "unknown +
-  reason" rather than a bare `null`.
-- A published **fingerprint spec** so third parties can recognise b017 tokens independently;
+- Lift **semantic field validation** into the recogniser itself, not only the event layer:
+  `txoType` in the known set, issuerPubKey a valid compressed point, well-formed outpoints;
+  tolerate trailing ops; classify "unknown + reason" rather than a bare `null`.
+- A published **fingerprint spec** so third parties can recognise b017 tokens independently, with
   property-based / fuzz tests for the recogniser.
 
 ## Strengthen event processing
