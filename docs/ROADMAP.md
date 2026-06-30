@@ -12,9 +12,10 @@ injection — is tracked separately and is not repeated here.)
   optional **swap** action to the fungible contract.
 - Give the NFT family symmetric token **classes** (today template-only) so the high-level
   API matches `SimpleMultiBOLT`.
-- **AutoBOLT** — a *commit & auto-settle* variant whose settlement is **permissionless** (no
-  recipient signature; the transfer self-finalizes), unlocking automated machine-to-machine
-  payments, hands-off treasuries, and currency-agnostic donations.
+- **AutoBOLT** — a "commit & auto-settle" variant whose settle is permissionless (no recipient
+  signature), so settlement can be automated and value can be *donated* / pushed. Design note:
+  [`AutoBOLT-design.md`](AutoBOLT-design.md). TENTATIVE (probably redundant/unnecessary)
+- FreeBOLT / OpenBOLT — / HookBOLT / WrapBOLT ? MUST VALIDATE PROTOCOL LOGIC BEFORE Arbitrary Code Execution
 
 ## Harden fingerprinting & validation
 Recognition is no longer a shallow per-script check. Golden recognition — `recognizeType`
