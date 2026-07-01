@@ -44,8 +44,9 @@ A b017 token is a 1-satoshi UTXO whose locking script is the BOLT covenant follo
 of **data fields** carried in the script itself:
 
 - `issuerPubKey` — the minting key. **Immutable** for the life of the chain.
-- `genesisOutpoint` — the outpoint of the mint transaction. **Immutable.**
-- `parentOutpoint`, `grandparentOutpoint` — the previous one and two steps of the chain.
+- `parentOutpoint`, `grandparentOutpoint` — the previous one and two steps of the chain. A token is a
+  **genesis** (mint) exactly when it is *parentless* (`parentOutpoint` empty) — there is no separate
+  genesis field; the genesis identity is the mint transaction's own txid, fixed by proof-of-work.
 - `pubKeyHash` — the current owner.
 - `balance` — a 16-byte little-endian value (fungible `SimpleMultiBOLT`; the NFT templates
   carry no balance, or a fixed one).
@@ -59,13 +60,14 @@ byte; commits are odd (`0x21` transfer, `0x23` split, `0x25` merge) and settles 
 
 ## 3. The dual hash-commitment that makes lineage tamper-proof
 
-Every spend of a token must satisfy **two independent hash commitments**, both checked inside
-the locking script against the transaction's own sighash preimage:
+A token's spends are governed by **two independent hash commitments**, checked inside the locking
+script against the transaction's own sighash preimage — the forward one on **every** spend, the
+backward one at **each settle that has a grandparent**:
 
 ### Commitment 1 — forward binding (`hashOutputs`)
 
 The covenant *reconstructs* the exact next token output it expects — including the new owner,
-the inherited `issuerPubKey`/`genesisOutpoint`, the updated lineage outpoints, and the balance
+the inherited `issuerPubKey`, the updated lineage outpoints, and the balance
 — serialises it, and asserts:
 
 ```
@@ -78,8 +80,9 @@ whose fields differ from what the rules dictate.
 
 ### Commitment 2 — backward binding (ancestor rebuild)
 
-On every commit, the covenant rebuilds the **ancestor transaction two steps back** from
-unlock-time arguments, validates every field's size, hashes it, and asserts:
+On a **settle** that spends a commit-typed token *with a grandparent*, the covenant rebuilds the
+**ancestor transaction two steps back** from unlock-time arguments, validates every field's size,
+hashes it, and asserts:
 
 ```
 hash256(reconstructed_ancestor) == grandparentOutpoint.txid
@@ -97,15 +100,16 @@ transaction back to genesis.
 
 ## 4. The inductive argument
 
-**Base case (mint).** The mint sets `genesisOutpoint = ctx.outpoint` (its own on-chain
-outpoint) and enforces `issuerPubKey == signerPubKey`. So genesis is authentic by construction,
-and its identity is bound to a real transaction hash that proof-of-work secures.
+**Base case (mint).** The mint is **parentless** (no `parentOutpoint`) and enforces
+`issuerPubKey == signerPubKey`. So genesis is authentic by construction, and its identity *is* the
+mint transaction's own txid — a real transaction hash that proof-of-work secures.
 
 **Inductive step.** Assume every token up to step *n* is authentic. A spend producing step
-*n+1* must satisfy Commitment 1 (so its `issuerPubKey`/`genesisOutpoint` are copied verbatim
-from the script code — which is authentic by hypothesis — and its lineage outpoints are set
-from the real spending context), and, on a commit, Commitment 2 (so its claimed ancestor is the
-*actual* ancestor, not a forgery). Therefore step *n+1* is authentic.
+*n+1* must satisfy Commitment 1 (so its `issuerPubKey` is copied verbatim from the script code —
+which is authentic by hypothesis — and its lineage outpoints are set from the real spending
+context), and, **on a settle with a grandparent**, Commitment 2 (so its claimed ancestor is the
+*actual* ancestor — rebuilt and co-spent — not a forgery). Walking `parentOutpoint` back therefore
+reaches the same parentless, issuer-signed root, so step *n+1* is authentic.
 
 By induction, **authenticity holds at every depth.** ∎
 
@@ -125,8 +129,8 @@ further.
 
 | Attack | Why it fails |
 | --- | --- |
-| **Forge a genesis** | `genesisOutpoint` is the mint's real on-chain outpoint; faking a chosen one needs a chosen txid → proof-of-work / SHA-256. |
-| **Splice the chain** | The commit's ancestor rebuild compares `hash256(ancestor)` to `grandparentOutpoint.txid`; any substituted ancestor mismatches → SHA-256 collision needed. |
+| **Forge a genesis** | The only parentless token must be signed by the `issuerPubKey` it declares (genesis ⇒ `issuerPubKey == signerPubKey`); without the issuer's key there is no valid root → ECDSA. |
+| **Splice the chain** | The **settle's** ancestor rebuild compares `hash256(ancestor)` to `grandparentOutpoint.txid` and co-spends a live output of that ancestor; any substituted ancestor mismatches → SHA-256 collision needed. |
 | **Inflate on merge** | The merged balance is computed in-script from values bound to each input token's own (verified) lineage; you cannot raise either without forging that token's history. |
 | **Over-take on split** | The covenant checks `balance ≥ piece` and locks both output balances via `hashOutputs`. |
 | **Steal a token** | `hash160(pubKey) == pubKeyHash` + `checkSig` under SIGHASH_ALL: no private key, no valid signature → ECDSA. |

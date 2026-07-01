@@ -59,18 +59,25 @@ same scripts are independently re-verified by the `@bsv/sdk` Spend engine — se
 
 A **BOLT token state** at step n is a tuple:
 
-    T(n) = (owner(n), parent(n), grandparent(n), genesis, issuer, balance(n), contract)
+    T(n) = (owner(n), parent(n), grandparent(n), issuer, balance(n), contract)
 
 Where:
 - `owner(n) ∈ {0,1}¹⁶⁰` — `H160(pubKey)`, the current owner's public-key hash.
-- `parent(n) ∈ {0,1}²⁵⁶ × ℕ` — `(txid, vout)` of `T(n−1)`.
+- `parent(n) ∈ {0,1}²⁵⁶ × ℕ ∪ {⊥}` — `(txid, vout)` of `T(n−1)`, or `⊥` at the genesis root (n = 0).
 - `grandparent(n) ∈ {0,1}²⁵⁶ × ℕ ∪ {⊥}` — `(txid, vout)` of `T(n−2)`, or `⊥` if n < 2.
-- `genesis ∈ {0,1}²⁵⁶ × ℕ` — `(txid, vout)` of `T(0)`. **Immutable.**
 - `issuer ∈ {0,1}²⁶⁴` — compressed public key of the issuing authority. **Immutable.**
 - `balance(n) ∈ [0, 2¹²⁸ − 1]` — **16-byte little-endian** balance (fungible `SimpleMultiBOLT`;
   for the plain NFT this field is absent or fixed; `MinSimpleBalance` carries an immutable
   16-byte balance, `MinSimpleDiscount` an immutable 1-byte discount).
 - `contract ∈ {0,1}*` — the BOLT locking-script bytecode (self-referential, immutable).
+
+> **Genesis is not a stored field.** Earlier drafts carried a `genesisOutpoint` field; the shipped
+> covenant (after the `M-I` refactor) **removed it**. Genesis identity is derived **structurally**: a
+> token is a **genesis** iff it is **parentless** — `parent(n) = ⊥`, i.e. its `parentOutpoint` argument
+> is zero-length (`MSBolt.std.sx:93`, `SimpleMultiBolt.sx:297`, builder `SimpleMulti.sx.template.ts:67`).
+> The **genesis of a chain** is the unique parentless, issuer-signed root reached by walking `parent`
+> links; it is committed cryptographically by proof-of-work on that root transaction's txid, not by a
+> copied field. Throughout, `genesis(T(n))` denotes *that derived root*, not a stored value.
 
 A token state `T(n)` is **materialised** as a 1-satoshi Bitcoin UTXO whose locking script
 encodes the fields above as push-data arguments followed by the contract bytecode.
@@ -89,6 +96,27 @@ and creating the UTXO(s) encoding `T(n+1)`. This library admits three transition
 
 Each τ must satisfy **contract evaluation**: the Script interpreter executes `T(n)`'s locking
 script against τ's unlocking script and yields `true`.
+
+**Covenant-executes-on-spend (read this before Lemmas 3–4).** A token's covenant runs when that
+token is *spent*, so the checks a token enforces constrain the transaction that spends it. The two
+token types alternate (Lemma 7): genesis and every settle produce a **settle-typed** token (even
+`txoType`, e.g. `0x20`); every commit produces a **commit-typed** token (odd `txoType`, e.g. `0x21`).
+Therefore:
+
+- a **commit** spends a *settle-typed* token, **emits** the proof output(s), and enforces null
+  ancestor args — it performs **no** rebuild;
+- a **settle** spends a *commit-typed* token; when that token has a grandparent it **consumes** the
+  grandparent's proof and **rebuilds** the grandparent (Lemma 3), binding the co-spent proof outpoint
+  into `hashPrevouts`. The first settle (no grandparent) consumes no proof and rebuilds nothing.
+
+So the ancestor-integrity check executes **at the settle** — the proof-consuming transition, inside
+the commit-typed token's covenant — *not* at the commit. This is consistent with the table above (the
+settle is the proof-*consuming* row). The contract flag named `hasBolt` (`SimpleMultiBolt.sx:330`,
+`= txoType mod 2` on the *spent* type) gates this rebuild; despite its name it does not mark proof
+*emission*, which sits on the complementary branch (`MSBolt.std.sx:130-134` emits the bolt when
+spending a settle-typed token; `:182-298` rebuilds when spending a commit-typed token with a
+grandparent). That naming is the origin of the historical commit/settle mislabel corrected in this
+revision — see §1.6.
 
 ### 1.5 Token Chain
 
@@ -116,12 +144,12 @@ prose to the bytes that actually run:
    or trusted party anywhere in the enforcement path — a spend that does not satisfy the covenant
    is simply not a valid transaction. This is the same trust base as any other Bitcoin Script.
 2. **The bytes are pinned in-repo.** The proof reasons about the exact compiled artifact this
-   package ships — the ASM suffix embedded in the templates. That artifact is byte-frozen in this
-   repository: `src/lib/scanner/fingerprints.ts` pins its SHA-256 by golden equality
-   (`test/scanner/fingerprints.test.ts`), and the template suites assert each lock byte-equals its
-   golden fixture. Any drift between the artifact the lemmas describe and the bytes the package
-   ships fails a test — so "the covenant" in this document and the covenant on the wire are the
-   same bytes, without reference to any external toolchain.
+   package ships — the ASM suffix embedded in the templates. That artifact is byte-frozen by the
+   **template suites**, which assert each compiled lock byte-equals a vendored golden fixture (e.g.
+   `test/templates/MinSimple.test.ts`); the scanner's `src/lib/scanner/fingerprints.ts` then derives a
+   SHA-256 fingerprint of that frozen suffix for off-chain recognition. Any drift between the artifact
+   the lemmas describe and the bytes the package ships fails a template test — so "the covenant" in this
+   document and the covenant on the wire are the same bytes, without reference to any external toolchain.
 
 **Out of scope — the two things a stablecoin most needs.** These are deliberately *not* claimed:
 
@@ -138,13 +166,28 @@ In short: this document proves **third-party per-token unforgeability, ownership
 balance conservation, and state-machine integrity** — conditional on the four assumptions of
 §1.2. It does not prove issuer supply-honesty or network-level security.
 
+**Relationship to the BOLT paper (`research/BOLT-Protocol.pdf`).** This document aligns to the
+paper's **appendix code** (§10.1 `BoltNFT.sx`) and to the deployed contract — the objects miners
+actually enforce. The paper's **prose** proof (§7.1) instead describes the ancestor rebuild as
+happening on the odd/commit transition that *emits* a bolt. That localization is inconsistent with
+the paper's own §10.1 code (whose `rebuildAncestor // txType && hasGrandparent` gate fires on the
+proof-*consuming* settle) and with the deployed bytes, so this proof follows the **code**, not the
+prose. The published paper is left unedited; this note records the discrepancy so the two are not
+mistaken for equivalent. Earlier revisions of *this* document inherited the paper's prose localization
+**and modelled a `genesisOutpoint` field the shipped covenant no longer carries** (removed in the `M-I`
+refactor — genesis is now the derived parentless root, §1.3). Both are corrected here — §§1.3, 1.4, 3
+(Lemmas 2–5, 7), 4 (Theorem 1), 6 and 8.1 — and the accessible companion
+[`unforgeability.md`](unforgeability.md) is corrected in lockstep.
+
 ---
 
 ## 2. Security Properties
 
-**Theorem 1 (Authenticity).** Every token `T(n)` in a valid chain Γ satisfies
-`genesis(T(n)) = genesis(T(0))`, and `T(0)` was created by the holder of `sk` such that
-`H160(pk) = owner(T(0))` and `pk = issuer(T(0))`.
+**Theorem 1 (Authenticity).** Every token `T(n)` in a valid chain Γ has a `parent`-chain that
+terminates at a **unique parentless root** `T(0)` — its *genesis* (§1.3) — with
+`issuer(T(n)) = issuer(T(0))`; and `T(0)` was created by the holder of `sk` such that
+`H160(pk) = owner(T(0))` and `pk = issuer(T(0))`. (Equivalently `genesis(T(n)) = genesis(T(0))` in the
+derived-root sense.)
 
 **Theorem 2 (Ownership).** Given `T(n)`, no PPT adversary lacking the secret key `sk_n`
 corresponding to `owner(T(n))` can produce a valid transition τ: T(n) → T(n+1).
@@ -184,46 +227,83 @@ produce `(sig, pubKey)` satisfying these without `sk_n`. ∎
 For every non-melt τ: T(n) → T(n+1), the output `T(n+1)` is uniquely determined by contract
 evaluation; no field can be chosen freely by the spender.
 
-**Proof.** The covenant constructs the serialised outputs deterministically:
-- `parentOutpoint(n+1) = ctx.outpoint` (from the sighash preimage);
-- `grandparentOutpoint(n+1) = scriptCode.parentOutpoint`;
-- `genesisOutpoint(n+1) = scriptCode.genesisOutpoint` (or `ctx.outpoint` at genesis);
-- `issuerPubKey(n+1) = scriptCode.issuerPubKey` (copied verbatim);
+**Proof.** The covenant constructs the serialised outputs deterministically (`MSBolt.std.sx:141-157`):
+- `parentOutpoint(n+1) = ctx.outpoint` (from the sighash preimage; `:147-148`);
+- `grandparentOutpoint(n+1) = scriptCode.parentOutpoint` (`:149-150`);
+- `issuerPubKey(n+1) = scriptCode.issuerPubKey`, copied verbatim — except at a genesis, where it is set
+  to the signer's pubKey (`:152-156`; cf. Lemma 5);
 - `balance(n+1) = f(scriptCode.balance, mode)` for a deterministic f (Lemma 6);
+- `txoType(n+1)` is the parity-forced successor type (`:145-146`; Lemma 7);
 - `owner(n+1)` is taken from unlock args but **locked** by `hashOutputs`;
-- `contract(n+1) = scriptCode` (the covenant appends its own bytes).
+- `contract(n+1) = scriptCode` (the covenant appends its own bytes; `:157`).
 
-Then `H(serialised_outputs) == ctx.hashOutputs`. Since SIGHASH_ALL binds `ctx.hashOutputs` to
-the actual outputs and H is collision-resistant (Assumption 1), the outputs must equal the
-reconstructed bytes; any modification changes H and fails the equality. ∎
+There is **no** `genesisOutpoint` field to copy (removed in `M-I`); lineage is carried entirely by the
+`parent`/`grandparent` outpoints above. Then `H(serialised_outputs) == ctx.hashOutputs`. Since
+SIGHASH_ALL binds `ctx.hashOutputs` to the actual outputs and H is collision-resistant (Assumption 1),
+the outputs must equal the reconstructed bytes; any modification changes H and fails the equality. In
+particular `parent(n+1)`/`grandparent(n+1)` are **determined, not spender-chosen** — the determinism
+Theorem 1's induction relies on to walk lineage back to the genesis root. ∎
 
 ### Lemma 3 (Ancestor Integrity)
-For every commit transition at step n ≥ 2, the covenant reconstructs the ancestor transaction
-`TX_anc` (the commit two steps back) from unlock arguments, size-validates every field, and
-verifies `H(TX_anc) = grandparent(T(n)).txid`.
+Ancestor integrity is enforced **at a settle** — i.e. when a *commit-typed* token that has a
+grandparent is spent (§1.4). That spend's covenant (a) reconstructs the grandparent transaction
+`TX_anc` from unlock arguments, size-validates every field, and verifies
+`H(TX_anc) = grandparent.txid`; **and** (b) derives the grandparent's proof outpoint
+`grandparentTxid ‖ voutLE` and binds it into the spend's `hashPrevouts`, forcing that proof UTXO to
+be co-spent. Part (a) proves the claimed grandparent has exactly the reconstructed structure; part
+(b) forces a **currently-unspent (UTXO)** output of it to be consumed — upgrading (a) from "a
+transaction with this txid could exist" to "a real, still-live output of it is spent here, enforced by
+miners against the UTXO set."
 
 **Proof.** `TX_anc` is rebuilt byte-by-byte: version (4 B), input count (VarInt), each input
 (outpoint 36 B, scriptSig via length-prefixed cat, nSequence 4 B), output count (VarInt), each
-output (value 8 B, script reconstructed from individually size-checked fields), nLockTime (4 B).
-The final check `H(TX_anc).first256 == grandparent(T(n)).txid` holds only for the genuine
-ancestor; any `TX_anc' ≠ TX_anc` satisfying it is a collision (Assumption 1). ∎
+output (value 8 B, script reconstructed from individually size-checked fields — **including the
+grandparent's own proof output**), nLockTime (4 B). The check
+`H(TX_anc).first256 == grandparent.txid` holds only for the genuine ancestor; any `TX_anc' ≠ TX_anc`
+satisfying it is a collision (Assumption 1). The co-spend in (b) is enforced because the derived
+proof outpoint is concatenated into the reconstructed `prevOuts` whose hash is asserted equal to
+`ctx.hashPrevouts`; omitting or substituting that input changes the hash and fails. In the contract
+this is the `rebuildAncestor` block gated on `txoType(commit-typed) && hasGrandparent`
+(`MSBolt.std.sx:182-298`; proof-outpoint derivation `:294-298`; `hashPrevouts` weld `:308-312`;
+fungible `SimpleMultiBolt.sx:493`; driver `MultiBOLT.ts:108-146` sources the proof from
+`prevTxs[len-3]`).
+
+Parts (a)+(b) defeat a **spliced** ancestor (substituting a different transaction for the committed
+`grandparent.txid`, or omitting the co-spend). They do **not** by themselves defeat a **fabricated**
+lineage (a chain an adversary builds from scratch, choosing each txid): that is precluded instead by
+Lemma 5 (the parentless root must be issuer-signed) plus the requirement that every hop consume the
+*real* predecessor UTXO. For a **merge** settle (two token inputs) the rebuild generalises to **two**
+ancestors (`ancestorTxA`, `ancestorTxB`), and the second input's lineage is bound via
+`otherGrandparentOutpoint`, so a merge cannot fuse a token from an unrelated or forged lineage. (A split
+has a single token input, so it uses the single-ancestor rebuild above.) ∎
+
+> **Localization (corrected 2026-07-01).** Earlier revisions stated this rebuild happened "at the
+> commit." That was wrong: a token's covenant runs at its *spend*, and the rebuild lives in the
+> *commit-typed* token's covenant, which is spent by the **settle**. This matches the §1.4 transition
+> table (the settle is the proof-*consuming* transition) and the deployed bytes. A consequence worth
+> stating: the proof co-spend of (b) is **part of** ancestor integrity, not an independent liveness
+> marker — so a settle cannot be treated as pure field-propagation. See §1.6.
 
 ### Lemma 4 (Null-Ancestor Enforcement)
-When ancestor rebuild is not triggered (n < 2, or a settle), all ancestor unlock arguments
-must be zero-length.
+When the rebuild is not triggered — i.e. on a **commit** (spending a settle-typed token) or on a
+grandparent-less spend (the first settle, or n < 2) — all ancestor unlock arguments must be
+zero-length.
 
 **Proof.** The covenant concatenates every ancestor field and asserts the total size is `0`
-(`… cat … size nip 0 equalVerify`). Any non-null field makes the size positive and fails the
-check, preventing injection of fabricated ancestor data when no rebuild is required. ∎
+(`… cat … size nip 0 equalVerify`, `MSBolt.std.sx:300-304`). Any non-null field makes the size
+positive and fails the check, preventing injection of fabricated ancestor data when no rebuild is
+required. (Corrected localization: the non-rebuild case is the **commit** / grandparent-less spend,
+not "a settle" — a settle with a grandparent is exactly where the Lemma 3 rebuild fires.) ∎
 
 ### Lemma 5 (Issuer Enforcement)
 For the genesis transaction (n = 0) and the first transfer commit (n = 1), the signer's public
 key must equal the embedded `issuerPubKey`.
 
-**Proof.** The covenant computes `isGenesis = (genesisOutpoint == ∅)` and a first-commit flag,
-and under either asserts `issuerPubKey == pubKey`. This forces the minting key to authorise both
-genesis and the first commit; after the first settle the check is lifted, enabling ordinary
-transfers. ∎
+**Proof.** The covenant derives `isGenesis = (parentOutpoint == ∅)` — a token is a genesis iff it is
+**parentless** (`MSBolt.std.sx:93`, `SimpleMultiBolt.sx:297`) — and a first-commit flag, and under
+either asserts `issuerPubKey == pubKey` (`SimpleMultiBolt.sx:298`). This forces the minting key to
+authorise both the genesis root and the first commit (whose first commit may not be a merge —
+`SimpleMultiBolt.sx:299`); after the first settle the check is lifted, enabling ordinary transfers. ∎
 
 ### Lemma 6 (Balance Determinism, fungible)
 The output balance is a deterministic function of the input balance(s), computed with 16-byte
@@ -241,47 +321,70 @@ enforces `balance ≥ piece ≥ 0` (no negative/over-take). No other value satis
 `H(serialised_outputs) == ctx.hashOutputs`. ∎
 
 ### Lemma 7 (State Machine)
-The `txoType` field enforces alternation between commit (odd) and settle (even):
+The `txoType` field enforces strict alternation of token types: a **commit-typed** token (odd) is
+followed only by its matching **settle-typed** token (even); a **settle-typed** token (even) is
+followed only by some commit-typed token (odd). Evaluated when a token is spent — `txoType` is the
+*spent* token's type, `nextTxoType` the *produced* token's type:
 
 ```
-hasProof = txoType mod 2                 // odd = a commit
-if hasProof:  assert nextTxoType == txoType − 1   // commit → matching settle
-else:         assert nextTxoType mod 2 == 1        // settle → some commit
+spentIsCommitTyped = txoType mod 2       // odd ⇒ spending a commit-typed token ⇒ this τ is a settle
+if spentIsCommitTyped: assert nextTxoType == txoType − 1   // commit-typed → its matching settle-typed
+else:                  assert nextTxoType mod 2 == 1        // settle-typed → some commit-typed
 ```
 
-This forbids commit→commit (odd→odd) and settle→settle (even→even). The types in use are
-`{0x20 transfer-settle/genesis, 0x21 transfer-commit, 0x22 split-settle, 0x23 split-commit,
-0x24 merge-settle, 0x25 merge-commit}`. ∎
+This forbids two commit-typed or two settle-typed tokens in a row, i.e. it forbids skipping the
+commit→settle cycle. The types in use are `{0x20 transfer-settle/genesis, 0x21 transfer-commit,
+0x22 split-settle, 0x23 split-commit, 0x24 merge-settle, 0x25 merge-commit}`. (Naming: spending a
+*commit-typed* token **is** the settle transition — §1.4; the parity test classifies the spent
+*token type*, not the transition.) ∎
 
 ---
 
 ## 4. Proof of Theorem 1 (Authenticity)
 
-By strong induction on chain length N.
+By strong induction on chain length N. The inductive **invariant** for `T(k)` is: its `parent`-chain is
+well-formed (each `parent`/`grandparent` outpoint is the *determined* real predecessor), it terminates at
+a unique **parentless** root, and `issuer(T(k))` is that root's issuer.
 
-**Base case (N = 0).** `T(0)` is genesis. By Lemma 5 the signer's pubKey equals `issuerPubKey`;
-by Lemma 1 only the holder of the matching `sk` can sign. `genesis(T(0)) = ctx.outpoint` is set
-by the covenant from the sighash preimage and bound to the actual transaction by SIGHASH_ALL.
-Thus `T(0)` is authentic and its genesis is cryptographically committed.
+**Base case (N = 0).** `T(0)` is a **genesis**: it is parentless (`parent(T(0)) = ⊥`, Lemma 5), so it
+*is* the root. By Lemma 5 the signer's pubKey equals `issuerPubKey`; by Lemma 1 only the holder of the
+matching `sk` can sign. `T(0)`'s identity is its own transaction's txid, bound to a real transaction by
+proof-of-work (Assumption 3). Thus `T(0)` is authentic and is its own genesis.
 
-**Base case (N = 1).** `T(1)` is produced by the first commit. By Lemma 5 the issuer must sign;
-by Lemma 2 the output fields are deterministic (`parent(T(1)) = outpoint(T(0))`,
-`genesis(T(1)) = genesis(T(0))`); Lemma 4 forces the ancestor args null. `hashOutputs` locks
-`T(1)`. Thus `T(1)` is authentic.
+**Base case (N = 1).** `T(1)` is produced by the first commit spending `T(0)`. By Lemma 5 the issuer
+must sign; by Lemma 2 the output fields are deterministic (`parent(T(1)) = outpoint(T(0))`,
+`issuer(T(1)) = issuer(T(0))`); Lemma 4 forces the ancestor args null (no grandparent). `hashOutputs`
+locks `T(1)`. So `T(1)`'s parent is exactly `T(0)` and its chain terminates at the genesis root `T(0)`.
+`T(1)` is authentic.
 
-**Inductive step.** Assume `T(0), …, T(n)` authentic; prove `T(n+1)` authentic.
+**Inductive step.** Assume `T(0), …, T(n)` authentic; prove `T(n+1)` authentic. `τ_n` spends `T(n)`, so
+its class is fixed by `T(n)`'s type (§1.4). In **both** cases Lemma 2 makes the produced fields
+deterministic — in particular `parent(T(n+1)) = outpoint(T(n))` and `issuer` copied verbatim — so
+`T(n+1)`'s chain extends `T(n)`'s by one real link and inherits the same issuer and root.
 
-*Case 1: τ_n is a settle.* By Lemma 2, `T(n+1)`'s fields are deterministic from `T(n)`'s
-scriptCode, which (by hypothesis) carries the correct parent/grandparent/genesis; these
-propagate to `T(n+1)`. Lemma 4 prevents ancestor injection.
+*Case 1: τ_n is a commit (`T(n)` settle-typed).* No rebuild runs (Lemma 4 forces null ancestor args).
+`T(n+1)`'s `parent`/`grandparent`/`issuer` are the deterministic Lemma-2 outputs of `T(n)`'s scriptCode,
+which by hypothesis are well-formed; they propagate. The commit additionally *emits* the proof output
+consumed later by its matching settle (§1.4). `T(n+1)` is authentic.
 
-*Case 2: τ_n is a commit, n ≥ 2.* By Lemma 3 the rebuild yields `TX_anc` with
-`H(TX_anc) = grandparent(T(n)).txid`. Since `T(n)` is authentic, `grandparent(T(n))` points to
-`T(n−2)`, authentic by hypothesis; hence `TX_anc = T(n−2)` up to collision probability
-`negl(λ)`. By Lemma 2, `T(n+1)`'s fields are correctly derived and
-`genesis(T(n+1)) = … = genesis(T(0))`.
+*Case 2: τ_n is a settle (`T(n)` commit-typed) with a grandparent.* By Lemma 2, `grandparent(T(n))` is
+the **determined** outpoint `outpoint(T(n−2))` (not spender-chosen); by hypothesis `T(n−2)` is authentic.
+By Lemma 3 the rebuild yields `TX_anc` with `H(TX_anc) = grandparent(T(n)).txid`, so `TX_anc` is
+`T(n−2)`'s transaction up to collision probability `negl(λ)`, **and** it forces a still-**unspent** output
+of that transaction (its proof UTXO) to be co-spent — proving on-chain that the claimed grandparent is a
+*real* transaction, not a spliced or omitted one. `T(n+1)`'s fields are the deterministic Lemma-2 outputs.
+(The first settle has no grandparent: Lemma 4 applies and authenticity propagates by Lemma 2 as in Case 1.)
 
-In both cases Lemma 1 ensures the transition was authorised. ∎
+In both cases Lemma 1 ensures the transition was authorised. **Where authenticity comes from:** Lemma 2's
+`parent`-chain determinism makes the lineage well-defined; **Lemma 5** anchors it — the only parentless
+token is issuer-signed, so the chain cannot terminate at a root an adversary chose; and **Lemma 3**
+(rebuild + proof co-spend) is what makes each deep ancestor *provably real on-chain* rather than assumed,
+defeating a spliced or omitted ancestor and letting a verifier confirm the two deepest links from
+**bounded** data — the token UTXO plus the co-spent proof UTXO, each with a merkle proof (the paper's
+"two related UTXOs" back-to-genesis argument, §1.6). Genesis-preservation via Lemma 2 alone would
+establish the property only over an *already-valid* chain; it is the combination of **Lemma 5** (issuer
+root), **Lemma 3** (real-ancestor consumption at each settle) and **Lemma 1** (per-hop authorisation) that
+reduces forgery to breaking ECDSA (Assumption 2) or SHA-256 (Assumption 1) — consistent with §8.1 and §10. ∎
 
 ---
 
@@ -297,13 +400,16 @@ The melt path performs the same `H160` + `checkSig` check, so a non-owner cannot
 
 ## 6. Proof of Theorem 3 (Balance Conservation, fungible)
 
-Define `B(n) = Σ balance(T_i)` over all live tokens sharing a genesis. By case analysis:
+Define `B(n) = Σ balance(T_i)` over all live tokens sharing a genesis — i.e. whose `parent`-chains
+terminate at the same parentless, issuer-signed root (§1.3). By case analysis:
 
 - **Transfer.** Balance unchanged (Lemma 6); one token in, one out. `B(n+1) = B(n)`.
 - **Merge.** Two live tokens `T_a, T_b` (both spent as inputs) yield one `T_merged` with
   `balance = balance(T_a) + balance(T_b)` (Lemma 6). Before and after, B contains the same sum;
   both inputs are consumed and cannot be respent (UTXO model). `B(n+1) = B(n)`. The commit
-  enforces the sum `≤ 2¹²⁸ − 1`.
+  enforces the sum `≤ 2¹²⁸ − 1`, and the settle binds the two inputs to a **common lineage** via
+  `otherGrandparentOutpoint` (Lemma 3), so a merge cannot pull in a token from a different or forged
+  genesis to inflate this float.
 - **Split.** One token `T` yields `T_a', T_b'` with
   `balance(T_a') + balance(T_b') = (balance(T) − piece) + piece = balance(T)` (Lemma 6). The
   commit enforces `balance(T) ≥ piece ≥ 0`. `B(n+1) = B(n)`.
@@ -346,10 +452,10 @@ state permits skipping the cycle or an undefined type. ∎
 
 | Attack | Method | Defence | Reduction |
 |--------|--------|---------|-----------|
-| Forge genesis | fake genesis outpoint | genesis = `ctx.outpoint`, bound by SIGHASH_ALL to the real tx | Asm. 3 |
+| Forge genesis | claim lineage to a reputable issuer's root | the unique parentless root must be issuer-signed (`issuerPubKey == signerPubKey`, Lemma 5); without the issuer key no valid root exists | Asm. 2 |
 | Forge ancestor | supply `TX_anc' ≠ TX_anc` with same hash | `H(TX_anc') = H(TX_anc)` needs a collision | Asm. 1 |
-| Inject ancestor data on settle | non-null ancestor args | null-check asserts total size 0 (Lemma 4) | Asm. 4 |
-| Modify lineage fields | change parent/grandparent/genesis in output | `hashOutputs` locks all output bytes (Lemma 2) | Asm. 1 |
+| Inject ancestor data on a non-rebuild spend | non-null ancestor args on a commit or grandparent-less settle | null-check asserts total size 0 (Lemma 4) | Asm. 4 |
+| Modify lineage fields | change parent/grandparent in output | `hashOutputs` locks all output bytes (Lemma 2) | Asm. 1 |
 | Modify contract suffix | swap in different bytecode | covenant appends its own bytes to the output; hash mismatch | Asm. 1 |
 
 ### 8.2 Ownership (against Theorem 2)
