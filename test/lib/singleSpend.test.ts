@@ -11,8 +11,6 @@ import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction, LockingScript } from '@bsv/sdk'
 import { verifyTx, buildOutpoint } from '../../src/lib/boltLib.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
-import MinSimpleDiscountTemplate from '../../src/tokens/templates/MinSimpleDiscount.sx.template.js'
-import MinSimpleBalanceTemplate from '../../src/tokens/templates/MinSimpleBalance.sx.template.js'
 
 // Non-degenerate keys: privkey=1 would make pubkey == G (X=79be667e…), colliding with the
 // contract's r-puzzle magic-sig constant. Use high-entropy scalars instead.
@@ -37,23 +35,11 @@ function assertValid(label: string, tx: Transaction) {
 type Token = (owner: number[], commitment: number[], txoType: number[], parent: number[], gp: number[]) => LockingScript
 interface NftCase { name: string; tpl: any; lock: Token }
 
-const discount = [0x0a]
-const balance = [...new Array(15).fill(0x00), 0x07] // 16-byte LE-ish immutable balance
 const cases: NftCase[] = [
   {
     name: 'MinSimpleBolt (identity)',
     tpl: new MinSimpleTemplate(),
     lock: (o, c, t, p, g) => new MinSimpleTemplate().lock(o, issuerPub, c, t, p, g),
-  },
-  {
-    name: 'MinSimpleDiscountBolt (1B discount)',
-    tpl: new MinSimpleDiscountTemplate(),
-    lock: (o, c, t, p, g) => new MinSimpleDiscountTemplate().lock(discount, o, issuerPub, c, t, p, g),
-  },
-  {
-    name: 'MinSimpleBalanceBolt (16B balance)',
-    tpl: new MinSimpleBalanceTemplate(),
-    lock: (o, c, t, p, g) => new MinSimpleBalanceTemplate().lock(balance, o, issuerPub, c, t, p, g),
   },
 ]
 

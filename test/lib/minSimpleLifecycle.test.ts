@@ -1,14 +1,16 @@
-// B2b-2 — NFT ancestor reconstruction: a live coupon 2-hop transfer (mint -> c1/s1 -> c2/s2) where the
-// 2nd settle (s2) reaches back over a >=4-tx chain and reconstructs the ancestor commit c1. Gated on
-// verifyTx. Mirrors the canonical sx golden truth sx/tests/bolt/simple/zeroData/MinSimpleDiscountBolt.sim.json
-// (mint, commitTx1, settleTx1, commitTx2, settleTx2), whose settleTx2 has the identical 3-input
-// ancestor structure [token, p2pb-proof, funding] and whose 26 ancestor pieces singleAncestorPieces
-// reproduces byte-for-byte (see the fixture-derived test). Lineage: issuer(0) -> user(1) -> bucket(2).
+// MinSimpleBOLT ancestor reconstruction: a live 2-hop transfer (mint -> c1/s1 -> c2/s2) where the
+// 2nd settle (s2) reaches back over a >=4-tx chain and reconstructs the ancestor commit c1, gated on
+// verifyTx (the @bsv/sdk Spend engine). This is the b017 library's proof that singleSpendUnlock +
+// singleAncestorPieces reconstruct a real back-reaching settle correctly for the kept NFT - the
+// coverage the removed Discount coupon test used to provide. Mirrors the canonical sx truth
+// sx/tests/bolt/simple/zeroData/MSBolt.sim.json (mint, commitTx1, settleTx1, commitTx2, settleTx2),
+// whose settleTx2 has the identical 3-input ancestor structure [token, p2pb-proof, funding].
+// Lineage: issuer(0) -> user(1) -> bucket(2).
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Script, Transaction, TransactionSignature, UnlockingScript } from '@bsv/sdk'
 import { verifyTx, buildOutpoint, createSignature } from '../../src/lib/boltLib.js'
 import { scriptChunksFromBin } from '../../src/lib/boltLib.js'
-import MinSimpleDiscountTemplate from '../../src/tokens/templates/MinSimpleDiscount.sx.template.js'
+import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 
 const SCOPE = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL
 const issuerKey = PrivateKey.fromString('e9873d79c6d87dc0fb6a5778633389f4453213303da61f20bd67fc233aa33262', 'hex')
@@ -48,11 +50,10 @@ function assertValid(label: string, tx: Transaction) {
   expect(valid, label).toBe(true)
 }
 
-describe('B2b-2 — coupon 2-hop: settleTx2 ancestor reconstruction passes verifyTx', () => {
-  const tpl = new MinSimpleDiscountTemplate()
-  const d = [0x0a]
+describe('MinSimpleBOLT 2-hop: settleTx2 ancestor reconstruction passes verifyTx', () => {
+  const tpl = new MinSimpleTemplate()
   const tok = (owner: number[], commit: number[], type: number[], parent: number[], gp: number[]) =>
-    tpl.lock(d, owner, issuerPub, commit, type, parent, gp)
+    tpl.lock(owner, issuerPub, commit, type, parent, gp)
 
   it('mint -> c1 -> s1 -> c2 -> s2 (issuer -> user -> bucket), s2 reconstructs c1', async () => {
     const funding = new Transaction(1, [], [{ satoshis: 5000, lockingScript: new P2PKH().lock(iPkh) }])
@@ -89,7 +90,7 @@ describe('B2b-2 — coupon 2-hop: settleTx2 ancestor reconstruction passes verif
     c2.addOutput({ satoshis: 1000, lockingScript: new P2PKH().lock(uPkh) })
     await c2.sign(); assertValid('c2', c2)
 
-    // s2: user settles to bucket — 3 inputs [token@c2.0, p2pb-proof@c1.1, funding@c2.2]; ancestor = c1
+    // s2: user settles to bucket - 3 inputs [token@c2.0, p2pb-proof@c1.1, funding@c2.2]; ancestor = c1
     const s2 = new Transaction(); s2.version = 2
     s2.addInput({ sourceTransaction: c2, sourceOutputIndex: 0, unlockingScriptTemplate: tpl.unlock(userKey, bPkh, [mint, c1, s1, c2]), sequence: 0xffffffff })
     s2.addInput({ sourceTransaction: c1, sourceOutputIndex: 1, unlockingScriptTemplate: p2pbUnlock(userKey), sequence: 0xffffffff })

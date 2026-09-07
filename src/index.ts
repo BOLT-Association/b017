@@ -8,8 +8,6 @@ export { verifyTx, buildOutpoint } from "./lib/boltLib.js";
 
 // Token LOCK templates (mint/build the contract output for each type).
 export { default as MinSimpleTemplate } from "./tokens/templates/MinSimple.sx.template.js";
-export { default as MinSimpleDiscountTemplate } from "./tokens/templates/MinSimpleDiscount.sx.template.js";
-export { default as MinSimpleBalanceTemplate } from "./tokens/templates/MinSimpleBalance.sx.template.js";
 export { default as Pay2ProofTemplate } from "./tokens/templates/pay2Proof.js";
 
 // Token recognition — the scanner's fingerprint primitive.

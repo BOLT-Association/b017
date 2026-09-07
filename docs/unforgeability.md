@@ -118,7 +118,17 @@ using 16-byte little-endian arithmetic inside the script:
 
 - **transfer** copies the balance through unchanged;
 - **merge** locks `out = balance + otherBalance` and consumes *both* inputs (no duplication);
-- **split** locks `out_A = balance − piece` and `out_B = piece`, so `out_A + out_B = balance`.
+- **split** locks `out_A = balance − piece` and `out_B = piece`, so `out_A + out_B = balance`;
+  the commit additionally requires `balance − piece ≥ 0` (the over-take guard), and the settle
+  re-checks `out_A ≥ 0`. A zero piece and a zero remainder are both **permitted by design**
+  (2026-09-05): `0 + B = B` conserves supply exactly and a zero-balance token cannot inflate
+  anything, so over-take is the only property left to enforce.
+
+> **Correction (2026-09-02).** Before commit `2a133018` the commit-side balance guards read the
+> wrong stack slots and enforced nothing, so a holder could split off more than the token held and
+> settle the negative remainder into a positive number (padding turned −1 into +129). The guards are
+> restored, re-checked at the settle, and covered by adversarial tests that assert which
+> transaction rejects. Tokens minted with the earlier bytecode should be reissued.
 
 There is no swap operation in this library (it was removed), which shrinks the attack surface
 further.
@@ -131,6 +141,7 @@ further.
 | --- | --- |
 | **Forge a genesis** | The only parentless token must be signed by the `issuerPubKey` it declares (genesis ⇒ `issuerPubKey == signerPubKey`); without the issuer's key there is no valid root → ECDSA. |
 | **Splice the chain** | The **settle's** ancestor rebuild compares `hash256(ancestor)` to `grandparentOutpoint.txid` and co-spends a live output of that ancestor; any substituted ancestor mismatches → SHA-256 collision needed. |
+| **Clone a settle and inflate it** (the fabricated hop) | A **past recipient** can satisfy the co-spend honestly, because the proof is theirs. So they fund a sibling settle-typed output carrying any balance and roll it forward. **This worked, and a regtest teranode accepted the chain** until 2026-09-05. It is closed by the balance lineage anchor: a commit fixes, in the bytes its settle must rebuild, how much that settle may pay (`balance`, `balanceCommit`, `txoType`), and the settle now compares the spent token's balance against exactly that. The two halves are cut from the same bytes, so supplying the ancestor's real fields fails the value check and doctoring them fails the hash. |
 | **Inflate on merge** | The merged balance is computed in-script from values bound to each input token's own (verified) lineage; you cannot raise either without forging that token's history. |
 | **Over-take on split** | The covenant checks `balance ≥ piece` and locks both output balances via `hashOutputs`. |
 | **Steal a token** | `hash160(pubKey) == pubKeyHash` + `checkSig` under SIGHASH_ALL: no private key, no valid signature → ECDSA. |
