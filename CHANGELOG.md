@@ -9,7 +9,9 @@ All notable changes to **b017** are documented here. The format is based on
 ### Security
 - **`SimpleMultiBOLT`: the six red-team fixes now ship in the template.** The published `0.0.0-b2`
   bytecode carried only the original fabricated-hop anchor; a red-team campaign then found and
-  closed six further covenant defects, three node-verified on a regtest teranode, now compiled in:
+  closed six further covenant defects - five node-verified on a regtest teranode in both directions
+  (B1, S1, S2, S3, F3); C5 confirmed in simulation and a 4M-signature measurement (its check is a
+  basic signature-length bound with no node/simulator divergence) - now compiled in:
   B1 (`balanceCommit` unchecked -> split inflation to 2^127-1), S1 (co-spent proof not bound to the
   bolt -> a token doubles itself), S2 (rebuilt ancestor's issuer never checked -> counterfeit),
   S3 (splitter swaps bolt order -> theft + freeze), F3 (a zero grandparent disabled the anchor ->
