@@ -4,11 +4,16 @@ import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Transaction, Script } from '@bsv/sdk'
 import { REGISTRY, recognizeType, recognizeP2P, issuerPubKeyOf } from '../../src/lib/scanner/fingerprints.js'
 import Pay2ProofTemplate from '../../src/tokens/templates/pay2Proof.js'
+import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
-import { readFixtureJSON } from '../helpers/fixtures.js'
 
-const goldenLock = (name: string): Script =>
-  Transaction.fromHex(readFixtureJSON(`${name}.lifecycle.golden.json`).txs[0].hex).outputs[0].lockingScript
+// A live-built genuine MinSimpleBOLT lock (no fixture): the kept NFT stands in for the removed
+// Discount/Balance goldens - same recognition path (pushLengths + sha256(staticCode)).
+const issuerKey = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000002', 'hex')
+const issuerPub = issuerKey.toPublicKey().encode(true) as number[]
+const ownerPkh = Hash.hash160(issuerPub)
+const minSimpleLock = (): Script =>
+  new MinSimpleTemplate().lock(ownerPkh, issuerPub, new Array(20).fill(0x00), [0x00], new Array(36).fill(0x00), new Array(36).fill(0x00))
 
 describe('B4 — fingerprint registry', () => {
   it('every type spec has a 64-hex suffixHash and issuerPubKey (33B) as the last push', () => {
@@ -19,9 +24,8 @@ describe('B4 — fingerprint registry', () => {
     }
   })
 
-  it('recognises each NFT golden mint as its own type', () => {
-    expect(recognizeType(goldenLock('MinSimpleDiscountBolt'))).toBe('MinSimpleDiscountBOLT')
-    expect(recognizeType(goldenLock('MinSimpleBalanceBolt'))).toBe('MinSimpleBalanceBOLT')
+  it('recognises a live MinSimpleBOLT lock as its own type', () => {
+    expect(recognizeType(minSimpleLock())).toBe('MinSimpleBOLT')
   })
 
   it('recognises a SimpleMultiBolt mint (the fungible flagship)', async () => {
@@ -38,14 +42,14 @@ describe('B4 — fingerprint registry', () => {
   })
 
   it('rejects a tampered static contract (extra opcode appended)', () => {
-    const lock = goldenLock('MinSimpleDiscountBolt')
+    const lock = minSimpleLock()
     const tampered = new Script([...lock.chunks, { op: 0x51 }]) // append OP_1
     expect(recognizeType(tampered)).toBeNull()
   })
 
   it('issuerPubKeyOf returns the 33-byte last push of a recognised token', () => {
-    const lock = goldenLock('MinSimpleBalanceBolt')
-    expect(issuerPubKeyOf(lock, 'MinSimpleBalanceBOLT').length).toBe(33)
+    const lock = minSimpleLock()
+    expect(issuerPubKeyOf(lock, 'MinSimpleBOLT').length).toBe(33)
   })
 
   it('recognizeType fails closed on null/empty/garbage scripts', () => {
@@ -74,7 +78,7 @@ describe('B4 — p2Proof golden fingerprint (recognizeP2P)', () => {
   })
 
   it('rejects a token lock and null/empty', () => {
-    expect(recognizeP2P(goldenLock('MinSimpleDiscountBolt'))).toBe(false)
+    expect(recognizeP2P(minSimpleLock())).toBe(false)
     expect(recognizeP2P(null as any)).toBe(false)
     expect(recognizeP2P(new Script([]))).toBe(false)
   })

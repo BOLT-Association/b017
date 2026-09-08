@@ -1,8 +1,8 @@
 # Formal Proof of BOLT Token Unforgeability
 
 **Bitcoin Original Layer-1 Token (BOLT) Protocol**
-**Applies to this library: `SimpleMultiBOLT` (fungible) and the minimal NFT templates
-(`MinSimple`, `MinSimpleDiscount`, `MinSimpleBalance`).**
+**Applies to this library: `SimpleMultiBOLT` (fungible) and the minimal NFT template
+`MinSimpleBOLT` (identity).**
 **Patent Pending: GB2318902.0**
 
 > This is the rigorous companion to [`unforgeability.md`](unforgeability.md). The accessible
@@ -67,8 +67,7 @@ Where:
 - `grandparent(n) ∈ {0,1}²⁵⁶ × ℕ ∪ {⊥}` — `(txid, vout)` of `T(n−2)`, or `⊥` if n < 2.
 - `issuer ∈ {0,1}²⁶⁴` — compressed public key of the issuing authority. **Immutable.**
 - `balance(n) ∈ [0, 2¹²⁸ − 1]` — **16-byte little-endian** balance (fungible `SimpleMultiBOLT`;
-  for the plain NFT this field is absent or fixed; `MinSimpleBalance` carries an immutable
-  16-byte balance, `MinSimpleDiscount` an immutable 1-byte discount).
+  absent on the identity NFT `MinSimpleBOLT`).
 - `contract ∈ {0,1}*` — the BOLT locking-script bytecode (self-referential, immutable).
 
 > **Genesis is not a stored field.** Earlier drafts carried a `genesisOutpoint` field; the shipped
@@ -299,11 +298,18 @@ not "a settle" — a settle with a grandparent is exactly where the Lemma 3 rebu
 For the genesis transaction (n = 0) and the first transfer commit (n = 1), the signer's public
 key must equal the embedded `issuerPubKey`.
 
-**Proof.** The covenant derives `isGenesis = (parentOutpoint == ∅)` — a token is a genesis iff it is
-**parentless** (`MSBolt.std.sx:93`, `SimpleMultiBolt.sx:297`) — and a first-commit flag, and under
-either asserts `issuerPubKey == pubKey` (`SimpleMultiBolt.sx:298`). This forces the minting key to
-authorise both the genesis root and the first commit (whose first commit may not be a merge —
-`SimpleMultiBolt.sx:299`); after the first settle the check is lifted, enabling ordinary transfers. ∎
+**Proof.** The covenant derives `isGenesis = (parentOutpoint == ∅)` - a token is a genesis iff it is
+**parentless** (`MSBolt.std.sx:93`, `SimpleMultiBolt.sx:297`) - and under it asserts
+`issuerPubKey == pubKey` (`SimpleMultiBolt.sx:298`). In the fungible `SimpleMultiBolt` this is the
+**only** issuer check, and it fires when the *spent* token is parentless, i.e. on the spend of `T(0)`,
+which **is** the first commit: the issuer must sign the first commit because the first commit spends
+the genesis, not because of a separate flag. (That first commit may not be a merge —
+`SimpleMultiBolt.sx:299`.) The NFT family additionally derives an `is2ndTx` flag and re-asserts the
+issuer on the first settle as well (`MinSimpleBolt.sx:83-88`). In both families the check is lifted thereafter, enabling ordinary
+transfers. ∎
+
+> **Correction (2026-09-02).** Earlier text described the `is2ndTx` flag as present in
+> `SimpleMultiBolt`; it is not. The conclusion of the lemma is unchanged for both families.
 
 ### Lemma 6 (Balance Determinism, fungible)
 The output balance is a deterministic function of the input balance(s), computed with 16-byte
@@ -316,9 +322,30 @@ little-endian arithmetic:
 | Split settle | `balance_A(n+1) = balance(n) − piece`, `balance_B(n+1) = piece` |
 
 **Proof.** Each case is built into the covenant's output construction and locked by `hashOutputs`
-(Lemma 2). Merge commit enforces `balance + otherBalance ≤ 2¹²⁸ − 1` (no overflow); split commit
-enforces `balance ≥ piece ≥ 0` (no negative/over-take). No other value satisfies
+(Lemma 2). Merge commit enforces `balance + otherBalance ≤ 2¹²⁷ − 1` (`SimpleMultiBolt.sx:359`) and
+the merge settle re-asserts the computed sum against the same bound (`:394`). Split commit enforces
+`balance − piece ≥ 0` (`:364-366`, a single `sub 0n greaterThanOrEqual verify`: the over-take
+guard), and the split settle re-asserts `remainder ≥ 0` (`:399-400`) before the 16-byte field is
+padded. **A zero piece and a zero remainder are both permitted** — see §8.3. Every input balance is separately bounded `0 ≤ balance ≤ 2¹²⁷ − 1`
+at the moment it is spent (`:344-345`). No other value satisfies
 `H(serialised_outputs) == ctx.hashOutputs`. ∎
+
+> **Correction (2026-09-05, M0).** This proof previously asserted `0 < piece < balance` and that
+> "no zero-balance token can be produced". That was the pre-M0 rule and it contradicted §8.3 in
+> this same document. Zero pieces are now **permitted by design**: `0 + B = B` conserves supply
+> exactly, and a zero-balance token cannot inflate anything, so the over-take guard is the only
+> property left and one comparison enforces it. The line citations were stale by the same edit.
+
+> **Correction (2026-09-02, commit `2a133018` and follow-ups).** Until that commit both commit-side
+> guards were dead code: their `pick` depths read `inputIndexN` / `balanceCommit` instead of
+> `nextBalanceCommit` / `balance` (a reindex slip in the M-J refactor), so the split guard asserted
+> `0 − 0 ≥ 0`. A split with `piece > balance` was accepted at the commit and could be settled: the
+> settle computes `balance − piece` and pads the field with trailing zeros, so a remainder of −1
+> (script `0x81`) became `81 00…00` = +129, inflating supply with no issuer key. The fix restores
+> the picks, adds the settle-side re-checks as defence in depth, and forbids zero-balance pieces.
+> It is verified by `sx/tests/bolt/multi/simpleMultiBolt.guards.test.js`, which builds internally
+> consistent adversarial chains and asserts *which* transaction rejects. Tokens minted with the
+> earlier bytecode remain exploitable by their holders until reissued under the corrected contract.
 
 ### Lemma 7 (State Machine)
 The `txoType` field enforces strict alternation of token types: a **commit-typed** token (odd) is
@@ -457,6 +484,15 @@ state permits skipping the cycle or an undefined type. ∎
 | Inject ancestor data on a non-rebuild spend | non-null ancestor args on a commit or grandparent-less settle | null-check asserts total size 0 (Lemma 4) | Asm. 4 |
 | Modify lineage fields | change parent/grandparent in output | `hashOutputs` locks all output bytes (Lemma 2) | Asm. 1 |
 | Modify contract suffix | swap in different bytecode | covenant appends its own bytes to the output; hash mismatch | Asm. 1 |
+| **Fabricated hop (cloned settle)** | a **past recipient** funds a sibling settle-typed output carrying any balance, then commits and settles it, co-spending a real proof they legitimately own and can sign | the settle reads `balance`, `balanceCommit` and `txoType` off the **rebuilt** ancestor and asserts `scriptCode.balance == transition(...)` (`SimpleMultiBolt.sx:688`, `:891`). Doctoring those fields to fit is not open either: they are inside the bytes hashed against `grandparentOutpoint` | Asm. 1 + 4 |
+
+> **Provenance of that last row, stated plainly.** It was not found by analysis. It was built and
+> broadcast: a regtest teranode running GoBDK consensus **accepted** the full forged chain against
+> the pre-fix bytecode, and rejected a byte-tampered control, so the validator was live. Lemma 3's
+> caveat (§4) is exactly right that (a)+(b) defeat only a *spliced* ancestor; what it did not say is
+> that an attacker who **is** a past recipient satisfies the co-spend honestly. The repro is
+> `sx/tests/bolt/multi/simpleMultiBolt.fabricatedHop.test.js`; the pre-fix chain is frozen at
+> `b017/test/repro-fabricated-hop.test.ts` as the record of what the node accepted.
 
 ### 8.2 Ownership (against Theorem 2)
 
@@ -473,8 +509,9 @@ state permits skipping the cycle or an undefined type. ∎
 | Attack | Method | Defence | Reduction |
 |--------|--------|---------|-----------|
 | Inflate on merge | claim sum > actual | sum computed in-script; locked by `hashOutputs` | Asm. 1 + 4 |
-| Over-take on split | claim piece > whole | covenant asserts `balance ≥ piece ≥ 0` | Asm. 4 |
-| Overflow on merge | exceed 2¹²⁸ − 1 | covenant asserts sum within range before settle | Asm. 4 |
+| Over-take on split | claim piece > whole | commit asserts `remainder >= 0` (`:364-366`); settle re-asserts it (`:401`) | Asm. 4 |
+| Zero-balance piece | split with `piece = 0` or `piece = balance` | **permitted by design** (2026-09-05): `0 + B = B` conserves supply exactly, and a zero-balance token cannot inflate anything, so the over-take guard is the only property left | n/a |
+| Overflow on merge | exceed 2¹²⁷ − 1 | commit asserts the sum within range (`:359`); settle re-asserts it (`:394`) | Asm. 4 |
 | Double-spend | reuse the same UTXO | Bitcoin UTXO consensus | Consensus |
 | Balance byte tamper | edit balance in the output script | `hashOutputs` commitment (Lemma 2) | Asm. 1 |
 
@@ -512,7 +549,7 @@ interpreter (no mocks). Run `npm test`.
 | Suite (file) | Validates |
 |--------------|-----------|
 | `test/tokens/MultiBOLT.test.ts`, `test/templates/SimpleMulti.test.ts` | Full `SimpleMultiBOLT` lifecycles (mint → transfer×2 → split; mint×2 → merge → melt) build real txs and verify on the `@bsv/sdk` Spend engine; split/merge conserve balance (Theorem 3, Lemma 6). |
-| `test/templates/MinSimple.test.ts`, `MinSimpleBalance.test.ts`, `MinSimpleDiscount.test.ts` | NFT lock/unlock/melt; each lock **byte-equals its golden fixture**; immutable balance/discount fields. |
+| `test/templates/MinSimple.test.ts`, `test/lib/minSimpleLifecycle.test.ts` | NFT lock/unlock; the identity NFT `MinSimpleBOLT` mint/commit/settle and a 2-hop ancestor reconstruction, gated on verifyTx. |
 | `test/lib/singleAncestor.test.ts`, `singleSpend.test.ts`, `singleCoupon.test.ts`, `multiBoltLib.test.ts` | Multi-hop chains: commit→settle verify on the Spend engine and the rebuilt ancestor matches the real grandparent txid (Lemma 3). |
 | `test/scanner/verifyEvents.test.ts` | **Negative tests:** rejects a wrong trusted issuer, an orphan settle (chain missing its commit), an unsettled commit, an extra-`OP_RETURN`-tampered output, and a right-shape/wrong-code counterfeit; accepts a lone genesis mint as a single-tx event (Theorem 1, §8.1/§8.5). |
 | `test/scanner/parity.test.ts`, `events.test.ts`, `fingerprints.test.ts` | Scanner accept/reject **matches the on-chain contract** (parity); commit/settle event classification; fingerprint registry + p2Proof golden matching against tampered inputs (Theorems 1 & 4, §8.5). |

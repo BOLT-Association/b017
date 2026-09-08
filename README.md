@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/b017.svg?logo=npm)](https://www.npmjs.com/package/b017)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-> **Status: `0.0.0-b1` (beta).** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
+> **Status: `0.0.0-b2` (beta).** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
 > (126/126 unit tests, **99% statement / 98% function / 95% branch coverage**) but may still change before `0.1.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
@@ -112,7 +112,7 @@ sub-libraries).
 | `src/tokens/MultiBOLT.ts` | `SimpleMultiBOLT` — the fungible token class (mint/transfer/split/merge/melt). |
 | `src/tokens/BOLT.ts` | `BOLT` — the abstract token base class. |
 | `src/tokens/templates/SimpleMulti.sx.template.ts` | Runtime lock/unlock/melt assembler for the fungible contract (compiled ASM suffix embedded). |
-| `src/tokens/templates/MinSimple*.sx.template.ts` | Single-token (NFT) lock templates: `MinSimple`, `MinSimpleDiscount`, `MinSimpleBalance`. |
+| `src/tokens/templates/MinSimple.sx.template.ts` | Single-token (NFT) lock template: `MinSimpleBOLT` (identity). |
 | `src/tokens/templates/pay2Proof.ts` | The `pay2Proof` UTXO template (the b017 marker proof output). |
 | `src/lib/boltLib.ts` | Layout-agnostic primitives (`verifyTx`, `buildOutpoint`, `splitCtx`, …) shared by both streams. |
 | `src/lib/single/` | Single-token (NFT) engine: `singleSpend` (unlock assembler) + `singleAncestor` (back-reach reconstruction). |

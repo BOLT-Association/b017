@@ -32,8 +32,6 @@ import { recognizeType, recognizeP2P, issuerPubKeyOf, type TokenType } from "./f
 type FieldName = "pubKeyHash" | "commitment" | "txoType" | "parent" | "grandparent";
 const FIELDS: Record<TokenType, Record<FieldName, number>> = {
   MinSimpleBOLT: { pubKeyHash: 0, commitment: 1, txoType: 2, parent: 3, grandparent: 4 },
-  MinSimpleDiscountBOLT: { pubKeyHash: 1, commitment: 2, txoType: 3, parent: 4, grandparent: 5 },
-  MinSimpleBalanceBOLT: { pubKeyHash: 1, commitment: 2, txoType: 3, parent: 4, grandparent: 5 },
   SimpleMultiBOLT: { pubKeyHash: 2, commitment: 3, txoType: 6, parent: 8, grandparent: 9 },
 };
 const field = (lock: Script, type: TokenType, f: FieldName): number[] =>

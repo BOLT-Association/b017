@@ -7,6 +7,15 @@ event** - the `commit -> settle` pair - and nothing else, however deep the linea
 not O(log N): **O(1)**, a flat two transactions, whether the token is one hop from its mint or ten
 thousand.
 
+Runnable proof: [`test/scanner/verificationScaling.test.ts`](../test/scanner/verificationScaling.test.ts).
+It shows both halves of the claim: verifying the tip reads exactly 2 transactions at depth 1, 8 and 24
+alike (the cost), and - the reason that is enough - the tip is *cryptographically bound* to its exact
+grandparent, not merely read next to it. The covenant executes on the tip (`verifyTx`), the tip names
+its grandparent by txid (a `hash256` of the grandparent's whole bytes) and co-spends its one-shot
+proof, and a single-byte change to the grandparent moves that txid so the commitment no longer holds.
+A forged or altered lineage therefore cannot produce a tip that verifies, so the constant-size read
+inherits the entire chain.
+
 ## Why: the proof is induced by the covenant, not walked
 
 A settle is valid only if it does two things against its **grandparent commit** (the commit two
@@ -15,8 +24,6 @@ hash-checks the reconstruction against the token's `grandparentOutpoint`, and it
 grandparent's one-shot proof output**. Both are only satisfiable if the grandparent event genuinely
 happened and was correct - a proof output exists only because a real commit emitted it, and a
 reconstruction hashes to `grandparentOutpoint` only if the grandparent's bytes were exactly those.
-(The reconstruction and its role are set out in [`docs/formal-proof.md`](formal-proof.md) and
-[`docs/unforgeability.md`](unforgeability.md).)
 
 That gives an induction, and the covenant supplies the step:
 
@@ -26,7 +33,9 @@ That gives an induction, and the covenant supplies the step:
 - **Inductive step.** A valid event at depth k is *constructible only if* the event at depth k-1
   happened and was correct - because event k's settle co-spends event k-1's commit proof and
   reconstructs that commit. Consensus enforced this when event k was mined: an event naming a
-  grandparent that never happened does not validate, and is not mined.
+  grandparent that never happened does not validate, and is not mined (this is exactly what
+  [`test/repro-fabricated-hop.test.ts`](../test/repro-fabricated-hop.test.ts) and the node-verified
+  fabricated-hop specs demonstrate).
 - **Conclusion.** The validity of the tip event therefore mathematically induces the validity of the
   entire chain behind it, back to the issuer's mint. A peer establishes provenance by reading the two
   tip transactions and inherits everything before them; it never reads the history.
@@ -38,12 +47,9 @@ from the mint: O(depth) per token.
 
 | Layer | What it establishes | What it reads | Cost |
 |---|---|---|---|
-| **The tip pair** | a well-formed commit+settle whose settle links to the commit and, by validity, re-anchors balance/issuer/lineage to a real grandparent | 2 transactions | **O(1)** |
+| **The tip pair** (`verifyEvent`) | a well-formed commit+settle whose settle links to the commit and, by validity, re-anchors balance/issuer/lineage to a real grandparent | 2 transactions | **O(1)** |
 | **Inclusion** (SPV) | the tip pair is mined, so consensus already ran the covenant - which is what makes the induction bind | a merkle path per tx | O(log blocksize) |
 | **Issuer trust** (pin) | the token is this issuer's, not a look-alike with a foreign key | the issuer push, compared to the trusted key | O(1) |
-
-Stack them and a peer has a complete trust decision for one event from two transactions plus their
-proofs; do it N times for N distinct events.
 
 The induction rests on consensus: a peer trusts that a *mined* transaction is *valid*. A peer who
 refuses even that and re-executes the covenant scripts itself must supply the settle's direct inputs
@@ -54,22 +60,26 @@ Re-validating an *entire history* from cold - an indexer's job, not a peer verif
 O(N): two transactions per event, N events, and still no genesis walk within any event. That is the
 only place N appears, and it is linear, never the O(N^2) of re-deriving each event from the mint.
 
-## The off-chain reader is a bounded inspector, by design
+## The reader question, settled by the scaling goal
 
-The scanner (`verifyEvents`) does not walk history, re-derive balances, or dedupe - and that is what
-keeps verification O(1). Each of those is supplied by a bounded layer, not by walking the past:
+The off-chain readers here - `verifyEvents` and the demo's `verifyPayment` - deliberately do not walk
+history, re-derive balances, or dedupe (the red-team suite
+[`test/scanner/redteam2.test.ts`](../test/scanner/redteam2.test.ts) records what they therefore do
+not catch alone). That is what keeps
+verification O(1): the missing checks are supplied by the bounded layers above, not by walking the
+past.
 
 - **Balance / lineage** - the covenant and the two-hop rebuild; a scan pass is structural, not a
   balance check.
 - **Uniqueness / double-settle** - a consensus property, confirmed by SPV inclusion plus the UTXO
-  rule that a commit's token output is spent once.
+  rule; making the scanner catch it needs an unbounded spend graph and breaks the property.
 - **Issuer** - pin it (`trustedIssuerPubKey`), O(1).
 - **Replay** - dedupe by outpoint or txid at the application boundary, O(1).
 
-Hardening the reader to close these on its own would reintroduce the history walk the protocol exists
-to avoid. The reader stays a bounded O(1) inspector; the caller supplies the bounded context.
+Hardening the reader to close these alone reintroduces the history walk the protocol exists to
+avoid. Keep the reader a bounded O(1) inspector and make the caller contract explicit.
 
-## The one-line version
+## The one-line version for peers
 
 A valid BOLT settle re-proves its grandparent by reconstruction and co-spends its proof, so validity
 induces backward: reading the two transactions of a token's latest event establishes its whole

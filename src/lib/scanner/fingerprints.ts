@@ -8,15 +8,11 @@
 // recognizeP2P hashes the static skeleton (incl. the b017 marker bytes) and checks the pkh length.
 import { Hash, Script, Utils } from "@bsv/sdk";
 import MinSimpleTemplate from "../../tokens/templates/MinSimple.sx.template.js";
-import MinSimpleDiscountTemplate from "../../tokens/templates/MinSimpleDiscount.sx.template.js";
-import MinSimpleBalanceTemplate from "../../tokens/templates/MinSimpleBalance.sx.template.js";
 import SimpleMultiTemplate from "../../tokens/templates/SimpleMulti.sx.template.js";
 import Pay2ProofTemplate from "../../tokens/templates/pay2Proof.js";
 
 export type TokenType =
   | "MinSimpleBOLT"
-  | "MinSimpleDiscountBOLT"
-  | "MinSimpleBalanceBOLT"
   | "SimpleMultiBOLT";
 
 export interface TypeSpec {
@@ -29,14 +25,10 @@ export interface TypeSpec {
 // Leading dynamic-push byte lengths per type (issuerPubKey is always the last, 33 bytes).
 const LAYOUTS: Record<TokenType, readonly number[]> = Object.freeze({
   MinSimpleBOLT: [20, 20, 1, 36, 36, 33],
-  MinSimpleDiscountBOLT: [1, 20, 20, 1, 36, 36, 33],
-  MinSimpleBalanceBOLT: [16, 20, 20, 1, 36, 36, 33],
   SimpleMultiBOLT: [16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
 });
 const SUFFIX: Record<TokenType, Script> = {
   MinSimpleBOLT: new MinSimpleTemplate().staticSuffix(),
-  MinSimpleDiscountBOLT: new MinSimpleDiscountTemplate().staticSuffix(),
-  MinSimpleBalanceBOLT: new MinSimpleBalanceTemplate().staticSuffix(),
   SimpleMultiBOLT: new SimpleMultiTemplate().staticSuffix(),
 };
 

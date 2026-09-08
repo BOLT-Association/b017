@@ -21,7 +21,7 @@ const unlockHex = artifact.unlockingRecombinants.filter((r) => typeof r === 'str
 if (!unlockHex) throw new Error('no string unlockingRecombinant in ' + artifactPath)
 const unlockASM = Script.fromHex(unlockHex).toASM()
 
-const tplPath = resolve(PKG, 'src/templates/MinSimple.sx.template.ts')
+const tplPath = resolve(PKG, 'src/tokens/templates/MinSimple.sx.template.ts')
 let tpl = readFileSync(tplPath, 'utf8')
 tpl = tpl.replace(
   /private readonly LOCK_SCRIPT_SUFFIX = "[^"]*"/,
