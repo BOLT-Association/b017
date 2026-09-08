@@ -8,7 +8,13 @@ not O(log N): **O(1)**, a flat two transactions, whether the token is one hop fr
 thousand.
 
 Runnable proof: [`test/scanner/verificationScaling.test.ts`](../test/scanner/verificationScaling.test.ts).
-Verifying the tip reads exactly 2 transactions at depth 1, 8 and 24 alike.
+It shows both halves of the claim: verifying the tip reads exactly 2 transactions at depth 1, 8 and 24
+alike (the cost), and - the reason that is enough - the tip is *cryptographically bound* to its exact
+grandparent, not merely read next to it. The covenant executes on the tip (`verifyTx`), the tip names
+its grandparent by txid (a `hash256` of the grandparent's whole bytes) and co-spends its one-shot
+proof, and a single-byte change to the grandparent moves that txid so the commitment no longer holds.
+A forged or altered lineage therefore cannot produce a tip that verifies, so the constant-size read
+inherits the entire chain.
 
 ## Why: the proof is induced by the covenant, not walked
 
