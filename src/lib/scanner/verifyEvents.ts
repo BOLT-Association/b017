@@ -13,7 +13,15 @@
 //   verifyEvents(txs)  — validate a BATCH of events: recognise the type, pin the issuer across the
 //                        whole batch, fingerprint every tx's arrangement, then pair the events —
 //                        every commit must be matched by a settle (and vice-versa) via parentOutpoint.
-//                        A lone mint or melt is a valid single-tx event.
+//                        A lone melt is a valid single-tx event. A MINT is not: a mint only NAMES an issuerPubKey
+//                        (anyone can mint an output naming anybody's key), and the issuer guard runs when the
+//                        genesis is first SPENT, so a mint is accepted only with a COMMIT in the same event/batch
+//                        that spends it. Otherwise the verdict is `unauthenticated: true` (not a signature failure).
+//                        The scanner also EXECUTES every input whose source tx is supplied (the covenants, the
+//                        signatures): structure alone cannot tell a forged commit from a real one, and off-chain
+//                        (SPV / zero-funding) txs have not been validated by any node. EVERY input's source tx must
+//                        be supplied (attached, in the batch, or inside a BEEF - Atomic BEEF over V2, see beef.ts),
+//                        else the verdict is a failure.
 //
 // NOTE — a commit and its settle are bound TWO independent ways:
 //   (1) TOKEN LINEAGE  — the settle's token parentOutpoint references the commit's token output.
@@ -25,13 +33,15 @@
 //
 // Strict = golden byte fingerprint (recognizeType: leading-push layout + sha256(static code)).
 // Loose  = shape only (a P2PKH change output / external funding input may carry any pkh + value).
-import { OP, Transaction, Script, Utils } from "@bsv/sdk";
+import { OP, Spend, Transaction, Script, Utils } from "@bsv/sdk";
 import { recognizeType, recognizeP2P, issuerPubKeyOf, type TokenType } from "./fingerprints.js";
+import { fromBeef, isBeef } from "./beef.js";
 
 // Field push-indices per type (parent/grandparent/issuer are the last 3 pushes; txoType varies).
 type FieldName = "pubKeyHash" | "commitment" | "txoType" | "parent" | "grandparent";
 const FIELDS: Record<TokenType, Record<FieldName, number>> = {
   MinSimpleBOLT: { pubKeyHash: 0, commitment: 1, txoType: 2, parent: 3, grandparent: 4 },
+  AuthBOLT: { pubKeyHash: 0, commitment: 1, txoType: 2, parent: 3, grandparent: 4 },
   SimpleMultiBOLT: { pubKeyHash: 2, commitment: 3, txoType: 6, parent: 8, grandparent: 9 },
 };
 const field = (lock: Script, type: TokenType, f: FieldName): number[] =>
@@ -54,12 +64,19 @@ export interface ScanOpts {
   expectedType?: TokenType;
   trustedIssuerPubKey?: number[] | string;
 }
+/** A tx an event spends that is not itself part of the event; `proven` = it carries a BUMP (merkle path). */
+export interface SourceTx { txid: string; proven: boolean }
 export type EventKind = "mint" | "transfer" | "split" | "merge" | "melt";
 export interface ScanResult {
   ok: boolean;
   reason?: string;
   type?: TokenType;
   issuerPubKeyHex?: string;
+  /** The txs the event txs spend that are not themselves event txs (parents / funding), with whether each carries a BUMP.
+   *  A `proven` source is NOT checked against a block header here: verify its merkle path with your ChainTracker. */
+  sources?: SourceTx[];
+  /** true when the batch holds a mint that no commit in it spends (the mint alone proves nothing about the issuer key). */
+  unauthenticated?: boolean;
   events?: { kind: EventKind; txids: string[] }[];
 }
 export interface EventResult {
@@ -67,15 +84,28 @@ export interface EventResult {
   reason?: string;
   type?: TokenType;
   kind?: EventKind;
+  /** See ScanResult.sources. */
+  sources?: SourceTx[];
+  /** true when the event is a mint that no commit in it spends (see ScanResult.unauthenticated). */
+  unauthenticated?: boolean;
 }
 
 /** Thrown when an input tx (string) cannot be parsed; caught at the verify entry points and turned
  *  into an `ok: false` result so a malformed batch never escapes as an exception. */
 class ParseError extends Error {}
-const toTx = (t: Transaction | string): Transaction => {
-  if (typeof t !== "string") return t;
+/** An event tx: a Transaction, raw tx hex, or BEEF (hex / bytes: Atomic BEEF over BEEF V2) whose subject is the tx. */
+export type TxInput = Transaction | string | Uint8Array;
+const toTx = (t: TxInput): Transaction => {
+  if (t instanceof Transaction) return t;
+  if (isBeef(t)) {
+    try {
+      return fromBeef(t);
+    } catch (e) {
+      throw new ParseError(`invalid BEEF: ${(e as Error)?.message ?? e}`);
+    }
+  }
   try {
-    return Transaction.fromHex(t);
+    return typeof t === "string" ? Transaction.fromHex(t) : Transaction.fromBinary(Array.from(t));
   } catch (e) {
     throw new ParseError(`malformed transaction hex: ${(e as Error)?.message ?? e}`);
   }
@@ -137,6 +167,91 @@ function categorise(tx: Transaction, type: TokenType, byId: ById): { shape: Shap
   return null;
 }
 
+/** The first MINT in `txs` that no COMMIT in `txs` spends, or null. A mint is just an output naming an issuerPubKey;
+ *  the issuer guard only runs when the genesis token is first SPENT, so a mint is authenticated only by a commit that
+ *  spends its token output (funded or not). */
+function unauthenticatedMint(txs: Transaction[], type: TokenType, byId: ById): Transaction | null {
+  const cats = txs.map((tx) => ({ tx, cat: categorise(tx, type, byId) }));
+  const commits = cats.filter((c) => c.cat?.shape.kind === "commit").map((c) => c.tx);
+  for (const { tx, cat } of cats) {
+    if (cat?.shape.kind !== "mint") continue;
+    const txid = tx.id("hex");
+    const spent = commits.some((c) =>
+      c.inputs.some((i: any) => (i.sourceTXID ?? i.sourceTransaction?.id("hex")) === txid && i.sourceOutputIndex === cat.tokenOutIdx));
+    if (!spent) return tx;
+  }
+  return null;
+}
+/**
+ * EXECUTE every input whose source output is known (attached, or supplied in the batch) on the @bsv/sdk Spend engine.
+ * The structural checks say a tx HAS the right shape; only execution shows its scripts are VALID. That matters for
+ * off-chain (SPV / zero-funding) packages, which no node has validated: a forged commit (signed by a stranger, refused
+ * by the covenant's issuer guard) is structurally perfect. Every TOKEN input of an accepted event is executed: the
+ * arrangement check already refuses a token input whose source tx was not supplied. Funding / proof inputs with no
+ * supplied source cannot be checked here. Returns the first failure.
+ */
+function executeInputs(txs: Transaction[], byId: ById): string | undefined {
+  const outpointRef = (i: any) => ({
+    sourceTXID: (i.sourceTXID ?? i.sourceTransaction?.id("hex")) as string,
+    sourceOutputIndex: i.sourceOutputIndex as number,
+    sequence: (i.sequence ?? 0xffffffff) as number,
+  });
+  for (const tx of txs) {
+    const id = tx.id("hex").slice(0, 8);
+    for (let vin = 0; vin < tx.inputs.length; vin++) {
+      const input: any = tx.inputs[vin];
+      const src: Transaction | undefined = input.sourceTransaction ?? (input.sourceTXID ? byId.get(input.sourceTXID) : undefined);
+      const out = src?.outputs?.[input.sourceOutputIndex];
+      if (!out) continue;
+      let failure: string | undefined;
+      try {
+        if (!input.unlockingScript) failure = "no unlocking script";
+        else if (
+          !new Spend({
+            sourceTXID: outpointRef(input).sourceTXID,
+            sourceOutputIndex: input.sourceOutputIndex,
+            lockingScript: out.lockingScript,
+            sourceSatoshis: out.satoshis ?? 0,
+            transactionVersion: tx.version,
+            otherInputs: tx.inputs.filter((_: any, k: number) => k !== vin).map(outpointRef),
+            unlockingScript: input.unlockingScript,
+            inputSequence: input.sequence ?? 0xffffffff,
+            inputIndex: vin,
+            outputs: tx.outputs,
+            lockTime: tx.lockTime,
+          }).validate()
+        ) failure = "the script evaluated false";
+      } catch (e: any) {
+        failure = String(e?.message ?? e).split(String.fromCharCode(10))[0];
+      }
+      if (failure) return `script execution failed: tx ${id} input ${vin}: ${failure}`;
+    }
+  }
+  return undefined;
+}
+/**
+ * Every input of every event tx must have its source tx SUPPLIED (attached, or another event tx): without it the
+ * input's script cannot be executed, so the event cannot be authenticated. Returns the first missing source as a
+ * failure reason, else the non-event source txs (with whether each carries a BUMP).
+ */
+function requireSources(txs: Transaction[], byId: ById): { failure?: string; sources: SourceTx[] } {
+  const sources = new Map<string, SourceTx>();
+  for (const tx of txs) {
+    const id = tx.id("hex").slice(0, 8);
+    for (let vin = 0; vin < tx.inputs.length; vin++) {
+      const input: any = tx.inputs[vin];
+      const src: Transaction | undefined = input.sourceTransaction ?? (input.sourceTXID ? byId.get(input.sourceTXID) : undefined);
+      if (!src || !src.outputs?.[input.sourceOutputIndex])
+        return { failure: `source tx ${String(input.sourceTXID ?? "?").slice(0, 8)} of tx ${id} input ${vin} was not supplied (send the package as BEEF)`, sources: [] };
+      const sid = src.id("hex");
+      if (!byId.has(sid) && !sources.has(sid)) sources.set(sid, { txid: sid, proven: !!src.merklePath });
+    }
+  }
+  return { sources: [...sources.values()] };
+}
+const unauthenticatedReason = (tx: Transaction) =>
+  `unauthenticated mint ${tx.id("hex").slice(0, 8)}: no commit in the event spends it, so nothing shows the sender holds the issuer key`;
+
 const actionKind = (txoTypeHex: string): EventKind =>
   txoTypeHex === "23" ? "split" : txoTypeHex === "25" ? "merge" : "transfer";
 
@@ -193,7 +308,7 @@ function eventType(txs: Transaction[], byId: ById, expected?: TokenType): TokenT
  * token's txoType action, fingerprints EVERY interface against the action's golden shape, and (for
  * a commit+settle pair) checks the settle links back to the commit via parentOutpoint.
  */
-export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts = {}): EventResult {
+export function verifyEvent(eventTxs: TxInput[], opts: ScanOpts = {}): EventResult {
   if (!Array.isArray(eventTxs)) return { ok: false, reason: "event must be an array of transactions" };
   let txs: Transaction[];
   try {
@@ -217,6 +332,11 @@ export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts =
     if (reason) return { ok: false, reason, type, kind: cat.shape.kind as EventKind };
   }
 
+  const stray = unauthenticatedMint(txs, type, byId);
+  if (stray) return { ok: false, reason: unauthenticatedReason(stray), type, kind: "mint", unauthenticated: true };
+  const need = requireSources(txs, byId);
+  if (need.failure) return { ok: false, reason: need.failure, type };
+
   const commitTx = txs.find((t) => categorise(t, type, byId)?.shape.kind === "commit");
   const settleTx = txs.find((t) => categorise(t, type, byId)?.shape.kind === "settle");
   if (commitTx && settleTx) {
@@ -225,10 +345,14 @@ export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts =
     const p = parseOutpoint(field(settleTx.outputs[sIdx].lockingScript, type, "parent"));
     if (!(p.txidHex === commitTx.id("hex") && p.vout === cIdx))
       return { ok: false, reason: "settle.parent does not link to the commit token", type };
-    return { ok: true, type, kind: actionKind(fieldHex(commitTx.outputs[cIdx].lockingScript, type, "txoType")) };
+    const failure = executeInputs(txs, byId);
+    if (failure) return { ok: false, reason: failure, type };
+    return { ok: true, type, kind: actionKind(fieldHex(commitTx.outputs[cIdx].lockingScript, type, "txoType")), sources: need.sources };
   }
   const lone = categorise(txs[txs.length - 1], type, byId);
-  return { ok: true, type, kind: lone?.shape.kind === "melt" ? "melt" : "mint" };
+  const failure = executeInputs(txs, byId);
+  if (failure) return { ok: false, reason: failure, type };
+  return { ok: true, type, kind: lone?.shape.kind === "melt" ? "melt" : "mint", sources: need.sources };
 }
 
 /**
@@ -236,9 +360,10 @@ export function verifyEvent(eventTxs: (Transaction | string)[], opts: ScanOpts =
  * pin the issuer across every token output in the batch, fingerprint every tx's interface
  * arrangement, then pair the events — every commit (txoType 21/23/25) must be matched by a settle
  * that links back via parentOutpoint, and every settle must link to a commit in the batch. A lone
- * mint (genesis) or melt (terminal) is a valid single-tx event.
+ * melt (terminal) is a valid single-tx event; a MINT must be spent by a commit in the batch, else the
+ * result is `unauthenticated: true` (a mint alone does not prove the sender holds the issuer key).
  */
-export function verifyEvents(txsIn: (Transaction | string)[], opts: ScanOpts = {}): ScanResult {
+export function verifyEvents(txsIn: TxInput[], opts: ScanOpts = {}): ScanResult {
   if (!Array.isArray(txsIn)) return { ok: false, reason: "batch must be an array of transactions" };
   let txs: Transaction[];
   try {
@@ -310,10 +435,22 @@ export function verifyEvents(txsIn: (Transaction | string)[], opts: ScanOpts = {
     if (reason) return { ok: false, reason, type };
   }
 
-  // Standalone single-tx events (genesis mints, terminal melts).
+  // Every mint must be spent by a commit in the batch (a mint alone does not authenticate the issuer key).
+  const stray = unauthenticatedMint(txs, type, byId);
+  if (stray) return { ok: false, reason: unauthenticatedReason(stray), type, issuerPubKeyHex, unauthenticated: true };
+
+  // Every input's source tx must be supplied (so its script can be executed), else the batch cannot be authenticated.
+  const need = requireSources(txs, byId);
+  if (need.failure) return { ok: false, reason: need.failure, type, issuerPubKeyHex };
+
+  // Standalone single-tx events (genesis mints - each already shown to be spent by a commit - and terminal melts).
   for (const { tx, cat } of cats)
     if (cat!.shape.kind === "mint" || cat!.shape.kind === "melt")
       events.push({ kind: cat!.shape.kind as EventKind, txids: [tx.id("hex")] });
 
-  return { ok: true, type, issuerPubKeyHex, events };
+  // Execute every supplied input: structure alone does not show the scripts (signatures, covenants) are valid.
+  const failure = executeInputs(txs, byId);
+  if (failure) return { ok: false, reason: failure, type, issuerPubKeyHex };
+
+  return { ok: true, type, issuerPubKeyHex, events, sources: need.sources };
 }

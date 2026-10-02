@@ -9,13 +9,15 @@
 // The ancestor-reconstruction path (a settle reaching back over chains >= 4 txs, e.g. a coupon's 2nd
 // hop) is implemented via singleAncestorPieces, validated against the canonical sx golden.
 //
-// All three compile to an IDENTICAL 37-arg unlock layout (no mintData / issuerPubKey /
+// MinSimpleBolt compiles to a 37-arg unlock layout; AuthBolt to 39 (a leading authOrMiscData + a 27th ancestor
+// piece, `Vin1AuthOrMiscData`; see SingleLayout in singleAncestor.ts). The indices below are MinSimple's.
+// All three (Min/Discount/Balance) shared an IDENTICAL 37-arg unlock layout (no mintData / issuerPubKey /
 // genesisOutpoint / miscData in the ancestor reconstruction):
 //
 //   [0..25]  ancestor pieces (26)  — EMPTY for the simple transfer (mint->commit->settle); populated
 //            by singleAncestorPieces when a settle reaches back over a chain >= 4 txs (coupon 2nd hop).
-//   [26]     fundOutpoint           — the funding input's outpoint (36B)
-//   [27]     changeOutput           — serialised change output (value + varint len + script)
+//   [26]     fundOutpoint           — the funding input's outpoint (36B); OP_0 when UNFUNDED (zero-funding)
+//   [27]     changeOutput           — serialised change output (value + varint len + script); OP_0 when change-less
 //   [28]     beneficiaryPubKeyHash  — the next owner's 20-byte pkh
 //   [29]     sig                    — checksig-format signature over the lock-only preimage
 //   [30]     pubKey                 — signer's 33-byte compressed pubkey
@@ -33,17 +35,23 @@ import {
   Hash,
 } from "@bsv/sdk";
 import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../boltLib.js";
-import { singleAncestorPieces } from "./singleAncestor.js";
+import { singleAncestorPieces, MIN_SIMPLE_LAYOUT, type SingleLayout } from "./singleAncestor.js";
 
 /** Number of leading ancestor-reconstruction args in the NFT unlock layout. */
 export const SINGLE_ANCESTOR_ARG_COUNT = 26;
 
+/** The p2pb proof lock leads with the 2-byte b017 marker push (b0 17). */
+const isProofLock = (s?: Script): boolean => {
+  const d = s?.chunks[0]?.data;
+  return !!d && d.length === 2 && d[0] === 0xb0 && d[1] === 0x17;
+};
+
 const SIGNATURE_SCOPE = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL;
 
-/** 26 empty ancestor pushes — the simple-transfer (and melt) case. */
-export const emptySingleAncestorChunks = (): any[] => {
+/** Empty ancestor pushes (26 for MinSimple, 27 for AuthBolt) — the simple-transfer (and melt) case. */
+export const emptySingleAncestorChunks = (count: number = SINGLE_ANCESTOR_ARG_COUNT): any[] => {
   const out: any[] = [];
-  for (let i = 0; i < SINGLE_ANCESTOR_ARG_COUNT; i++) out.push(...scriptChunksFromBin([]));
+  for (let i = 0; i < count; i++) out.push(...scriptChunksFromBin([]));
   return out;
 };
 
@@ -63,6 +71,10 @@ export interface SingleUnlockParams {
   /** Leading immutable value pushes in the lock (0 = identity, 1 = discount/balance). Needed to read
    *  the ancestor's token-data fields at the right chunk offset during back-reaching reconstruction. */
   leadingValuePushes?: number;
+  /** The contract's unlock-arg layout (default MinSimple: 26 ancestor pieces; AuthBolt adds a leading auth arg + a 27th piece). */
+  layout?: SingleLayout;
+  /** AuthBolt only: the owner's authOrMiscData (<= 75 B), the FIRST unlock arg. Omitted / [] = OP_0. */
+  authOrMiscData?: number[];
 }
 
 /**
@@ -74,6 +86,7 @@ export function singleSpendUnlock(params: SingleUnlockParams): {
   estimateLength: () => Promise<number>;
 } {
   const { privateKey, beneficiaryPubKeyHash, unlockScriptSuffixASM, forceNoChange, forceNoFund, prevTxs } = params;
+  const layout = params.layout ?? MIN_SIMPLE_LAYOUT;
   return {
     sign: async (tx: Transaction, inputIndex: number) => {
       const input = tx.inputs[inputIndex];
@@ -94,10 +107,10 @@ export function singleSpendUnlock(params: SingleUnlockParams): {
       const ancestorIdx = txIdx - 3;
       const hasAncestor = ancestorIdx >= 1 && txIdx >= 4 && txIdx % 2 === 0;
       const ancestorChunks = hasAncestor
-        ? singleAncestorPieces(prevTxs![ancestorIdx], params.leadingValuePushes ?? 0).flatMap((p) =>
+        ? singleAncestorPieces(prevTxs![ancestorIdx], params.leadingValuePushes ?? 0, layout).flatMap((p) =>
             scriptChunksFromBin(p),
           )
-        : emptySingleAncestorChunks();
+        : emptySingleAncestorChunks(layout.pieceNames.length);
 
       const otherInputs = tx.inputs.filter((_: any, i: number) => i !== inputIndex);
       const ocsSubScript = new Script(
@@ -122,14 +135,23 @@ export function singleSpendUnlock(params: SingleUnlockParams): {
       const ctxForSig = ctxHeader.concat(...[ctxCodeLockLen, ctxCodeLockScriptCode, ctxFooter]);
       const { sigForScript, pubkeyForScript } = createSignature(privateKey, ctxForSig, SIGNATURE_SCOPE);
 
-      const fundInput = tx.inputs[tx.inputs.length - 1];
-      const fundOutpoint = forceNoFund
-        ? []
-        : buildOutpoint(fundInput.sourceTransaction!, fundInput.sourceOutputIndex);
-      const changeOutput = forceNoChange ? [] : buildChangeOutput(tx, tx.outputs.length - 1);
+      // Zero-funding: the funding input and the change output are each OPTIONAL (null -> OP_0). Inputs are
+      // [token, proof?, funding?] and outputs [token, p2pb?, change?]: a settle that reaches back (hop >= 2)
+      // carries the p2pb proof as input 1; a commit carries the p2pb as output 1. Detect them from the tx
+      // itself so an unfunded or change-less spend is described correctly (forceNo* still force-omit).
+      const nextIn = tx.inputs[inputIndex + 1];
+      const nextLock = nextIn?.sourceTransaction?.outputs[nextIn.sourceOutputIndex]?.lockingScript;
+      const hasProof = nextIn !== undefined && (nextLock ? isProofLock(nextLock) : hasAncestor);
+      const fundInput = forceNoFund ? undefined : tx.inputs[inputIndex + 1 + (hasProof ? 1 : 0)];
+      const changeIdx = isProofLock(tx.outputs[1]?.lockingScript) ? 2 : 1; // commit: [token, p2pb, change]
+      const hasChange = !forceNoChange && tx.outputs.length > changeIdx;
+      if (hasChange && !fundInput) throw new Error("an unfunded spend has no change to return (change needs a funding input)");
+      const fundOutpoint = fundInput ? buildOutpoint(fundInput.sourceTransaction!, fundInput.sourceOutputIndex) : [];
+      const changeOutput = hasChange ? buildChangeOutput(tx, changeIdx) : [];
 
       return new UnlockingScript([
-        ...ancestorChunks, // [0..25]
+        ...(layout.hasAuth ? scriptChunksFromBin(params.authOrMiscData ?? []) : []), // AuthBolt: [0] authOrMiscData
+        ...ancestorChunks, // MinSimple [0..25]; AuthBolt [1..27]
         ...scriptChunksFromBin(fundOutpoint), // [26]
         ...scriptChunksFromBin(changeOutput), // [27]
         ...scriptChunksFromBin(beneficiaryPubKeyHash), // [28]

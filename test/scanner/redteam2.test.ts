@@ -68,7 +68,7 @@ function assemble(
 
 describe('redteam2 — b017 scanner off-chain reader', () => {
   // ── C1: double-settle. One commit, TWO distinct settles citing it (same parentOutpoint). ──
-  it('C1 double-settle: two settles for one commit both pass (settled Set proves completeness, not uniqueness)', async () => {
+  it('C1 double-settle: a hand-patched second settle is now refused on EXECUTION (two validly signed settles remain a node-only double-spend)', async () => {
     const t = await mkTransfer()
     const [, commit, settle] = t.prevTxs // [mint, commit, settle]
 
@@ -87,18 +87,18 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
     const honest = verifyEvents([commit, settle], { expectedType: T })
     expect(honest.ok, honest.reason).toBe(true)
 
-    // MISREAD: the batch with BOTH settles is also ok:true, emitting two transfer events that
-    // share one commit — the double-settle signature the scanner never flags.
+    // The structure alone would pass (completeness, not uniqueness), but the patched copy's signature no longer
+    // covers its outputs, so the scanner's script execution refuses it. (A SECOND, validly signed settle of the same
+    // commit is a genuine double spend; only a node can see that - the scanner cannot.)
     const r = verifyEvents([commit, settle, settle2], { expectedType: T })
-    expect(r.ok, r.reason).toBe(true) // MISREAD
-    expect(r.events?.length).toBe(2)
-    expect(r.events?.every((e) => e.txids[0] === commit.id('hex'))).toBe(true) // both cite the SAME commit
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/script execution failed/)
   })
 
   // ── C2: caller-controlled classification. A second token input, its source WITHHELD, is read as
   //         "external" funding and waved through. classifyIn -> "external" when the source tx is not
   //         in the caller-supplied batch, and the caller controls the batch. ──
-  it('C2 hidden token input: a settle secretly consuming a 2nd token passes when its source is withheld', async () => {
+  it('C2 hidden token input: a withheld-source 2nd token passes the structure but is refused on execution', async () => {
     const t = await mkTransfer()
     const [, commit, settle] = t.prevTxs
     const other = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM)) // a 2nd token
@@ -123,10 +123,11 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
       return tx
     }
 
-    // MISREAD: source withheld -> classifyIn returns "external" -> the 2nd token input lands in the
-    // funding region and passes. The scanner accepts a settle that consumes two tokens.
+    // Source withheld -> classifyIn returns "external" -> the 2nd token input lands in the funding region and the
+    // STRUCTURE passes; but every input's source tx must be supplied, so the withheld source is refused outright.
     const smuggled = verifyEvents([commit, build(false)], { expectedType: T })
-    expect(smuggled.ok, smuggled.reason).toBe(true) // MISREAD
+    expect(smuggled.ok).toBe(false)
+    expect(smuggled.reason).toMatch(/was not supplied/)
 
     // CORRECT control: attach the smuggled input's source -> it classifies as "token" at position 1
     // and the arrangement rejects it.
@@ -137,11 +138,12 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
 
   // ── C3: unknown txoType byte. categorise() switches on the 1-byte txoType; any unrecognised byte
   //         falls to `default: settle`. ──
-  it('C3 unknown txoType: a novel action byte (0x77) is routed to settle and accepted', async () => {
+  it('C3 unknown txoType: a novel action byte (0x77) is routed to settle structurally but refused on execution', async () => {
     const t = await mkTransfer()
     const [, commit, settle] = t.prevTxs
     const tokenLock = settle.outputs[0].lockingScript
     const changeOut = settle.outputs[1]
+    const funding = freshSource() // the settle's funding source, supplied
 
     // Control: the genuine settle (txoType 0x20 -> default settle) is accepted.
     const honest = verifyEvents([commit, settle], { expectedType: T })
@@ -154,27 +156,29 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
     const novelSettle = assemble(
       [
         { sourceTXID: commit.id('hex'), sourceOutputIndex: 0 },
-        { sourceTXID: '00'.repeat(32), sourceOutputIndex: 0 }, // funding, source withheld -> external
+        { sourceTXID: funding.id('hex'), sourceOutputIndex: 0 }, // funding, source supplied
       ],
       [
         { satoshis: 1, lockingScript: novelLock },
         { satoshis: (changeOut.satoshis as number) ?? 1, lockingScript: changeOut.lockingScript },
       ],
-      { 0: commit },
+      { 0: commit, 1: funding },
     )
 
-    // MISREAD: the unknown action byte is silently treated as a transfer settle and passes.
+    // The unknown action byte is routed to `settle` structurally, but the covenant refuses the patched token on execution.
     const r = verifyEvents([commit, novelSettle], { expectedType: T })
-    expect(r.ok, r.reason).toBe(true) // MISREAD
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/script execution failed/)
   })
 
   // ── C4: forged balance. The scanner reads no balance field, so an inflated settle balance is
   //         invisible. BY DESIGN — the finding is that a scan pass is NOT a balance check. ──
-  it('C4 forged balance: an inflated settle balance passes (scanner does no arithmetic) [BY DESIGN]', async () => {
+  it('C4 forged balance: an inflated settle balance is refused on execution (the scanner does no arithmetic itself)', async () => {
     const t = await mkTransfer()
     const [, commit, settle] = t.prevTxs
     const tokenLock = settle.outputs[0].lockingScript
     const changeOut = settle.outputs[1]
+    const funding = freshSource() // the settle's funding source, supplied
 
     const commitBal = Utils.toHex(commit.outputs[0].lockingScript.chunks[0].data as number[])
     const inflated = new Array(16).fill(0xff) // ~2^128-1
@@ -184,21 +188,23 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
     const inflatedSettle = assemble(
       [
         { sourceTXID: commit.id('hex'), sourceOutputIndex: 0 },
-        { sourceTXID: '00'.repeat(32), sourceOutputIndex: 0 },
+        { sourceTXID: funding.id('hex'), sourceOutputIndex: 0 },
       ],
       [
         { satoshis: 1, lockingScript: inflatedLock },
         { satoshis: (changeOut.satoshis as number) ?? 1, lockingScript: changeOut.lockingScript },
       ],
-      { 0: commit },
+      { 0: commit, 1: funding },
     )
 
     const settleBal = Utils.toHex(inflatedSettle.outputs[0].lockingScript.chunks[0].data as number[])
     expect(settleBal).not.toBe(commitBal) // the balance was inflated vs the commit...
 
-    // BY DESIGN: verifyEvents accepts it anyway — it never reads balance (FIELDS omits it).
+    // The scanner does no balance arithmetic itself (FIELDS omits it), but it now EXECUTES the settle, and the
+    // covenant refuses an inflated balance - so a forged balance no longer passes a scan.
     const r = verifyEvents([commit, inflatedSettle], { expectedType: T })
-    expect(r.ok, r.reason).toBe(true) // BY DESIGN (a scan pass is not a balance check)
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/script execution failed/)
   })
 
   // ── C5: recognizeType look-alike + issuerPubKeyOf returns any 33 bytes unvalidated. ──
@@ -211,7 +217,7 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
     expect(recognizeType(new Script(chunks), T)).toBeNull() // CORRECT: suffix-hash mismatch rejects
   })
 
-  it('C5b foreign issuer: any 33 bytes are recognised + returned unvalidated; issuer-agnostic scan passes', async () => {
+  it('C5b foreign issuer: any 33 bytes are recognised + returned unvalidated; the lone mint is refused as unauthenticated', async () => {
     const t = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM))
     const mintTx = t.tx as Transaction
     const mintLock = mintTx.outputs[0].lockingScript // genesis: parent zeros
@@ -234,10 +240,12 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
       {},
     )
 
-    // MISREAD-adjacent: an issuer-agnostic scan (no trustedIssuerPubKey) accepts the foreign/garbage
-    // issuer as a valid mint and reports it as the batch issuer.
+    // An issuer-agnostic scan (no trustedIssuerPubKey) used to wave a lone foreign/garbage-issuer mint through
+    // as valid. A mint alone now proves nothing about the issuer key, so it is refused as UNAUTHENTICATED
+    // (still reporting the claimed issuer so the caller sees what it names).
     const agnostic = verifyEvents([foreignMint], { expectedType: T })
-    expect(agnostic.ok, agnostic.reason).toBe(true) // MISREAD (issuer-agnostic scan waves it through)
+    expect(agnostic.ok).toBe(false)
+    expect(agnostic.unauthenticated).toBe(true)
     expect(agnostic.issuerPubKeyHex).toBe(Utils.toHex(foreignIssuer))
 
     // CORRECT control: pin the real issuer and the foreign-issuer token is rejected.

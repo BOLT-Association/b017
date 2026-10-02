@@ -11,4 +11,8 @@ The `scripts/` folder holds these regeneration tools. They are **not** part of `
 require the `sx` compiler to be present at a sibling `../sx` path — that toolchain is **not**
 vendored in this repo, so `build:contract` only runs in a checkout where `../sx` exists.
 
+The two NFT templates (`MinSimpleBOLT`, `AuthBOLT`) are regenerated from the sibling toolchain's production artifacts with
+`npm run build:nft` (it also rewrites `test/fixtures/*.lockSuffix.hex`). Run it after any change to the sx
+production contracts, then `npm test`.
+
 Consumers never need any of this — the package ships the pre-compiled templates.

@@ -34,7 +34,7 @@ export const verifyTx = (
       transactionVersion: tx.version,
       otherInputs,
       unlockingScript: input.unlockingScript,
-      inputSequence: input.sequence || 0xffffffff,
+      inputSequence: input.sequence ?? 0xffffffff,
       inputIndex: i,
       outputs: tx.outputs,
       lockTime: tx.lockTime,

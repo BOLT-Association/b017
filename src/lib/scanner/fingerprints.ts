@@ -8,11 +8,13 @@
 // recognizeP2P hashes the static skeleton (incl. the b017 marker bytes) and checks the pkh length.
 import { Hash, Script, Utils } from "@bsv/sdk";
 import MinSimpleTemplate from "../../tokens/templates/MinSimple.sx.template.js";
+import AuthBoltTemplate from "../../tokens/templates/AuthBolt.sx.template.js";
 import SimpleMultiTemplate from "../../tokens/templates/SimpleMulti.sx.template.js";
 import Pay2ProofTemplate from "../../tokens/templates/pay2Proof.js";
 
 export type TokenType =
   | "MinSimpleBOLT"
+  | "AuthBOLT"
   | "SimpleMultiBOLT";
 
 export interface TypeSpec {
@@ -25,10 +27,12 @@ export interface TypeSpec {
 // Leading dynamic-push byte lengths per type (issuerPubKey is always the last, 33 bytes).
 const LAYOUTS: Record<TokenType, readonly number[]> = Object.freeze({
   MinSimpleBOLT: [20, 20, 1, 36, 36, 33],
+  AuthBOLT: [20, 20, 1, 36, 36, 33], // same lock layout as MinSimpleBOLT: told apart by the suffix hash alone
   SimpleMultiBOLT: [16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
 });
 const SUFFIX: Record<TokenType, Script> = {
   MinSimpleBOLT: new MinSimpleTemplate().staticSuffix(),
+  AuthBOLT: new AuthBoltTemplate().staticSuffix(),
   SimpleMultiBOLT: new SimpleMultiTemplate().staticSuffix(),
 };
 

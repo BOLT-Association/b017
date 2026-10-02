@@ -127,4 +127,44 @@ describe('A1 — simplemultibolt is elas-free + verifies on @bsv/sdk only', () =
     assertValid('merge(funded)', merged.tx!)
     void main; void piece
   })
+
+  // Regression: a settle co-spends its ancestor commit's proof, and a split commit carries TWO proofs
+  // (vout 1 -> piece A, vout 2 -> piece B). The builder used to pick `outputs.length >= 5 ? 2 : 1`,
+  // which is always 1 for the 4-output split commit, so piece B co-spent piece A's proof and could
+  // never be transferred or split again. The proof is now looked up by the owner's pubKeyHash.
+  it('the second split piece can be transferred and split again', async () => {
+    const kA = issuerKey.deriveChild(issuerKey.toPublicKey(), '10')
+    const kB = issuerKey.deriveChild(issuerKey.toPublicKey(), '11')
+    // The split settle's change pays piece A, so piece B brings its own funding.
+    const fundB = () => new Transaction(1, [], [{
+      satoshis: 1000, lockingScript: new P2PKH().lock(Hash.hash160(kB.toPublicKey().encode(true))),
+    }])
+
+    let t = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(1000n))
+    t = await t.transfer(issuerKey.deriveChild(issuerKey.toPublicKey(), '1'))
+    const [, pieceB] = await t.split(kA, kB, bal(300n))
+    const pieceB2 = Object.assign(new SimpleMultiBOLT(), { ...pieceB, prevTxs: [...pieceB.prevTxs] })
+
+    // Transfer piece B: commit funded by B, settle funded by the commit's change (B's).
+    await pieceB.commit(issuerKey.deriveChild(issuerKey.toPublicKey(), '20'), '', false, {
+      sourceTransaction: fundB(), sourceOutputIndex: 0,
+      unlockingScriptTemplate: new P2PKH().unlock(kB), sequence: 0xffffffff,
+    } as any)
+    await pieceB.settle(issuerKey.deriveChild(issuerKey.toPublicKey(), '20'))
+    assertValid('pieceB transfer settle', pieceB.tx!)
+    expect(pieceB.tx!.inputs[1].sourceOutputIndex).toBe(2) // co-spent B's proof, not A's
+
+    // Split piece B directly (its split settle reaches back to the same split commit).
+    const [b1, b2] = await pieceB2.split(
+      issuerKey.deriveChild(issuerKey.toPublicKey(), '30'),
+      issuerKey.deriveChild(issuerKey.toPublicKey(), '31'), bal(100n), { tx: fundB(), vout: 0, key: kB })
+    assertValid('pieceB split settle', b1.tx!)
+    expect(balToBig(b1.balance) + balToBig(b2.balance)).toBe(300n)
+  })
+
+  it('throws when the covenant rejects the built tx (an inflated balance)', async () => {
+    const t = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(1000n))
+    t.balance = bal(1001n) // the commit output now disagrees with the spent token's balance
+    await expect(t.transfer(issuerKey.deriveChild(issuerKey.toPublicKey(), '1'))).rejects.toThrow()
+  })
 })

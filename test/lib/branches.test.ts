@@ -10,6 +10,7 @@ import { singleSpendUnlock } from '../../src/lib/single/singleSpend.js'
 import { issuerPubKeyOf } from '../../src/lib/scanner/fingerprints.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 import Pay2ProofTemplate from '../../src/tokens/templates/pay2Proof.js'
+import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
 
 const key = PrivateKey.fromString('e9873d79c6d87dc0fb6a5778633389f4453213303da61f20bd67fc233aa33262', 'hex')
 const pkh = Hash.hash160(key.toPublicKey().encode(true))
@@ -151,5 +152,47 @@ describe('singleSpendUnlock — guards + flag branches (direct)', () => {
       ...base, prevTxs: [mint, commit, mint, commit], // leadingValuePushes omitted -> default 0 branch
     }).sign(settle, 0)
     expect(us.chunks.length).toBeGreaterThan(26) // 26 ancestor chunks + the rest
+  })
+})
+
+describe('boltLib — verifyTx input guards + spentOutpoint fallbacks', () => {
+  const funding = new Transaction(1, [], [{ satoshis: 1000, lockingScript: new P2PKH().lock(pkh) }])
+
+  it('verifyTx throws when an input has no source transaction', () => {
+    const tx = new Transaction(1, [{ sourceTXID: '11'.repeat(32), sourceOutputIndex: 0, unlockingScript: new Script([]) } as any], [])
+    expect(() => verifyTx(tx)).toThrow(/missing its source transaction/)
+  })
+
+  // Regression: verifyTx used `sequence || 0xffffffff`, turning a signed nSequence of 0 into final and
+  // breaking the sighash, so a correctly signed non-final (timelocked) input failed to verify.
+  it('verifyTx honours a preset sourceTXID and a zero nSequence', async () => {
+    const spend = new Transaction(1,
+      [{ sourceTransaction: funding, sourceTXID: funding.id('hex'), sourceOutputIndex: 0, unlockingScriptTemplate: new P2PKH().unlock(key), sequence: 0 }],
+      [{ satoshis: 900, lockingScript: new P2PKH().lock(pkh) }])
+    await spend.sign()
+    expect(verifyTx(spend).valid).toBe(true)
+  })
+
+  it('spentOutpoint returns [] for a missing input or one with no txid', () => {
+    const tx = new Transaction(1, [{ sourceOutputIndex: 0 } as any], [])
+    expect(spentOutpoint(tx, 5)).toEqual([])
+    expect(spentOutpoint(tx, 0)).toEqual([])
+  })
+})
+
+describe('SimpleMultiTemplate — signing guards + size estimates', () => {
+  const tpl = new SimpleMultiTemplate()
+  const noSource = new Transaction(1, [{ sourceTXID: '11'.repeat(32), sourceOutputIndex: 0, sequence: 0xffffffff } as any], [])
+
+  it('unlock/melt estimateLength report fixed budgets', async () => {
+    expect(await tpl.unlock(key, [], []).estimateLength()).toBe(2000)
+    expect(await tpl.melt(key).estimateLength()).toBe(400)
+  })
+
+  it('throws when the source satoshis or locking script cannot be resolved', async () => {
+    await expect(tpl.melt(key).sign(noSource, 0)).rejects.toThrow(/sourceSatoshis/)
+    await expect(tpl.melt(key, 1).sign(noSource, 0)).rejects.toThrow(/lockingScript/)
+    const noTxid = new Transaction(1, [{ sourceOutputIndex: 0, sequence: 0xffffffff } as any], [])
+    await expect(tpl.melt(key).sign(noTxid, 0)).rejects.toThrow(/sourceTXID/)
   })
 })

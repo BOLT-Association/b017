@@ -2,7 +2,10 @@
 // and rejects tampered contracts / non-token scripts.
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Transaction, Script } from '@bsv/sdk'
-import { REGISTRY, recognizeType, recognizeP2P, issuerPubKeyOf } from '../../src/lib/scanner/fingerprints.js'
+import { REGISTRY, recognizeType, recognizeP2P, issuerPubKeyOf, sha256Hex } from '../../src/lib/scanner/fingerprints.js'
+import { readFixture } from '../helpers/fixtures.js'
+
+const LEGACY_OPT3_SUFFIX_HASH = '2892679d85ef021d754036094ecd77e14f0c3934a23a48e09e7da337e50f823d'
 import Pay2ProofTemplate from '../../src/tokens/templates/pay2Proof.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
@@ -26,6 +29,18 @@ describe('B4 — fingerprint registry', () => {
 
   it('recognises a live MinSimpleBOLT lock as its own type', () => {
     expect(recognizeType(minSimpleLock())).toBe('MinSimpleBOLT')
+  })
+
+  // The zero-funding contract (MSBoltZF) REPLACED MinSimpleBolt (MSBolt.opt3). The fingerprint moved, so a
+  // token built on the old bytecode is no longer recognised and must be reissued (covenant travels in the script).
+  it('MinSimpleBOLT fingerprint is the zero-funding contract (pinned) and the legacy opt3 lock is unrecognised', () => {
+    expect(REGISTRY.MinSimpleBOLT.suffixHashHex).toBe('5dc9c1ddd27e2c91f919531ad82a32c9ce8da772ab87e39af05c2c3361970122')
+    const legacy = new Script([
+      ...minSimpleLock().chunks.slice(0, 6),
+      ...Script.fromHex(readFixture('MinSimpleBolt.opt3.lockSuffix.hex')).chunks,
+    ])
+    expect(sha256Hex(new Script(legacy.chunks.slice(6)).toBinary())).toBe(LEGACY_OPT3_SUFFIX_HASH)
+    expect(recognizeType(legacy)).toBeNull()
   })
 
   it('recognises a SimpleMultiBolt mint (the fungible flagship)', async () => {

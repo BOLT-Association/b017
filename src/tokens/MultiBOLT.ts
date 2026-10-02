@@ -109,7 +109,7 @@ export class SimpleMultiBOLT extends BOLT {
     let proofVout = 1;
     if (hasAncestor) {
       const ancestorTx = this.prevTxs[this.prevTxs.length - 3];
-      proofVout = ancestorTx.outputs.length >= 5 ? 2 : 1;
+      proofVout = this.findProofVout(ancestorTx, this.privKey);
     }
 
     const input = {
@@ -293,15 +293,15 @@ export class SimpleMultiBOLT extends BOLT {
     return this.bigIntToBalance(this.balanceToBigInt(a) - this.balanceToBigInt(b));
   }
 
-  // Find proof vout that matches a key's pubKeyHash in an ancestor commit tx
+  // Find the proof vout paying a key's pubKeyHash in an ancestor commit tx. Every commit has exactly
+  // one token output at vout 0, so proofs start at vout 1 (a split commit carries two: vout 1 for
+  // piece A, vout 2 for piece B) and the last output is change. Falls back to vout 1.
   private findProofVout(ancestorTx: Transaction, key: PrivateKey): number {
     const pkh = Utils.toHex(Hash.hash160(key.toPublicKey().encode(true)));
-    const startIdx = ancestorTx.outputs.length >= 5 ? 2 : 1;
-    for (let i = startIdx; i < ancestorTx.outputs.length - 1; i++) {
-      const proofChunks = ancestorTx.outputs[i].lockingScript.chunks;
-      if (proofChunks.length >= 5 && Utils.toHex(proofChunks[4]?.data || []) === pkh) return i;
+    for (let i = 1; i < ancestorTx.outputs.length - 1; i++) {
+      if (Utils.toHex(ancestorTx.outputs[i].lockingScript.chunks[4]?.data || []) === pkh) return i;
     }
-    return startIdx;
+    return 1;
   }
 
   // 4-byte LE uint32 for vout indices used in outpoint construction
@@ -571,7 +571,7 @@ export class SimpleMultiBOLT extends BOLT {
 
     // ── Split Settle ──
     const ancestorCommit = this.prevTxs[this.prevTxs.length - 3]; // the commit before the split commit
-    const ancestorProofVout = ancestorCommit.outputs.length >= 5 ? 2 : 1;
+    const ancestorProofVout = this.findProofVout(ancestorCommit, this.privKey);
 
     const settleInput = {
       sourceTransaction: commitTx,
