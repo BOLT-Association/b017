@@ -4,7 +4,8 @@ export { SimpleMultiBOLT } from "./tokens/MultiBOLT.js";
 export type { VerifierType } from "./tokens/MultiBOLT.js";
 export { default as SimpleMultiTemplate } from "./tokens/templates/SimpleMulti.sx.template.js";
 export { BOLT } from "./tokens/BOLT.js";
-export { verifyTx, buildOutpoint } from "./lib/boltLib.js";
+export { verifyTx, buildOutpoint, p2pkhUnlock, toSigner } from "./lib/boltLib.js";
+export type { Signer, Recipient } from "./lib/boltLib.js";
 
 // Token LOCK templates (mint/build the contract output for each type).
 export { default as MinSimpleTemplate } from "./tokens/templates/MinSimple.sx.template.js";
