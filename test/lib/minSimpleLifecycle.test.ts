@@ -35,7 +35,7 @@ const p2pbUnlock = (key: PrivateKey) => ({
       otherInputs: tx.inputs.filter((_, j) => j !== i), inputIndex: i, outputs: tx.outputs,
       inputSequence: inp.sequence as number, subscript: src.lockingScript, lockTime: tx.lockTime, scope: SCOPE,
     })
-    const { sigForScript, pubkeyForScript } = createSignature(key, preimage, SCOPE)
+    const { sigForScript, pubkeyForScript } = await createSignature(key, preimage, SCOPE)
     return new UnlockingScript([
       ...scriptChunksFromBin(sigForScript), ...scriptChunksFromBin(pubkeyForScript), ...scriptChunksFromBin([0xb0, 0x17]),
     ])

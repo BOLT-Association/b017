@@ -19,6 +19,7 @@
 // settle must be passed together as the package (see README: "Receiving a token off-chain").
 import { ScriptTemplate, LockingScript, Script, PrivateKey, Transaction, UnlockingScript } from "@bsv/sdk";
 import { singleSpendUnlock } from "../../lib/single/singleSpend.js";
+import type { Signer } from "../../lib/boltLib.js";
 import { AUTH_BOLT_LAYOUT } from "../../lib/single/singleAncestor.js";
 
 /** authOrMiscData is a DIRECT push (0x00..0x4b), enforced by the lock. */
@@ -66,7 +67,7 @@ export default class AuthBoltTemplate implements ScriptTemplate {
    * @throws if authOrMiscData is longer than 75 bytes (the lock would refuse the tx)
    */
   unlock(
-    privateKey: PrivateKey,
+    privateKey: PrivateKey | Signer,
     beneficiaryPubKeyHash: number[],
     prevTxs: Transaction[] = [],
     authOrMiscData: number[] = [],
@@ -93,7 +94,7 @@ export default class AuthBoltTemplate implements ScriptTemplate {
    * A token that is still a genesis mint (or its first commit) can only be melted by the issuer key.
    */
   melt(
-    privateKey: PrivateKey,
+    privateKey: PrivateKey | Signer,
   ): { sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>; estimateLength: () => Promise<number> } {
     return singleSpendUnlock({
       privateKey, beneficiaryPubKeyHash: [], unlockScriptSuffixASM: this.UNLOCK_SCRIPT_SUFFIX, melt: true, layout: AUTH_BOLT_LAYOUT,

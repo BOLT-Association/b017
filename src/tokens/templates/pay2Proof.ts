@@ -1,5 +1,5 @@
 import { OP, ScriptTemplate, LockingScript, Script, PrivateKey, UnlockingScript, Transaction, TransactionSignature, Hash } from '@bsv/sdk'
-import { createSignature } from '../../lib/boltLib.js'
+import { createSignature, type Signer } from '../../lib/boltLib.js'
 
 export default class Pay2ProofTemplate implements ScriptTemplate {
     lock(pubKeyHash: number[]): LockingScript {
@@ -14,7 +14,7 @@ export default class Pay2ProofTemplate implements ScriptTemplate {
         ])
     }
     unlock(
-        privKey: PrivateKey,
+        privKey: PrivateKey | Signer,
         sourceSatoshis?: number,
         lockingScript?: Script
     ): {
@@ -58,7 +58,7 @@ export default class Pay2ProofTemplate implements ScriptTemplate {
                     lockTime: tx.lockTime,
                     scope: signatureScope
                 })
-                const { sigForScript, pubkeyForScript } = createSignature(privKey, preimage, signatureScope)
+                const { sigForScript, pubkeyForScript } = await createSignature(privKey, preimage, signatureScope)
                 return new UnlockingScript([
                     { op: sigForScript.length, data: sigForScript },
                     { op: pubkeyForScript.length, data: pubkeyForScript },

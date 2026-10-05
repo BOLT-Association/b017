@@ -64,8 +64,8 @@ describe('boltLib — outpoint + output serialisers', () => {
 })
 
 describe('boltLib — createSignature', () => {
-  it('returns a checksig-format sig and a 33-byte compressed pubkey', () => {
-    const { sigForScript, pubkeyForScript } = createSignature(key, [1, 2, 3, 4], 0x41)
+  it('returns a checksig-format sig and a 33-byte compressed pubkey', async () => {
+    const { sigForScript, pubkeyForScript } = await createSignature(key, [1, 2, 3, 4], 0x41)
     expect(pubkeyForScript.length).toBe(33)
     expect(sigForScript.length).toBeGreaterThan(8)
     expect(sigForScript[sigForScript.length - 1]).toBe(0x41) // sighash flag tail
