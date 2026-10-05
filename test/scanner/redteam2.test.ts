@@ -101,7 +101,8 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
   it('C2 hidden token input: a withheld-source 2nd token passes the structure but is refused on execution', async () => {
     const t = await mkTransfer()
     const [, commit, settle] = t.prevTxs
-    const other = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM)) // a 2nd token
+    const other = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM - 1n)) // a 2nd, DISTINCT token (a different
+    // balance, so a different txid from the real mint, which verifyEvents now pulls in as the batch's anchor)
     const otherMint = other.tx as Transaction
 
     const tokenOut = settle.outputs[0] // recognised settle token, parent -> commit

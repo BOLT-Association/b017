@@ -75,6 +75,9 @@ export interface SingleUnlockParams {
   layout?: SingleLayout;
   /** AuthBolt only: the owner's authOrMiscData (<= 75 B), the FIRST unlock arg. Omitted / [] = OP_0. */
   authOrMiscData?: number[];
+  /** MELT: burn the token. Every arg is OP_0 (a null CTX takes the lock's melt branch) except the owner's
+   *  signature and pubKey; the tx has no token output. */
+  melt?: boolean;
 }
 
 /**
@@ -134,6 +137,21 @@ export function singleSpendUnlock(params: SingleUnlockParams): {
         splitCtx(ctx, 2);
       const ctxForSig = ctxHeader.concat(...[ctxCodeLockLen, ctxCodeLockScriptCode, ctxFooter]);
       const { sigForScript, pubkeyForScript } = createSignature(privateKey, ctxForSig, SIGNATURE_SCOPE);
+
+      // Melt: a null CTX (every CTX piece OP_0) takes the lock's melt branch, which checks only the owner's
+      // signature and pubKey (plus the issuer guard on a genesis / 2nd-tx token). No ancestor, fund or change args.
+      if (params.melt) {
+        const empty = () => scriptChunksFromBin([]);
+        return new UnlockingScript([
+          ...(layout.hasAuth ? empty() : []),
+          ...emptySingleAncestorChunks(layout.pieceNames.length),
+          ...empty(), ...empty(), ...empty(), // fundOutpoint, changeOutput, beneficiaryPubKeyHash
+          ...scriptChunksFromBin(sigForScript),
+          ...scriptChunksFromBin(pubkeyForScript),
+          ...empty(), ...empty(), ...empty(), ...empty(), ...empty(), ...empty(), // the six CTX pieces
+          ...Script.fromASM(unlockScriptSuffixASM).chunks,
+        ]);
+      }
 
       // Zero-funding: the funding input and the change output are each OPTIONAL (null -> OP_0). Inputs are
       // [token, proof?, funding?] and outputs [token, p2pb?, change?]: a settle that reaches back (hop >= 2)

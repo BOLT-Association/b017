@@ -16,8 +16,12 @@ export { REGISTRY, recognizeType, recognizeP2P, issuerPubKeyOf, sha256Hex } from
 export type { TokenType, TypeSpec } from "./lib/scanner/fingerprints.js";
 
 // The shared off-chain BOLT event validator (the scanner): a batch verifier + the per-event checker.
-export { verifyEvents, verifyEvent } from "./lib/scanner/verifyEvents.js";
-export type { ScanResult, ScanOpts, EventResult, EventKind, SourceTx, TxInput } from "./lib/scanner/verifyEvents.js";
+// verifyAndBroadcast = verifyEvents + the caller's broadcast of the batch's ANCHOR (settle N-1 / the mint).
+export { verifyEvents, verifyEvent, verifyAndBroadcast } from "./lib/scanner/verifyEvents.js";
+export type {
+  ScanResult, ScanOpts, EventResult, EventKind, SourceTx, TxInput,
+  AnchorRef, AnchorStatus, AnchorBroadcastResult, AnchorBroadcaster, HeaderSource, OffChainOnlyTx,
+} from "./lib/scanner/verifyEvents.js";
 
 // The off-chain data package: Atomic BEEF (BRC-95) over BEEF V2 (BRC-96); V1 is refused.
 export { toAtomicBeef, fromBeef, isBeef } from "./lib/scanner/beef.js";

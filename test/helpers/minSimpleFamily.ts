@@ -9,6 +9,7 @@ export const minSimple: Family = {
   name: 'MinSimpleBOLT',
   lock: (owner, commitment, txoType, parent, gp) => tpl.lock(owner, issuerPub, commitment, txoType, parent, gp),
   unlock: (key, beneficiary, prevTxs) => tpl.unlock(key, beneficiary, prevTxs),
+  melt: (key) => tpl.melt(key),
   pieceNames: PIECE_NAMES,
   ancestorStart: 0,
 }

@@ -39,14 +39,18 @@ describe('BEEF helpers', () => {
 
 for (const [fam, type] of [[minSimple, 'MinSimpleBOLT'], [authBolt, 'AuthBOLT']] as [Family, string][]) {
   describe(`${type}: events received as BEEF`, () => {
-    it('a commit + settle as Atomic BEEF verify; the mint they spend arrives as an ancestor and is reported as a source', async () => {
+    it('a commit + settle as Atomic BEEF verify; the mint they spend arrives as an ancestor and is the ANCHOR', async () => {
       const txs = await buildChain(fam, {}, 3)
       const r = verifyEvent([toAtomicBeef(txs[1]), toAtomicBeef(txs[2])])
       expect(r.ok, r.reason).toBe(true)
       expect(r.kind).toBe('transfer')
+      // the mint (the commit's token input) is pulled in as the anchor, so it is validated, not merely listed...
+      expect(r.anchors).toEqual([{ txid: txs[0].id('hex'), kind: 'mint' }])
       const ids = r.sources!.map((s) => s.txid)
-      expect(ids).toContain(txs[0].id('hex')) // the mint (the commit's token input) is a supplied source...
-      expect(r.sources!.find((s) => s.txid === txs[0].id('hex'))!.proven).toBe(false) // ...with no BUMP of its own
+      expect(ids).not.toContain(txs[0].id('hex'))
+      // ...and the sources are what the anchor itself spends: its BUMP-proven funding root
+      const root = txs[0].inputs[0].sourceTransaction!.id('hex')
+      expect(r.sources!.find((s) => s.txid === root)!.proven).toBe(true)
     })
 
     it('the same package as BEEF hex strings works too, funded or unfunded, and reports the BUMP-proven funding root', async () => {

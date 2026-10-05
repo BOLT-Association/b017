@@ -9,6 +9,7 @@ export const authBolt: Family = {
   name: 'AuthBOLT',
   lock: (owner, commitment, txoType, parent, gp) => tpl.lock(owner, issuerPub, commitment, txoType, parent, gp),
   unlock: (key, beneficiary, prevTxs, auth) => tpl.unlock(key, beneficiary, prevTxs, auth),
+  melt: (key) => tpl.melt(key),
   pieceNames: AUTH_PIECE_NAMES,
   ancestorStart: 1, // [0] = authOrMiscData, then the 27 ancestor pieces
 }

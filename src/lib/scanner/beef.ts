@@ -4,8 +4,9 @@
 // has proven. BEEF carries exactly that: the subject tx, every unproven ancestor, and a BUMP (merkle path) for the
 // proven ones. b017 uses the CURRENT format only: BEEF V2, wrapped as Atomic BEEF so the package names ONE subject.
 // BEEF V1 (BRC-62) is refused. The scanner checks the package is SELF-CONTAINED (every tx is proven by a BUMP or has
-// all its inputs in the BEEF) but does NOT check a BUMP's merkle root against a block header; do that with
-// `Beef.verify(chainTracker)` / `tx.merklePath.verify(txid, chainTracker)`, which needs a header source.
+// all its inputs in the BEEF) but fromBeef does NOT check a BUMP's merkle root against a block header; do that with
+// `Beef.verify(chainTracker)` / `tx.merklePath.verify(txid, chainTracker)`, which needs a header source. The one
+// BUMP verifyEvents checks itself is an ANCHOR's, against the headers the caller supplies (isKnownBlockRoot).
 import { Beef, Transaction, Utils } from "@bsv/sdk";
 
 const BEEF_V2 = 4022206466; // 0200BEEF (LE)

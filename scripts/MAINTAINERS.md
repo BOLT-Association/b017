@@ -16,3 +16,11 @@ The two NFT templates (`MinSimpleBOLT`, `AuthBOLT`) are regenerated from the sib
 production contracts, then `npm test`.
 
 Consumers never need any of this — the package ships the pre-compiled templates.
+
+## Coverage
+
+- `npm run coverage:gaps` runs the suite with coverage and lists every uncovered branch and statement as
+  `file:line`, plus the count of `v8 ignore` markers in `src/`. It exits 1 while anything is uncovered.
+- `npm run coverage:readme` rewrites the test counts and the coverage table in `README.md` from that run.
+  Never edit those figures by hand. `npm run coverage:check` fails if the README is out of date.
+- `vitest.config.ts` holds `coverage.thresholds`: a floor, so coverage cannot fall silently. The target is 100.

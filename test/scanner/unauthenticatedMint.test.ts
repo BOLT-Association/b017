@@ -2,8 +2,7 @@
 // lock NAMES an issuerPubKey, and anyone can create one naming anybody's key. The issuer guard only runs when the
 // genesis is first SPENT, so the scanner must not accept a mint on its own. A mint is authenticated only by a
 // commit that SPENDS it (funded or not) in the same event/batch; without one the verdict is "unauthenticated
-// mint" - not a signature failure (the scanner is structural; it does not execute scripts, so the caller still
-// verifyTx's the commit).
+// mint" - not a signature failure. The scanner also EXECUTES that commit, so a forged one does not authenticate.
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Transaction, UnlockingScript } from '@bsv/sdk'
 import {
@@ -109,11 +108,10 @@ for (const [fam, type] of [[minSimple, 'MinSimpleBOLT'], [authBolt, 'AuthBOLT']]
       expect(verifyEvent(txs).ok).toBe(false)
     })
 
-    it('the honest package executes clean (funded and unfunded) and reports nothing unexecuted', async () => {
+    it('the honest package executes clean (funded and unfunded)', async () => {
       for (const spec of [{}, { commit1: UNFUNDED, settle1: UNFUNDED }]) {
         const r = verifyEvents(await buildChain(fam, spec, 3), { trustedIssuerPubKey: issuerPub })
         expect(r.ok, r.reason).toBe(true)
-        expect(r.unexecutedInputs).toBeUndefined()
       }
     })
 

@@ -31,6 +31,8 @@ export interface Family {
   lock(owner: number[], commitment: number[], txoType: number[], parent: number[], gp: number[]): Script
   /** `auth` is only meaningful for AuthBolt (omitted / [] = OP_0). */
   unlock(key: PrivateKey, beneficiary: number[], prevTxs: Transaction[], auth?: number[]): any
+  /** The melt (burn) unlocker: an owner spend with a null CTX. */
+  melt(key: PrivateKey): any
   /** Ancestor piece names in unlock order, and the unlock index of the first one. */
   pieceNames: readonly string[]
   ancestorStart: number
@@ -115,6 +117,26 @@ export async function spendToken(o: SpendOpts): Promise<Transaction> {
     const fundSats = o.txs[o.fund!.tx].outputs[o.fund!.vout].satoshis as number
     tx.addOutput({ satoshis: fundSats - 10, lockingScript: new P2PKH().lock(iPkh) })
   }
+  await tx.sign()
+  return tx
+}
+
+/** MELT the token at `from`: input 0 = the token, then the optional funding; ONE p2pkh output, no token output. */
+export async function meltToken(o: {
+  fam: Family; txs: Transaction[]; from: Src; actor: PrivateKey; fund?: Src | null; fundKey?: PrivateKey; payTo?: number[]
+}): Promise<Transaction> {
+  const tx = new Transaction()
+  tx.version = 2
+  tx.addInput({ sourceTransaction: o.txs[o.from.tx], sourceOutputIndex: o.from.vout, unlockingScriptTemplate: o.fam.melt(o.actor), sequence: 0xffffffff })
+  let sats = o.txs[o.from.tx].outputs[o.from.vout].satoshis as number
+  if (o.fund) {
+    tx.addInput({
+      sourceTransaction: o.txs[o.fund.tx], sourceOutputIndex: o.fund.vout,
+      unlockingScriptTemplate: p2pkhUnlock(o.fundKey ?? issuerKey), sequence: 0xffffffff,
+    })
+    sats += (o.txs[o.fund.tx].outputs[o.fund.vout].satoshis as number) - 10
+  }
+  tx.addOutput({ satoshis: sats, lockingScript: new P2PKH().lock(o.payTo ?? pkh(o.actor)) })
   await tx.sign()
   return tx
 }

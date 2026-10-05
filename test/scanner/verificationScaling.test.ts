@@ -9,9 +9,13 @@
 // grandparentOutpoint, AND co-spends that grandparent's one-shot proof output. So a valid tip settle
 // is constructible only if its grandparent event genuinely happened and was correct; that grandparent
 // commit was likewise only spendable because ITS predecessor happened; and so on down to the genesis
-// mint, which is issuer-signed. Consensus enforced each step when the transactions were mined. So the
-// validity of the tip pair mathematically induces the validity of the entire chain behind it - the
-// peer inherits it, and never reads it.
+// mint, which is issuer-signed. The network enforces each step on every tx it sees and will therefore
+// mine. So the validity of the tip pair mathematically induces the validity of the entire chain behind
+// it - the peer inherits it, and never reads it.
+//
+// The tip pair itself need not be broadcast. What the network must have seen is its ANCHOR (the settle
+// before it, or the mint): a tx the network has seen and will therefore mine. The scanner executes the
+// pair and that anchor - a fixed window, the same at any depth.
 //
 //   cd b017 && npx vitest run test/scanner/verificationScaling.test.ts
 import { describe, it, expect } from 'vitest'

@@ -74,4 +74,16 @@ export default class MinSimpleTemplate implements ScriptTemplate {
       forceNoFund,
     });
   }
+
+  /**
+   * MELT (burn) this bolt: an owner spend with a null CTX and no token output. Requires tx version >= 2.
+   * A token that is still a genesis mint (or its first commit) can only be melted by the issuer key.
+   */
+  melt(
+    privateKey: PrivateKey,
+  ): { sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>; estimateLength: () => Promise<number> } {
+    return singleSpendUnlock({
+      privateKey, beneficiaryPubKeyHash: [], unlockScriptSuffixASM: this.UNLOCK_SCRIPT_SUFFIX, melt: true,
+    });
+  }
 }

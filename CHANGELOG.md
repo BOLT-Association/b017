@@ -7,6 +7,57 @@ All notable changes to **b017** are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- **The anchor, and `verifyAndBroadcast`.** The anchor is the token tx a batch stands on: the settle before its
+  first commit (settle N-1), or the mint when the batch starts at genesis. What travels p2p is `[mint, c1, s1]` or
+  `[sN-1, cN, sN]`. `verifyEvents` now validates the anchor first, like an event tx (golden fingerprint, issuer,
+  arrangement, sources, script execution), pulls it into the batch when it was only attached as a source or inside
+  a BEEF, and names it in `ScanResult.anchors`. An anchor settle is the one settle allowed without its commit in the
+  batch. `verifyAndBroadcast(txs, broadcastAnchor, opts)` runs `verifyEvents` and then hands every anchor to the
+  caller's broadcaster; the batch is accepted only if the network accepted or had already seen each one
+  (`AnchorRef`, `AnchorStatus`, `AnchorBroadcastResult`, `AnchorBroadcaster`). This closes a forged history hidden in
+  the sources: a stranger-signed `commit1` behind `settle1 -> commit2 -> settle2` used to pass as
+  `verifyEvents([commit2, settle2])`; `settle1` now fails execution as the anchor. A lone melt now verifies in `verifyEvents` when the settled token
+  it spends is attached (the type is read off that token, which becomes the anchor), and an attached source that is
+  not the tx its outpoint names is refused. Offline execution reaches the anchor's own inputs only: a forgery two
+  events back passes `verifyEvents` and is caught by the anchor broadcast alone (pinned in the tests).
+  Tests: `anchor` (52), `anchorShapes` (40).
+- **An unfunded anchor is refused without an SPV proof to a known block header.** An anchor must be a tx the
+  network has seen and will therefore mine; an anchor with no funding input pays no fee, so being seen proves
+  nothing. It is accepted only when it carries a merkle path whose root the caller confirms as a block header:
+  `ScanOpts.isKnownBlockRoot(merkleRoot, height)`, or a `chainTracker` (`HeaderSource`) given to
+  `verifyAndBroadcast`. No proof, no headers, an unknown root, a wrong height, a path for another tx, or a
+  failing lookup all refuse the batch, and nothing is broadcast. The events standing on an anchor may still be
+  unfunded. Tests: `anchorUnfunded` (42).
+- **A header-proven anchor is not re-executed and needs no sources.** An anchor (funded or not) whose merkle path
+  is confirmed against a known block header was validated by consensus, so its inputs are skipped and their source
+  txs need not be supplied. A mined anchor can therefore be delivered as BEEF, which stops at proven txs. The
+  header lookup is the trust root; a merkle path without a known header changes nothing. Event txs are always
+  executed. With a `chainTracker`, `verifyAndBroadcast` now collects the roots in a first pass, asks the tracker,
+  and runs the real scan against the answers.
+  Tests: `anchorProven`, including an unfunded `SimpleMultiBOLT` anchor.
+- **Value conservation is checked.** An anchor whose outputs exceed its inputs is refused. An event tx that does
+  so is reported in `ScanResult.offChainOnly` / `EventResult.offChainOnly` (`OffChainOnlyTx`) and accepted: a
+  never-broadcast commit / settle is valid off chain. `ScanOpts.requireBroadcastable` refuses such a batch. A
+  header-proven anchor is not re-checked. Tests: `valueConservation` (23).
+- **The scanner no longer throws on a broken `Transaction` object.** An input with no source reference or no
+  unlocking script, or an output with no locking script, makes the SDK throw when the tx is serialised; that used to
+  escape `verifyEvents`, `verifyEvent` and `verifyAndBroadcast`. They now return `unverifiable input: ...`.
+  Tests: `scannerEdges`, `builderEdges` (46).
+- **A batch element that is not a transaction is refused, not thrown.** `null`, `undefined`, a number or a plain
+  object in the array used to surface as `unparseable batch: TypeError ...`; it now returns
+  `not a transaction: expected a Transaction, raw tx hex, or BEEF hex / bytes`. Tests: `scannerInputs` (12).
+- **Coverage tooling (maintainers).** `npm run coverage:gaps` lists every uncovered branch as `file:line`;
+  `npm run coverage:readme` generates the README test counts and coverage table (`coverage:check` fails if they
+  are stale); `vitest.config.ts` now has coverage thresholds. `verifyEvents.ts` was refactored with no change in
+  verdicts (one helper each for the source lookup, the spent txid and error text).
+- **`melt(privateKey)` on `MinSimpleTemplate` and `AuthBoltTemplate`** (`SingleUnlockParams.melt`): the owner burns
+  the token with a null CTX and no token output, funded or unfunded. Script-level only (the `@bsv/sdk` Spend
+  engine); the b017 melt builder has not been run against a node. Tests: `minSimpleMelt` (40).
+- **`verifyEvent` takes its verdict from the same scan as `verifyEvents`.** It used to return
+  `{ ok: true, kind: "mint" }` for a lone commit, a lone settle or two unrelated settles, ignored
+  `trustedIssuerPubKey`, had no anchor step, and threw on an input pointing past its source's outputs. It now
+  refuses all of those, requires exactly one action (its anchor and the mint it authenticates may ride along),
+  and returns `anchors`. Tests: `verifyEventSingle` (34).
 - **`AuthBOLT`: a new identity-NFT type** (`AuthBoltTemplate`, `AUTH_DATA_MAX_BYTES`, `TokenType` `"AuthBOLT"`).
   `MinSimpleBOLT` (zero-funding) plus an owner-supplied `authOrMiscData` of up to 75 bytes: the first unlock
   argument, created in a commit and authenticated in the settle, which rebuilds its grandparent commit (whose
