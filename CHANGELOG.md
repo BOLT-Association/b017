@@ -59,7 +59,7 @@ All notable changes to **b017** are documented here. The format is based on
   refuses all of those, requires exactly one action (its anchor and the mint it authenticates may ride along),
   and returns `anchors`. Tests: `verifyEventSingle` (34).
 - **`AuthBOLT`: a new identity-NFT type** (`AuthBoltTemplate`, `AUTH_DATA_MAX_BYTES`, `TokenType` `"AuthBOLT"`).
-  `MinSimpleBOLT` (zero-funding) plus an owner-supplied `authOrMiscData` of up to 75 bytes: the first unlock
+  `MinSimpleBOLT` (zero-funding) plus an arbitrary data field `authOrMiscData` of up to 75 bytes: the first unlock
   argument, created in a commit and authenticated in the settle, which rebuilds its grandparent commit (whose
   scriptSig leads with the value) and binds it to the grandparent txid. The commit's own owner signature does
   NOT cover it. Same six-push lock layout as `MinSimpleBOLT`; recognised by its suffix fingerprint

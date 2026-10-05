@@ -4,7 +4,7 @@
 //
 //   node scripts/build-min-simple-bolt.mjs      (npm run build:nft)
 //
-// MinSimpleBolt (zero-funding, MSBoltZF) and AuthBolt (MinSimple + owner authOrMiscData) are both built here.
+// MinSimpleBolt (zero-funding, MSBoltZF) and AuthBolt (MinSimple + owner-supplied/transaction negotiated/challenge based authOrMiscData) are both built here.
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'

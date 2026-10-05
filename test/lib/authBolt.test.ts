@@ -1,4 +1,4 @@
-// AuthBolt = MinSimple zero-funding + an owner-supplied `authOrMiscData`: the FIRST unlock arg (deepest,
+// AuthBolt = MinSimple zero-funding + an owner-supplied/transaction negotiated/challenge based `authOrMiscData`: the FIRST unlock arg (deepest,
 // never dropped, before the OP_CODESEPARATOR so it stays out of the fullCtx scriptCode). Port of the contract-level suite onto the b017 library (real txs, Spend engine).
 //
 // It is created in a commit and authenticated in the settle: the settle re-serialises its grandparent

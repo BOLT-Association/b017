@@ -73,7 +73,7 @@ export interface SingleUnlockParams {
   leadingValuePushes?: number;
   /** The contract's unlock-arg layout (default MinSimple: 26 ancestor pieces; AuthBolt adds a leading auth arg + a 27th piece). */
   layout?: SingleLayout;
-  /** AuthBolt only: the owner's authOrMiscData (<= 75 B), the FIRST unlock arg. Omitted / [] = OP_0. */
+  /** AuthBolt only: the owner-supplied/transaction negotiated/challenge based authOrMiscData (<= 75 B), the FIRST unlock arg. Omitted / [] = OP_0. */
   authOrMiscData?: number[];
   /** MELT: burn the token. Every arg is OP_0 (a null CTX takes the lock's melt branch) except the owner's
    *  signature and pubKey; the tx has no token output. */

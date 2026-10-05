@@ -11,7 +11,7 @@
 
 Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
 **SimpleMultiBOLT** (16-byte balance (x2 Bitcoin's base layer limit); mint / transfer / split / merge / melt), a minimal
-identity **NFT** (`MinSimpleBOLT`, zero-funding), its credential variant `AuthBOLT` (an owner `authOrMiscData` of up to 75 bytes), and an off-chain **scanner** that recognises and verifies
+identity **NFT** (`MinSimpleBOLT`, zero-funding), its credential variant `AuthBOLT` (an arbitrary data field `authOrMiscData` of up to 75 bytes), and an off-chain **scanner** that recognises and verifies
 **transactional events**. The only runtime dependency is a peer `@bsv/sdk`.
 
 Every protocol action is a **transactional event**: a transfer / split / merge is a **commit → settle
@@ -177,7 +177,7 @@ sub-libraries).
 | `src/tokens/BOLT.ts` | `BOLT` — the abstract token base class. |
 | `src/tokens/templates/SimpleMulti.sx.template.ts` | Runtime lock/unlock/melt assembler for the fungible contract (compiled ASM suffix embedded). |
 | `src/tokens/templates/MinSimple.sx.template.ts` | Single-token (NFT) lock / unlock / melt template: `MinSimpleBOLT` (identity; a commit or settle may carry no funding input and change is optional, so p2p / SPV hops never need to be mined). |
-| `src/tokens/templates/AuthBolt.sx.template.ts` | `AuthBOLT`: `MinSimpleBOLT` plus an owner `authOrMiscData` (<= 75 B, a direct push) created in a commit and authenticated by the next settle. Same lock layout; told apart by its suffix fingerprint. Lock / unlock / melt. |
+| `src/tokens/templates/AuthBolt.sx.template.ts` | `AuthBOLT`: carries an arbitrary data field `authOrMiscData` (<= 75 B, a direct push) created in a commit and authenticated by the next settle. Same lock layout as `MinSimpleBOLT`; told apart by its suffix fingerprint. Lock / unlock / melt. |
 | `src/tokens/templates/pay2Proof.ts` | The `pay2Proof` UTXO template (the b017 marker proof output). |
 | `src/lib/boltLib.ts` | Layout-agnostic primitives (`verifyTx`, `buildOutpoint`, `splitCtx`, …) shared by both streams. |
 | `src/lib/single/` | Single-token (NFT) engine: `singleSpend` (unlock assembler) + `singleAncestor` (back-reach reconstruction). |
