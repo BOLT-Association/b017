@@ -8,7 +8,7 @@ import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 import Pay2ProofTemplate from '../../src/tokens/templates/pay2Proof.js'
 import { verifyEvents } from '../../src/lib/scanner/verifyEvents.js'
-import { verifyTx, buildOutpoint, type Signer } from '../../src/lib/boltLib.js'
+import { verifyTx, buildOutpoint, p2pkhUnlock, type Signer } from '../../src/lib/boltLib.js'
 
 /** A wallet-style Signer: only { publicKey, sign }, and sign is async. It holds a key here only so the
  *  test is self-contained; the library never sees it — it calls publicKey and sign and nothing else. */
@@ -79,5 +79,21 @@ describe('a wallet-style async Signer drives the NFT templates', () => {
     await commit.sign()
     commit.inputs.forEach((i: any) => { if (!i.sourceTXID && i.sourceTransaction) i.sourceTXID = i.sourceTransaction.id('hex') })
     expect(verifyTx(commit, true).valid).toBe(true)
+  })
+})
+
+describe('p2pkhUnlock with a wallet-style Signer', () => {
+  it('estimateLength is an upper bound for the unlocking script it signs', async () => {
+    const key = PrivateKey.fromRandom()
+    const signer = walletSigner(key)
+    const unlock = p2pkhUnlock(signer)
+    const funding = fundTo(signer.publicKey)
+    const tx = new Transaction()
+    tx.addInput({ sourceTransaction: funding, sourceOutputIndex: 0, unlockingScriptTemplate: unlock, sequence: 0xffffffff })
+    tx.addOutput({ satoshis: 900, lockingScript: new P2PKH().lock(Hash.hash160(signer.publicKey)) })
+    await tx.sign()
+    const len = tx.inputs[0].unlockingScript!.toBinary().length
+    expect(len).toBeLessThanOrEqual(await unlock.estimateLength())
+    expect(verifyTx(tx, true).valid).toBe(true)
   })
 })
