@@ -6,12 +6,12 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 > **Status: `0.0.0-b2` (beta).** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
-> (126/126 unit tests, **99% statement / 98% function / 95% branch coverage**) but may still change before `0.1.0`. See
+> (625/625 unit tests, **99% statement / 100% function / 98% branch coverage**) but may still change before `0.1.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
 Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
-**SimpleMultiBOLT** (16-byte balance (x2 Bitcoin's base layer limit); mint / transfer / split / merge / melt), a family of
-minimal **NFT** templates, and an off-chain **scanner** that recognises and verifies
+**SimpleMultiBOLT** (16-byte balance (x2 Bitcoin's base layer limit); mint / transfer / split / merge / melt), a minimal
+identity **NFT** (`MinSimpleBOLT`, zero-funding), its credential variant `AuthBOLT` (an arbitrary data field `authOrMiscData` of up to 75 bytes), and an off-chain **scanner** that recognises and verifies
 **transactional events**. The only runtime dependency is a peer `@bsv/sdk`.
 
 Every protocol action is a **transactional event**: a transfer / split / merge is a **commit → settle
@@ -37,7 +37,7 @@ independent genesis tokens — reserve/cap trust is an issuer matter) or **netwo
 ```
 npm install
 npm run build          # clean + tsc -> dist/ (JS + .d.ts)
-npm test               # vitest (126 tests)
+npm test               # vitest (625 tests)
 npm run test:coverage  # vitest + v8 coverage -> coverage/ (text + HTML report)
 ```
 
@@ -77,8 +77,9 @@ library never touches the network. The signed `Transaction` is available as `tok
 ```ts
 import {
   recognizeType,   // (lockingScript, expected?) -> TokenType | null
-  verifyEvent,     // validate ONE event (a mint, a commit→settle pair, or a melt)
-  verifyEvents,    // validate a BATCH of events end to end
+  verifyEvent,     // validate ONE event (a commit→settle pair, or a melt) - same verdict as verifyEvents
+  verifyEvents,    // validate a BATCH of events end to end (offline)
+  verifyAndBroadcast, // verifyEvents + your broadcast of the batch's anchor (settle N-1 / the mint)
 } from "b017";
 
 const type = recognizeType(tx.outputs[0].lockingScript); // "SimpleMultiBOLT" | "MinSimpleBOLT" | ... | null
@@ -92,14 +93,77 @@ const r = verifyEvents(txs, { trustedIssuerPubKey });
 
 Recognition is strict: a script matches only if **both** the leading data-push layout **and**
 the sha256 of the static contract code match a registered type, so a tampered contract body or
-a non-token script is rejected. An event is well-formed only if its txs pair up — a lone mint or
-melt is a valid single-tx event, but an orphan settle or an unsettled commit is rejected.
+a non-token script is rejected. An event is well-formed only if its txs pair up - a melt is a
+valid single-tx event (standing on the settle it spends, its anchor), but an orphan settle or an unsettled commit is
+rejected, by `verifyEvent` as well as `verifyEvents`. A **mint** is accepted only
+with a commit in the same event/batch that spends it; a lone mint returns `{ ok: false, unauthenticated: true }`
+(see "Receiving a token off-chain" below). The scanner also **executes** every input whose source tx is supplied (the
+covenant and the signatures, on the `@bsv/sdk` Spend engine), because structure alone cannot tell a forged commit
+from a real one and off-chain txs have not been validated by a node; a failure returns `ok: false` with
+`script execution failed: tx <id> input <n>: ...`. **Every input's source tx must be supplied** (attached as
+`sourceTransaction`, or another tx in the batch, or inside a BEEF); an input whose source is missing is refused
+(`source tx <id> of tx <id> input <n> was not supplied`). Send the package as **BEEF**: each event tx may be a
+Transaction, raw hex, or Atomic BEEF over BEEF V2 (hex / bytes), whose subject is the tx; `toAtomicBeef(tx)` /
+`fromBeef(bytes)` / `isBeef(x)` are exported. BEEF V1 (BRC-62) and a BEEF that is not self-contained (an unproven tx
+that does not have all its inputs in the BEEF) are refused. The result's `sources` lists the txs the event spends that
+are not part of it, each with `proven` (it carries a BUMP). The scanner checks a BUMP against a block header only
+for an **anchor**, and only when you supply your headers (`isKnownBlockRoot`, or a `chainTracker` to
+`verifyAndBroadcast`). The BUMPs of the other `sources` are **not** checked: verify those with your `ChainTracker`
+(`Beef.verify` / `merklePath.verify`).
 
 A commit and its settle are bound **two** independent ways: the **token lineage** (the settle's
 token `parentOutpoint` references the commit's token output — the binding the scanner asserts), and,
 in general, a **funding chain** (the settle's funding input spends the commit's **change** output, so
 the pair is chained at the satoshi level too). The funding chain is a construction property — a
 caller can fund the settle from elsewhere — so the scanner does not require it.
+
+### Receiving a token off-chain (SPV): what must travel with it
+
+Sending someone a **minted** token over SPV does not prove that the sender holds the issuer key. A mint is
+just an output whose lock names an `issuerPubKey`; anyone can create one naming anybody's key (so
+`verifyEvents` refuses a lone mint as `unauthenticated`). The issuer guard runs when the
+genesis token is first **spent**, so the proof is the first **commit**:
+
+- **Ownership of a minted token:** the mint must come with a **commit tx spending it**, signed by the issuer
+  key. This holds whether or not the commit is funded (an unfunded commit is SPV-only and never mined, but it
+  still executes the covenant, which demands `issuerPubKey == the signer` at genesis). `verifyEvents` runs that
+  covenant, so a commit forged by a stranger is refused on execution.
+- **A token carrying `authOrMiscData` (`AuthBOLT`):** the value is created in a commit but authenticated only
+  by the **settle**, which rebuilds its grandparent commit and binds the value to that commit's txid. The commit's
+  own signature does **not** cover it. So the **signed commit and settle travel together as the data package**;
+  a commit alone, or a settle without its commit, does not authenticate the data.
+- A later hop to a new holder repeats the pattern: commit + settle (and the p2pb proof input a back-reaching
+  settle spends), unfunded or funded, are what the recipient verifies.
+- **The anchor travels too, and is broadcast.** The anchor is the token tx the package stands on: the settle before
+  its first commit (settle N-1), or the mint at genesis. So a package is `[mint, c1, s1]` or `[sN-1, cN, sN]`.
+  `verifyEvents` validates the anchor like an event tx (fingerprint, issuer, structure, script execution) and names
+  it in `anchors`, but it is offline and its execution reaches the anchor's own inputs only. Use
+  `verifyAndBroadcast(txs, broadcastAnchor)`: it runs `verifyEvents`, then your broadcaster sends each anchor and
+  reports `accepted`, `already-seen` or `rejected`. The anchor must be a tx the network has seen and will therefore
+  mine (or has already mined): that is what shows the history behind it is real. A rejected anchor, a throwing
+  broadcaster or an unknown status is `ok: false`. The events standing on the anchor need not be broadcast: they can
+  stay off chain, and be funded and broadcast only when the receiver, the sender or both require it.
+- **An unfunded anchor needs an SPV proof.** An anchor with no funding input pays no fee, so the network has no
+  reason to mine it and seeing it proves nothing. Such an anchor can still be mined (a friendly miner), so it is
+  accepted only once it has been: it must carry a merkle path into a block header you know. Pass your headers as
+  `isKnownBlockRoot: (merkleRoot, height) => boolean`, or hand `verifyAndBroadcast` a `chainTracker` (the
+  `@bsv/sdk` ChainTracker shape). Without a verified proof the batch is refused (`unfunded anchor <id>: ...`), by
+  `verifyEvents`, `verifyEvent` and `verifyAndBroadcast` alike, and nothing is broadcast. Unfunded **events** on a
+  funded anchor are unaffected.
+- **A header-proven anchor is taken as mined.** Any anchor (funded or not) whose merkle path proves it into a header
+  you know was validated by consensus: the scanner does not re-execute its inputs and does not need its sources. That
+  is what lets a mined anchor travel as BEEF, which stops at proven txs. Your header lookup is the trust root here:
+  answer `true` only for real block headers. A merkle path with no known header changes nothing (the anchor is
+  executed like any other, and its sources must be supplied). Only anchors get this; event txs are always executed.
+- **Value conservation is checked.** An **anchor** whose outputs exceed its inputs is refused (`anchor <id> creates
+  value ...`): no node accepts that. An **event** tx that does so is not refused, only reported in
+  `offChainOnly: [{ txid, inputSats, outputSats }]`: a commit / settle that is never broadcast (an `AuthBOLT` event
+  certifying auth data) is valid off chain, it just cannot be broadcast as built. Pass `requireBroadcastable: true`
+  to refuse such a batch instead.
+- **`SimpleMultiBOLT` requires funding and change.** Zero-funding hops are for the NFT types (`MinSimpleBOLT`,
+  `AuthBOLT`) only; a MultiBOLT settle never has to rebuild an unfunded commit.
+- **Send it as BEEF** (Atomic BEEF over BEEF V2, `toAtomicBeef(tx)`): each tx travels with the txs it spends, back to
+  txs a block has proven (BUMP). The recipient needs every source to execute the scripts, so a bare tx is refused.
 
 ## What's inside
 
@@ -112,13 +176,15 @@ sub-libraries).
 | `src/tokens/MultiBOLT.ts` | `SimpleMultiBOLT` — the fungible token class (mint/transfer/split/merge/melt). |
 | `src/tokens/BOLT.ts` | `BOLT` — the abstract token base class. |
 | `src/tokens/templates/SimpleMulti.sx.template.ts` | Runtime lock/unlock/melt assembler for the fungible contract (compiled ASM suffix embedded). |
-| `src/tokens/templates/MinSimple.sx.template.ts` | Single-token (NFT) lock template: `MinSimpleBOLT` (identity). |
+| `src/tokens/templates/MinSimple.sx.template.ts` | Single-token (NFT) lock / unlock / melt template: `MinSimpleBOLT` (identity; a commit or settle may carry no funding input and change is optional, so p2p / SPV hops never need to be mined). |
+| `src/tokens/templates/AuthBolt.sx.template.ts` | `AuthBOLT`: carries an arbitrary data field `authOrMiscData` (<= 75 B, a direct push) created in a commit and authenticated by the next settle. Same lock layout as `MinSimpleBOLT`; told apart by its suffix fingerprint. Lock / unlock / melt. |
 | `src/tokens/templates/pay2Proof.ts` | The `pay2Proof` UTXO template (the b017 marker proof output). |
 | `src/lib/boltLib.ts` | Layout-agnostic primitives (`verifyTx`, `buildOutpoint`, `splitCtx`, …) shared by both streams. |
 | `src/lib/single/` | Single-token (NFT) engine: `singleSpend` (unlock assembler) + `singleAncestor` (back-reach reconstruction). |
 | `src/lib/multi/multiBoltLib.ts` | Fungible-token engine: ancestor reconstruction for `SimpleMultiBOLT`. |
 | `src/lib/scanner/fingerprints.ts` | Per-type recognition (`recognizeType`, golden `recognizeP2P`) + the type `REGISTRY`. |
-| `src/lib/scanner/verifyEvents.ts` | Off-chain event validator: batch verifier + per-event checker (`verifyEvents`, `verifyEvent`). |
+| `src/lib/scanner/verifyEvents.ts` | Off-chain event validator: batch verifier, per-event checker, and the anchor broadcast wrapper (`verifyEvents`, `verifyEvent`, `verifyAndBroadcast`). |
+| `src/lib/scanner/beef.ts` | The off-chain data package: Atomic BEEF over BEEF V2 (`toAtomicBeef`, `fromBeef`, `isBeef`). |
 
 > Naming note: the `SimpleMultiBOLT` **class** currently lives in `tokens/MultiBOLT.ts`.
 > Resolving that file/class name mismatch is tracked in the ROADMAP.
@@ -128,11 +194,11 @@ The full public API is the named exports of [`src/index.ts`](src/index.ts).
 ## Testing & coverage
 
 The whole codebase is unit-tested with [Vitest](https://vitest.dev). The `test/` tree mirrors `src/`
-by concern (`test/tokens`, `test/templates`, `test/lib`, `test/lib`-level `scanner/`), with shared
+by concern (`test/tokens`, `test/templates`, `test/lib`, `test/scanner`), with shared
 fixtures in `test/fixtures` and helpers in `test/helpers`.
 
 ```
-npm test               # 126 tests across 18 files
+npm test               # 625 tests across 34 files
 npm run test:coverage  # the same suite + a v8 coverage report (text to stdout, HTML in coverage/)
 ```
 
@@ -140,13 +206,15 @@ Latest run — **every source module is covered**, all above 98% statements:
 
 | Metric | Coverage |
 | --- | --- |
-| Statements | **99.1%** (1737/1752) |
-| Functions | **98.0%** (96/98) |
-| Lines | **99.1%** |
-| Branches | **95.1%** (645/678) |
+| Statements | **99.7%** (2060/2066) |
+| Functions | **100.0%** (125/125) |
+| Lines | **99.7%** |
+| Branches | **98.3%** (1028/1045) |
 
-The handful of uncovered branches are fail-safe guards (e.g. a `0xff` >4 GB script-length prefix, or a
-type/issuer check an upstream fingerprint already guarantees), annotated `v8 ignore` with the reason inline.
+Fail-safe guards that cannot fire (e.g. a `0xff` >4 GB script-length prefix, or a type/issuer check an
+upstream fingerprint already guarantees) are annotated `v8 ignore` with the reason inline. Most of the
+remaining gaps are also unreachable: `@bsv/sdk`'s `Spend.validate()` throws rather than returning
+`false`, and `tx.id()` fails on a missing unlocking script before `verifyTx`'s own guard runs.
 
 What the suite verifies: each contract template is byte-faithful to its sx-compiled artifact and
 spends under the `@bsv/sdk` Spend engine; the scanner's accept/reject decisions match the on-chain

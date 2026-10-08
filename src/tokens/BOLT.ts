@@ -2,6 +2,7 @@ import {
   Transaction,
   PrivateKey
 } from "@bsv/sdk";
+import type { Signer, Recipient } from "../lib/boltLib.js";
 
 // Base BOLT Protocol Token class
 export abstract class BOLT {
@@ -11,23 +12,21 @@ export abstract class BOLT {
   pubKey: number[] = [];
   issuerPubKey: number[] = [];
   genesisOutpoint: number[] = [];
-  // Current-owner key the builder feeds to the @bsv/sdk unlock-template signers (tpl.unlock(key)
-  // -> { sign }); rotates on each settle. The signing itself is the SDK's injection; this is just
-  // the stateful builder caching the owner key. (Roadmap: take a per-op signer so the class need
-  // not hold the secret — see docs/ROADMAP.md.)
-  privKey!: PrivateKey;
+  // Current-owner Signer the builder feeds to the unlock templates (tpl.unlock(signer) -> { sign });
+  // rotates on each settle. A Signer is { publicKey, sign(msg) } — a PrivateKey is one, but so is a
+  // wallet that never exposes its key, so the class no longer has to hold the secret.
+  signer!: Signer;
   // Helpful test duplicates (stored on-chain otherwise)
   mintData?: number[];
   pubKeyHash?: number[];
 
   constructor() { }
   abstract mint(
-    privKey: PrivateKey,
+    owner: PrivateKey | Signer,
     sourceTransaction: Transaction,
     mintData?: string
   ): any;
-  abstract commit(toPrivKey: PrivateKey): any;
-  abstract settle(toPrivKey: PrivateKey): any;
-  abstract transfer(toPrivKey: PrivateKey): any;
+  abstract commit(to: Recipient): any;
+  abstract settle(to: Recipient): any;
+  abstract transfer(to: Recipient): any;
 }
-

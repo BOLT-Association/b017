@@ -58,11 +58,12 @@ describe('A3 — token events over the SimpleMultiBOLT lifecycle', () => {
     expect(mev.kind).toBe('melt')
   })
 
-  it('mint: verifyEvent recognises a genesis mint', async () => {
+  it('mint: verifyEvent recognises a genesis mint but refuses it alone as unauthenticated', async () => {
     const t = await new SimpleMultiBOLT().mint(issuerKey, freshSource(), '', bal(SIM))
     const ev = verifyEvent([t.tx!], { expectedType: T })
-    expect(ev.ok, ev.reason).toBe(true)
+    expect(ev.ok).toBe(false)
     expect(ev.kind).toBe('mint')
+    expect(ev.unauthenticated).toBe(true)
   })
 
   it('verifyEvent rejects a settle whose parent does not link to the given commit', async () => {

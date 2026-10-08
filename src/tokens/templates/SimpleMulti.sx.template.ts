@@ -1,7 +1,7 @@
 // SimpleMultiBolt.sx.template.ts
 // Runtime lock/unlock script assembler for the optimised SimpleMultiBolt contract.
-// The two *_SCRIPT_SUFFIX constants are auto-patched from sxFiles/SimpleMultiBolt.sx.json
-// at build time (compileBoltContracts.mjs) - do NOT hand-edit them.
+// The two *_SCRIPT_SUFFIX constants are auto-patched from the pre-compiled production artifact
+// by scripts/build-simple-multi.mjs (build-time only) - do NOT hand-edit them.
 //
 // Layout (see multiBoltLib.ts):
 //   lock  = 11 data args + LOCK_SCRIPT_SUFFIX
@@ -18,7 +18,7 @@ import {
   Hash,
   Utils,
 } from "@bsv/sdk";
-import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../../lib/boltLib.js";
+import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin, type Signer } from "../../lib/boltLib.js";
 import {
   ancestorPiece,
   createEmptyFungibleAncestorChunksSMB,
@@ -104,7 +104,7 @@ export default class SimpleMultiTemplate implements ScriptTemplate {
   }
 
   unlock(
-    privateKey: PrivateKey,
+    privateKey: PrivateKey | Signer,
     toPubKey: number[],
     prevTxs: Transaction[],
     forceNoChange: boolean = false,
@@ -145,7 +145,7 @@ export default class SimpleMultiTemplate implements ScriptTemplate {
 
         const { ctxHeader, ctxCodeLen, ctxCodeUnlockScriptCode, ctxCodeLockScriptCode, ctxFooter, ctxCodeLockLen } = splitCtx(ctx, 2);
         const ctxForSig = ctxHeader.concat(...[ctxCodeLockLen, ctxCodeLockScriptCode, ctxFooter]);
-        const { sigForScript, pubkeyForScript } = createSignature(privateKey, ctxForSig, this.signatureScope);
+        const { sigForScript, pubkeyForScript } = await createSignature(privateKey, ctxForSig, this.signatureScope);
         // pubKeyHash1: empty when toPubKey is empty (split settle derives recipients from
         // the committed pubKeyHashCommit/Commit2, so pubKeyHash1 must be empty).
         const toPubKeyHash = (toPubKey && (toPubKey as number[]).length) ? Hash.hash160(toPubKey as number[]) : [];
@@ -214,7 +214,7 @@ export default class SimpleMultiTemplate implements ScriptTemplate {
   }
 
   melt(
-    privateKey: PrivateKey,
+    privateKey: PrivateKey | Signer,
     sourceSatoshis?: number,
     lockingScript?: Script,
   ): {
@@ -240,7 +240,7 @@ export default class SimpleMultiTemplate implements ScriptTemplate {
           scope: this.signatureScope,
         });
 
-        const { sigForScript, pubkeyForScript } = createSignature(privateKey, preimage, this.signatureScope);
+        const { sigForScript, pubkeyForScript } = await createSignature(privateKey, preimage, this.signatureScope);
         const { fundOutpoint, changeOutput } = this.buildFundAndChangeOutputs(tx);
 
         const unlockingScript = new UnlockingScript([

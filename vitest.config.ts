@@ -13,6 +13,9 @@ export default defineConfig({
       exclude: ['src/index.ts'], // pure re-export barrel
       reporter: ['text', 'text-summary', 'html', 'json', 'json-summary', 'lcov'],
       reportsDirectory: 'coverage',
+      // A floor, so coverage cannot fall silently. The target is 100 across the board: raise
+      // `branches` as each remaining gap is covered.
+      thresholds: { statements: 99, functions: 100, lines: 99, branches: 98 },
     },
   },
 })

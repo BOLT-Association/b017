@@ -40,16 +40,21 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p tsconfig.json",
-    "build:contract": "node scripts/build-contract.mjs",
+    "build:contract": "node scripts/build-simple-multi.mjs",
+    "build:nft": "node scripts/build-min-simple-bolt.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "coverage:run": "vitest run --coverage --reporter=default --reporter=json --outputFile.json=coverage/test-results.json",
+    "coverage:gaps": "npm run coverage:run && node scripts/coverage-gaps.mjs",
+    "coverage:readme": "npm run coverage:run && node scripts/coverage-readme.mjs",
+    "coverage:check": "npm run coverage:run && node scripts/coverage-readme.mjs --check",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "@bsv/sdk": "^2.1.6"
   },
   "devDependencies": {
-    "@bsv/sdk": "^2.1.6",
+    "@bsv/sdk": "^2.8.11",
     "@types/node": "^22.10.2",
     "@vitest/coverage-v8": "^2.1.9",
     "typescript": "^5.7.2",

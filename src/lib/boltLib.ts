@@ -2,8 +2,44 @@
 // verifyTx (bsv Spend), buildOutpoint, buildChangeOutput, createSignature, splitCtx,
 // and the tx-field primitives (le32/le64, spentOutpoint, vin*/vout*, …).
 
-import { Script, Spend, Transaction, Utils, PrivateKey, TransactionSignature, Hash } from "@bsv/sdk";
+import { Script, Spend, Transaction, Utils, PrivateKey, Signature, TransactionSignature, Hash, UnlockingScript } from "@bsv/sdk";
 const { Reader, Writer } = Utils;
+
+// ---- signing abstraction --------------------------------------------------------------------------
+// A token spend used to require the owner's PrivateKey, held by the builder across its multi-step
+// flow. It now takes a Signer: a compressed public key plus a `sign(msg)` that returns an ECDSA
+// Signature over sha256(msg) — exactly what PrivateKey.sign does, except it MAY be async, so a wallet
+// that never exposes its key (it signs over IPC / HTTP) can drive the library in a single pass. A
+// PrivateKey is still a valid Signer, so every existing caller keeps working unchanged.
+
+/** Signs on behalf of a key the caller may not hold. `sign(msg)` returns an ECDSA Signature over
+ *  sha256(msg) — matching PrivateKey.sign — and may be async. `publicKey` is the 33-byte compressed key. */
+export interface Signer {
+  publicKey: number[];
+  sign: (msg: number[]) => Signature | Promise<Signature>;
+}
+
+/** A recipient of a token: a PrivateKey or Signer the caller controls (so the builder can continue as
+ *  the new owner), or just a compressed public key (33 bytes) when paying a third party. */
+export type Recipient = PrivateKey | Signer | number[];
+
+const isPrivateKey = (x: unknown): x is PrivateKey =>
+  !!x && typeof (x as any).toPublicKey === "function" && typeof (x as any).sign === "function";
+
+/** Normalise a PrivateKey or Signer to a Signer. */
+export const toSigner = (x: PrivateKey | Signer): Signer =>
+  isPrivateKey(x)
+    ? { publicKey: x.toPublicKey().encode(true) as number[], sign: (msg) => x.sign(msg) }
+    : (x as Signer);
+
+/** The recipient's compressed public key, whichever form it was given in. */
+export const recipientPubKey = (r: Recipient): number[] =>
+  Array.isArray(r) ? r : isPrivateKey(r) ? (r.toPublicKey().encode(true) as number[]) : (r as Signer).publicKey;
+
+/** A Signer for the recipient if the caller controls its key (so the builder can spend the token on a
+ *  later hop); undefined when only a public key was given (the token has left this holder). */
+export const recipientSigner = (r: Recipient): Signer | undefined =>
+  Array.isArray(r) ? undefined : toSigner(r as PrivateKey | Signer);
 
 // Verify every input of a tx with the @bsv/sdk Spend engine.
 export const verifyTx = (
@@ -34,7 +70,7 @@ export const verifyTx = (
       transactionVersion: tx.version,
       otherInputs,
       unlockingScript: input.unlockingScript,
-      inputSequence: input.sequence || 0xffffffff,
+      inputSequence: input.sequence ?? 0xffffffff,
       inputIndex: i,
       outputs: tx.outputs,
       lockTime: tx.lockTime,
@@ -72,17 +108,55 @@ export const buildChangeOutput = (tx: Transaction, outputIndex: number): number[
   return writer.toArray();
 };
 
-// Sign a preimage (signs sha256(preimage); the engine double-hashes) -> checksig-format sig + pubkey.
-export const createSignature = (
-  privateKey: PrivateKey,
+// Sign a preimage (the signer signs sha256(preimage); the engine double-hashes) -> checksig-format
+// sig + pubkey. Accepts a PrivateKey or a Signer; async because a Signer may be a remote wallet.
+export const createSignature = async (
+  signerOrKey: PrivateKey | Signer,
   preimage: number[],
   signatureScope: number
-): { sigForScript: number[]; pubkeyForScript: number[] } => {
-  const rawSignature = privateKey.sign(Hash.sha256(preimage));
+): Promise<{ sigForScript: number[]; pubkeyForScript: number[] }> => {
+  const signer = toSigner(signerOrKey);
+  const rawSignature = await signer.sign(Hash.sha256(preimage));
   const sig = new TransactionSignature(rawSignature.r, rawSignature.s, signatureScope);
   const sigForScript = sig.toChecksigFormat();
-  const pubkeyForScript = privateKey.toPublicKey().encode(true) as number[];
-  return { sigForScript, pubkeyForScript };
+  return { sigForScript, pubkeyForScript: signer.publicKey };
+};
+
+// A P2PKH unlock driven by a Signer, for funding inputs the builder spends. Byte-identical to the SDK's
+// P2PKH().unlock for a PrivateKey, but accepts a Signer so wallet-held funding works in the same pass.
+export const p2pkhUnlock = (signerOrKey: PrivateKey | Signer): {
+  sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>;
+  estimateLength: () => Promise<number>;
+} => {
+  const signer = toSigner(signerOrKey);
+  const scope = TransactionSignature.SIGHASH_FORKID | TransactionSignature.SIGHASH_ALL;
+  return {
+    sign: async (tx: Transaction, inputIndex: number): Promise<UnlockingScript> => {
+      const input = tx.inputs[inputIndex];
+      const src = input.sourceTransaction?.outputs[input.sourceOutputIndex];
+      const sourceTXID = input.sourceTXID ?? input.sourceTransaction?.id("hex");
+      if (!sourceTXID || !src) throw new Error("p2pkhUnlock requires the input's source transaction");
+      const preimage = TransactionSignature.format({
+        sourceTXID,
+        sourceOutputIndex: input.sourceOutputIndex,
+        sourceSatoshis: src.satoshis as number,
+        transactionVersion: tx.version,
+        otherInputs: tx.inputs.filter((_, i) => i !== inputIndex),
+        inputIndex,
+        outputs: tx.outputs,
+        inputSequence: input.sequence as number,
+        subscript: src.lockingScript,
+        lockTime: tx.lockTime,
+        scope,
+      });
+      const { sigForScript, pubkeyForScript } = await createSignature(signer, preimage, scope);
+      return new UnlockingScript([
+        { op: sigForScript.length, data: sigForScript },
+        { op: pubkeyForScript.length, data: pubkeyForScript },
+      ]);
+    },
+    estimateLength: async () => 108,
+  };
 };
 
 // Split a BIP143 preimage into header(104) + scriptCodeLen + unlockScriptCode + lockScriptCode +

@@ -7,6 +7,11 @@ event** - the `commit -> settle` pair - and nothing else, however deep the linea
 not O(log N): **O(1)**, a flat two transactions, whether the token is one hop from its mint or ten
 thousand.
 
+The pair itself does not have to be on the network. What the network must have seen is the pair's
+**anchor** - the settle before it, or the mint: a tx the network has seen and will therefore mine. The
+tip pair can stay off chain and be funded and broadcast only when the receiver, the sender or both
+require it.
+
 Runnable proof: [`test/scanner/verificationScaling.test.ts`](../test/scanner/verificationScaling.test.ts).
 It shows both halves of the claim: verifying the tip reads exactly 2 transactions at depth 1, 8 and 24
 alike (the cost), and - the reason that is enough - the tip is *cryptographically bound* to its exact
@@ -32,8 +37,10 @@ That gives an induction, and the covenant supplies the step:
   genesis mint, which is issuer-signed. Verifiable in two transactions.
 - **Inductive step.** A valid event at depth k is *constructible only if* the event at depth k-1
   happened and was correct - because event k's settle co-spends event k-1's commit proof and
-  reconstructs that commit. Consensus enforced this when event k was mined: an event naming a
-  grandparent that never happened does not validate, and is not mined (this is exactly what
+  reconstructs that commit. The network enforces this on every tx it sees: an event naming a
+  grandparent that never happened does not validate, so the network refuses it and never mines it. For
+  a tip pair held off chain the verifier runs the same step itself on the pair, and the network has run
+  it on the pair's anchor (this is exactly what
   [`test/repro-fabricated-hop.test.ts`](../test/repro-fabricated-hop.test.ts) and the node-verified
   fabricated-hop specs demonstrate).
 - **Conclusion.** The validity of the tip event therefore mathematically induces the validity of the
@@ -47,11 +54,28 @@ from the mint: O(depth) per token.
 
 | Layer | What it establishes | What it reads | Cost |
 |---|---|---|---|
-| **The tip pair** (`verifyEvent`) | a well-formed commit+settle whose settle links to the commit and, by validity, re-anchors balance/issuer/lineage to a real grandparent | 2 transactions | **O(1)** |
-| **Inclusion** (SPV) | the tip pair is mined, so consensus already ran the covenant - which is what makes the induction bind | a merkle path per tx | O(log blocksize) |
+| **The tip pair** (`verifyEvent`) | a well-formed commit+settle whose settle links to the commit and, by validity, re-anchors balance/issuer/lineage to a real grandparent | 2 transactions (the scanner also executes their anchor, see below) | **O(1)** |
+| **Inclusion** (SPV) | the tip pair's **anchor** (settle N-1, or the mint) is a tx the network has seen and will therefore mine (or has already mined), so the network already ran the covenant - which is what makes the induction bind. The tip pair itself need not be broadcast | the network's answer to broadcasting the anchor, or its merkle path once mined | O(log blocksize) |
 | **Issuer trust** (pin) | the token is this issuer's, not a look-alike with a foreign key | the issuer push, compared to the trusted key | O(1) |
 
-The induction rests on consensus: a peer trusts that a *mined* transaction is *valid*. A peer who
+**What the scanner executes.** `verifyEvent` / `verifyEvents` execute the tip pair and the pair's *anchor*:
+the settle before it (settle N-1), or the mint when the pair is the first event. To do that they read the
+anchor's direct sources. That is the tip pair, one more transaction, and that transaction's input sources: a
+fixed window, the same at depth 1 and at depth ten thousand, so the cost stays O(1) and nothing walks toward
+genesis.
+
+**What must be on the network: the anchor, not the tip pair.** The Inclusion row is about the anchor. It is a
+tx the network has seen and will therefore mine (or has already mined); the caller broadcasts it
+(`verifyAndBroadcast`) to see exactly that. Local execution reaches the anchor's own inputs and no further, and
+a network that accepts (or already knows) the anchor vouches for everything behind it. An **unfunded** anchor
+is the exception: it pays no fee, so the network has no reason to mine it and seeing it proves nothing. It is
+accepted only when it has already been mined (a friendly miner can do that) and carries a merkle path into a
+block header the verifier knows. Any anchor proven that way is taken as mined: the scanner does not re-execute
+it or ask for its sources, so the read shrinks to the tip pair and one merkle path. The tip pair does not
+need to be broadcast at all. It can stay off chain, where it certifies committed auth data between the parties,
+and it can be given funding and broadcast to be mined only when the receiver, the sender, or both require it.
+
+The induction rests on consensus: a peer trusts that a transaction the network has seen and will therefore mine is *valid*. A peer who
 refuses even that and re-executes the covenant scripts itself must supply the settle's direct inputs
 (parent commit, grandparent commit's proof, funding) - a fixed window of at most four transactions,
 still constant in depth and still never reaching genesis. Either way the per-token cost is O(1).
@@ -71,8 +95,10 @@ past.
 
 - **Balance / lineage** - the covenant and the two-hop rebuild; a scan pass is structural, not a
   balance check.
-- **Uniqueness / double-settle** - a consensus property, confirmed by SPV inclusion plus the UTXO
-  rule; making the scanner catch it needs an unbounded spend graph and breaks the property.
+- **Uniqueness / double-settle** - a consensus property, decided by the network: a tx it has seen it
+  will therefore mine, and the UTXO rule refuses a second spend of the same output. A tip pair held off
+  chain gets that answer when it is broadcast. Making the scanner catch it needs an unbounded spend
+  graph and breaks the property.
 - **Issuer** - pin it (`trustedIssuerPubKey`), O(1).
 - **Replay** - dedupe by outpoint or txid at the application boundary, O(1).
 
@@ -83,4 +109,5 @@ avoid. Keep the reader a bounded O(1) inspector and make the caller contract exp
 
 A valid BOLT settle re-proves its grandparent by reconstruction and co-spends its proof, so validity
 induces backward: reading the two transactions of a token's latest event establishes its whole
-provenance in O(1), and no verifier ever reads back to genesis.
+provenance in O(1), and no verifier ever reads back to genesis. Only the pair's anchor has to be a tx
+the network has seen and will therefore mine; the pair itself can stay off chain.

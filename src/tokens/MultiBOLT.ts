@@ -9,7 +9,7 @@ import {
 } from "@bsv/sdk";
 import SimpleMultiTemplate from "./templates/SimpleMulti.sx.template.js";
 import Pay2ProofTemplate from "./templates/pay2Proof.js";
-import { verifyTx, buildOutpoint } from "../lib/boltLib.js";
+import { verifyTx, buildOutpoint, p2pkhUnlock, toSigner, recipientPubKey, recipientSigner, type Signer, type Recipient } from "../lib/boltLib.js";
 import { BOLT } from "./BOLT.js";
 
 export type VerifierType = 'bsv';
@@ -24,12 +24,13 @@ export class SimpleMultiBOLT extends BOLT {
   outputIndexN: number[] = [0x00];
 
   async mint(
-    privKey: PrivateKey,
+    owner: PrivateKey | Signer,
     sourceTransaction: Transaction,
     _mintData: string = "",
     balance: number[] = [0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
   ) {
-    const pubKey = privKey.toPublicKey().encode(true);
+    const signer = toSigner(owner);
+    const pubKey = signer.publicKey;
     const pubKeyHashStr = Utils.toHex(Hash.hash160(pubKey as number[]));
     const version = 2;
     let sourceOutputIndex = -1;
@@ -48,7 +49,7 @@ export class SimpleMultiBOLT extends BOLT {
     const input = {
       sourceTransaction,
       sourceOutputIndex,
-      unlockingScriptTemplate: new P2PKH().unlock(privKey),
+      unlockingScriptTemplate: p2pkhUnlock(signer),
       sequence: 0xffffffff,
     };
     this.pubKeyHash = Hash.hash160(pubKey);
@@ -92,12 +93,12 @@ export class SimpleMultiBOLT extends BOLT {
     this.pubKey = pubKey as number[];
     this.issuerPubKey = pubKey as number[];
     this.genesisOutpoint = buildOutpoint(mintTx, 0);
-    this.privKey = privKey;
+    this.signer = signer;
     return this;
   }
 
   createTransferInputs = (
-    toPrivKey: PrivateKey,
+    toPrivKey: Recipient,
     _miscData: string,
     isCommitTx: boolean = true,
     forceNoChange: boolean = false,
@@ -109,15 +110,15 @@ export class SimpleMultiBOLT extends BOLT {
     let proofVout = 1;
     if (hasAncestor) {
       const ancestorTx = this.prevTxs[this.prevTxs.length - 3];
-      proofVout = ancestorTx.outputs.length >= 5 ? 2 : 1;
+      proofVout = this.findProofVout(ancestorTx, this.signer);
     }
 
     const input = {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.voutIdx as number,
       unlockingScriptTemplate: new SimpleMultiTemplate().unlock(
-        this.privKey,
-        toPrivKey.toPublicKey().encode(true) as number[],
+        this.signer,
+        recipientPubKey(toPrivKey) as number[],
         this.prevTxs as Transaction[],
         forceNoChange,
         forceNoFund,
@@ -132,7 +133,7 @@ export class SimpleMultiBOLT extends BOLT {
     const funding = fundOverride || {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.tx?.outputs ? this.tx?.outputs.length - 1 : 0,
-      unlockingScriptTemplate: new P2PKH().unlock(this.privKey),
+      unlockingScriptTemplate: p2pkhUnlock(this.signer),
       sequence: 0xffffffff,
     };
     if (hasAncestor) {
@@ -140,7 +141,7 @@ export class SimpleMultiBOLT extends BOLT {
       const proof = {
         sourceTransaction: ancestorTx,
         sourceOutputIndex: proofVout,
-        unlockingScriptTemplate: new Pay2ProofTemplate().unlock(this.privKey),
+        unlockingScriptTemplate: new Pay2ProofTemplate().unlock(this.signer),
         sequence: 0xffffffff,
       };
       return forceNoFund ? [input, proof] : [input, proof, funding];
@@ -148,15 +149,15 @@ export class SimpleMultiBOLT extends BOLT {
     return forceNoFund ? [input] : [input, funding];
   };
 
-  createTransferOutputs = (toPrivKey: PrivateKey, isCommitTx = true, forceNoChange = false, customChangeScript?: any): TransactionOutput[] => {
-    const toPubKeyHash = Hash.hash160(toPrivKey.toPublicKey().encode(true));
+  createTransferOutputs = (toPrivKey: Recipient, isCommitTx = true, forceNoChange = false, customChangeScript?: any): TransactionOutput[] => {
+    const toPubKeyHash = Hash.hash160(recipientPubKey(toPrivKey));
     const pubKeyHashCommit = isCommitTx
       ? toPubKeyHash
       : new Array(20).fill(0x00);
     const tokenLocking = new SimpleMultiTemplate().lock(
       isCommitTx
         ? this.pubKey
-        : (toPrivKey.toPublicKey().encode(true) as number[]),
+        : (recipientPubKey(toPrivKey) as number[]),
       this.prevTxs,
       this.balance,
       this.balanceCommit,
@@ -184,7 +185,7 @@ export class SimpleMultiBOLT extends BOLT {
   };
 
   async commit(
-    toPrivKey: PrivateKey,
+    toPrivKey: Recipient,
     commitTxMiscData: string = "Bolt Protocol Transfer Commit Transaction Miscellaneous Data",
     forceNoChange: boolean = false,
     fundOverride: TransactionInput | undefined = undefined,
@@ -214,7 +215,7 @@ export class SimpleMultiBOLT extends BOLT {
   }
 
   async settle(
-    toPrivKey: PrivateKey,
+    toPrivKey: Recipient,
     settleTxMiscData: string = "Bolt Protocol Transfer Settle Transaction Miscellaneous Data",
     forceNoChange: boolean = false,
     fundOverride: TransactionInput | undefined = undefined,
@@ -241,15 +242,15 @@ export class SimpleMultiBOLT extends BOLT {
     this.verifyAndLogTransaction(this.tx, 'SETTLE TX', fundOverride?.sourceTransaction);
     this.prevTxs?.push(this.tx);
 
-    this.privKey = toPrivKey;
-    this.pubKey = toPrivKey.toPublicKey().encode(true) as number[];
+    this.signer = recipientSigner(toPrivKey) ?? this.signer;
+    this.pubKey = recipientPubKey(toPrivKey) as number[];
     this.pubKeyHash = Hash.hash160(this.pubKey);
 
     return this;
   }
 
   async transfer(
-    toPrivKey: PrivateKey,
+    toPrivKey: Recipient,
     commitTxMiscData: string = "Bolt Protocol Transfer Commit Transaction Miscellaneous Data",
     settleTxMiscData: string = "Bolt Protocol Transfer Settle Transaction Miscellaneous Data",
     skipSettle = false,
@@ -293,15 +294,15 @@ export class SimpleMultiBOLT extends BOLT {
     return this.bigIntToBalance(this.balanceToBigInt(a) - this.balanceToBigInt(b));
   }
 
-  // Find proof vout that matches a key's pubKeyHash in an ancestor commit tx
-  private findProofVout(ancestorTx: Transaction, key: PrivateKey): number {
-    const pkh = Utils.toHex(Hash.hash160(key.toPublicKey().encode(true)));
-    const startIdx = ancestorTx.outputs.length >= 5 ? 2 : 1;
-    for (let i = startIdx; i < ancestorTx.outputs.length - 1; i++) {
-      const proofChunks = ancestorTx.outputs[i].lockingScript.chunks;
-      if (proofChunks.length >= 5 && Utils.toHex(proofChunks[4]?.data || []) === pkh) return i;
+  // Find the proof vout paying a key's pubKeyHash in an ancestor commit tx. Every commit has exactly
+  // one token output at vout 0, so proofs start at vout 1 (a split commit carries two: vout 1 for
+  // piece A, vout 2 for piece B) and the last output is change. Falls back to vout 1.
+  private findProofVout(ancestorTx: Transaction, key: Signer): number {
+    const pkh = Utils.toHex(Hash.hash160(recipientPubKey(key)));
+    for (let i = 1; i < ancestorTx.outputs.length - 1; i++) {
+      if (Utils.toHex(ancestorTx.outputs[i].lockingScript.chunks[4]?.data || []) === pkh) return i;
     }
-    return startIdx;
+    return 1;
   }
 
   // 4-byte LE uint32 for vout indices used in outpoint construction
@@ -329,26 +330,26 @@ export class SimpleMultiBOLT extends BOLT {
   // Merge: absorb other token into this one
   async merge(
     other: SimpleMultiBOLT,
-    toKey: PrivateKey,
-    fundingSource?: { tx: Transaction, vout: number, key: PrivateKey },
+    toKey: Recipient,
+    fundingSource?: { tx: Transaction, vout: number, key?: PrivateKey | Signer },
   ): Promise<SimpleMultiBOLT> {
     const tpl = new SimpleMultiTemplate();
     const proofTpl = new Pay2ProofTemplate();
     const version = 2;
-    const toPubKeyHash = Hash.hash160(toKey.toPublicKey().encode(true));
+    const toPubKeyHash = Hash.hash160(recipientPubKey(toKey));
 
     // Default funding: use the last output of whichever token's tx has a change output we can unlock
     const fundTx = fundingSource?.tx || this.tx!;
     const fundVout = fundingSource?.vout ?? (this.tx!.outputs.length - 1);
-    const fundKey = fundingSource?.key || this.privKey;
+    const fundKey = fundingSource?.key || this.signer;
 
     // ── Merge Commit ──
     const thisInput = {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.voutIdx as number,
       unlockingScriptTemplate: tpl.unlock(
-        this.privKey,
-        toKey.toPublicKey().encode(true) as number[],
+        this.signer,
+        recipientPubKey(toKey) as number[],
         this.prevTxs,
         false, false,
         other.balance,                // nextBalanceCommit = other's balance
@@ -367,8 +368,8 @@ export class SimpleMultiBOLT extends BOLT {
       sourceTransaction: other.tx,
       sourceOutputIndex: other.voutIdx as number,
       unlockingScriptTemplate: tpl.unlock(
-        other.privKey,
-        toKey.toPublicKey().encode(true) as number[],
+        other.signer,
+        recipientPubKey(toKey) as number[],
         other.prevTxs,
         false, false,
         this.balance,
@@ -385,7 +386,7 @@ export class SimpleMultiBOLT extends BOLT {
     const fundInput = {
       sourceTransaction: fundTx,
       sourceOutputIndex: fundVout,
-      unlockingScriptTemplate: new P2PKH().unlock(fundKey),
+      unlockingScriptTemplate: p2pkhUnlock(fundKey),
       sequence: 0xffffffff,
     };
 
@@ -420,15 +421,15 @@ export class SimpleMultiBOLT extends BOLT {
     const thisAncestorCommit = this.prevTxs[this.prevTxs.length - 3];
     const otherAncestorCommit = other.prevTxs[other.prevTxs.length - 3];
 
-    const thisProofVout = this.findProofVout(thisAncestorCommit, this.privKey);
-    const otherProofVout = this.findProofVout(otherAncestorCommit, other.privKey);
+    const thisProofVout = this.findProofVout(thisAncestorCommit, this.signer);
+    const otherProofVout = this.findProofVout(otherAncestorCommit, other.signer);
 
     const settleInput = {
       sourceTransaction: commitTx,
       sourceOutputIndex: 0,
       unlockingScriptTemplate: tpl.unlock(
-        this.privKey,
-        toKey.toPublicKey().encode(true) as number[],
+        this.signer,
+        recipientPubKey(toKey) as number[],
         this.prevTxs,
         false, false,
         new Array(16).fill(0x00),
@@ -446,28 +447,28 @@ export class SimpleMultiBOLT extends BOLT {
     const proof0 = {
       sourceTransaction: thisAncestorCommit,
       sourceOutputIndex: thisProofVout,
-      unlockingScriptTemplate: proofTpl.unlock(this.privKey),
+      unlockingScriptTemplate: proofTpl.unlock(this.signer),
       sequence: 0xffffffff,
     };
 
     const proof1 = {
       sourceTransaction: otherAncestorCommit,
       sourceOutputIndex: otherProofVout,
-      unlockingScriptTemplate: proofTpl.unlock(other.privKey),
+      unlockingScriptTemplate: proofTpl.unlock(other.signer),
       sequence: 0xffffffff,
     };
 
     const settleFundInput = {
       sourceTransaction: commitTx,
       sourceOutputIndex: commitTx.outputs.length - 1,
-      unlockingScriptTemplate: new P2PKH().unlock(this.privKey),
+      unlockingScriptTemplate: p2pkhUnlock(this.signer),
       sequence: 0xffffffff,
     };
 
     // Merged balance = sum of both tokens' balances (16-byte LE addition)
     const mergedBalance = this.addBalances(this.balance, other.balance);
     const settleTokenOut = tpl.lock(
-      toKey.toPublicKey().encode(true) as number[],
+      recipientPubKey(toKey) as number[],
       this.prevTxs,
       mergedBalance,
       new Array(16).fill(0x00),
@@ -480,7 +481,7 @@ export class SimpleMultiBOLT extends BOLT {
     );
 
     // Lock change to the new owner's key so the merged token can fund subsequent operations
-    const mergeSettleChangePKH = Hash.hash160(toKey.toPublicKey().encode(true));
+    const mergeSettleChangePKH = Hash.hash160(recipientPubKey(toKey));
     const settleChangeOut = { change: true, lockingScript: new P2PKH().lock(mergeSettleChangePKH) };
 
     const settleTx = await this.signAndClean(new Transaction(version,
@@ -493,8 +494,8 @@ export class SimpleMultiBOLT extends BOLT {
     this.tx = settleTx;
     this.voutIdx = 0;
     this.prevTxs.push(settleTx);
-    this.privKey = toKey;
-    this.pubKey = toKey.toPublicKey().encode(true) as number[];
+    this.signer = recipientSigner(toKey) ?? this.signer;
+    this.pubKey = recipientPubKey(toKey) as number[];
     this.pubKeyHash = Hash.hash160(this.pubKey);
     this.balance = mergedBalance;
     this.balanceCommit = new Array(16).fill(0x00);
@@ -505,28 +506,28 @@ export class SimpleMultiBOLT extends BOLT {
   // Split: divide this token into two with specified balances
   // Returns [tokenA, tokenB]
   async split(
-    toKeyA: PrivateKey,
-    toKeyB: PrivateKey,
+    toKeyA: Recipient,
+    toKeyB: Recipient,
     splitBalanceCommit: number[],
-    fundingSource?: { tx: Transaction, vout: number, key: PrivateKey },
+    fundingSource?: { tx: Transaction, vout: number, key?: PrivateKey | Signer },
   ): Promise<[SimpleMultiBOLT, SimpleMultiBOLT]> {
     const tpl = new SimpleMultiTemplate();
     const proofTpl = new Pay2ProofTemplate();
     const version = 2;
-    const toPubKeyHashA = Hash.hash160(toKeyA.toPublicKey().encode(true));
-    const toPubKeyHashB = Hash.hash160(toKeyB.toPublicKey().encode(true));
+    const toPubKeyHashA = Hash.hash160(recipientPubKey(toKeyA));
+    const toPubKeyHashB = Hash.hash160(recipientPubKey(toKeyB));
 
     const fundTx = fundingSource?.tx || this.tx!;
     const fundVout = fundingSource?.vout ?? (this.tx!.outputs.length - 1);
-    const fundKey = fundingSource?.key || this.privKey;
+    const fundKey = fundingSource?.key || this.signer;
 
     // ── Split Commit ──
     const tokenInput = {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.voutIdx as number,
       unlockingScriptTemplate: tpl.unlock(
-        this.privKey,
-        toKeyA.toPublicKey().encode(true) as number[],
+        this.signer,
+        recipientPubKey(toKeyA) as number[],
         this.prevTxs,
         false, false,
         splitBalanceCommit,           // nextBalanceCommit = second split's balance
@@ -540,7 +541,7 @@ export class SimpleMultiBOLT extends BOLT {
     const fundInput = {
       sourceTransaction: fundTx,
       sourceOutputIndex: fundVout,
-      unlockingScriptTemplate: new P2PKH().unlock(fundKey),
+      unlockingScriptTemplate: p2pkhUnlock(fundKey),
       sequence: 0xffffffff,
     };
 
@@ -571,13 +572,13 @@ export class SimpleMultiBOLT extends BOLT {
 
     // ── Split Settle ──
     const ancestorCommit = this.prevTxs[this.prevTxs.length - 3]; // the commit before the split commit
-    const ancestorProofVout = ancestorCommit.outputs.length >= 5 ? 2 : 1;
+    const ancestorProofVout = this.findProofVout(ancestorCommit, this.signer);
 
     const settleInput = {
       sourceTransaction: commitTx,
       sourceOutputIndex: 0,
       unlockingScriptTemplate: tpl.unlock(
-        this.privKey,
+        this.signer,
         [],                           // toPubKey empty -> pubKeyHash1 empty (recipients from commitments)
         this.prevTxs,
         false, false,
@@ -593,21 +594,21 @@ export class SimpleMultiBOLT extends BOLT {
     const proofInput = {
       sourceTransaction: ancestorCommit,
       sourceOutputIndex: ancestorProofVout,
-      unlockingScriptTemplate: proofTpl.unlock(this.privKey),
+      unlockingScriptTemplate: proofTpl.unlock(this.signer),
       sequence: 0xffffffff,
     };
 
     const settleFundInput = {
       sourceTransaction: commitTx,
       sourceOutputIndex: commitTx.outputs.length - 1,
-      unlockingScriptTemplate: new P2PKH().unlock(this.privKey),
+      unlockingScriptTemplate: p2pkhUnlock(this.signer),
       sequence: 0xffffffff,
     };
 
     // Two settled token outputs — first gets balance - balanceCommit, second gets balanceCommit
     const mainBalance = this.subtractBalances(this.balance, splitBalanceCommit);
     const settleTokenOut0 = tpl.lock(
-      toKeyA.toPublicKey().encode(true) as number[],
+      recipientPubKey(toKeyA) as number[],
       this.prevTxs,
       mainBalance,
       new Array(16).fill(0x00),
@@ -620,7 +621,7 @@ export class SimpleMultiBOLT extends BOLT {
     );
 
     const settleTokenOut1 = tpl.lock(
-      toKeyB.toPublicKey().encode(true) as number[],
+      recipientPubKey(toKeyB) as number[],
       this.prevTxs,
       splitBalanceCommit,
       new Array(16).fill(0x00),
@@ -633,7 +634,7 @@ export class SimpleMultiBOLT extends BOLT {
     );
 
     // Lock change to first split recipient so the token can fund subsequent operations
-    const splitSettleChangePKH = Hash.hash160(toKeyA.toPublicKey().encode(true));
+    const splitSettleChangePKH = Hash.hash160(recipientPubKey(toKeyA));
     const settleChangeOut = { change: true, lockingScript: new P2PKH().lock(splitSettleChangePKH) };
 
     const settleTx = await this.signAndClean(new Transaction(version,
@@ -647,8 +648,8 @@ export class SimpleMultiBOLT extends BOLT {
     this.tx = settleTx;
     this.voutIdx = 0;
     this.prevTxs.push(settleTx);
-    this.privKey = toKeyA;
-    this.pubKey = toKeyA.toPublicKey().encode(true) as number[];
+    this.signer = recipientSigner(toKeyA) ?? this.signer;
+    this.pubKey = recipientPubKey(toKeyA) as number[];
     this.pubKeyHash = Hash.hash160(this.pubKey);
     this.balance = mainBalance;
 
@@ -657,8 +658,8 @@ export class SimpleMultiBOLT extends BOLT {
     tokenB.tx = settleTx;
     tokenB.voutIdx = 1;
     tokenB.prevTxs = [...this.prevTxs]; // share lineage
-    tokenB.privKey = toKeyB;
-    tokenB.pubKey = toKeyB.toPublicKey().encode(true) as number[];
+    tokenB.signer = recipientSigner(toKeyB);
+    tokenB.pubKey = recipientPubKey(toKeyB) as number[];
     tokenB.pubKeyHash = Hash.hash160(tokenB.pubKey);
     tokenB.issuerPubKey = this.issuerPubKey;
     tokenB.genesisOutpoint = this.genesisOutpoint;
@@ -673,13 +674,13 @@ export class SimpleMultiBOLT extends BOLT {
     const input = {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.voutIdx as number,
-      unlockingScriptTemplate: new SimpleMultiTemplate().melt(this.privKey),
+      unlockingScriptTemplate: new SimpleMultiTemplate().melt(this.signer),
       sequence: 0xffffffff,
     };
     const funding = {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.tx?.outputs ? this.tx?.outputs.length - 1 : 0,
-      unlockingScriptTemplate: new P2PKH().unlock(this.privKey),
+      unlockingScriptTemplate: p2pkhUnlock(this.signer),
       sequence: 0xffffffff,
     };
 

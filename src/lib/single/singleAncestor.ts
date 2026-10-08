@@ -27,49 +27,78 @@ export const PIECE_NAMES = [
   "ChangeValue", "ChangeScript", "NLockTime",
 ];
 
+/** AuthBolt's 27 ancestor pieces: PIECE_NAMES plus `Vin1AuthOrMiscData` (the ancestor commit's own owner
+ *  authOrMiscData push, which LEADS its scriptSig) right after `Vin1Outpoint`. */
+export const AUTH_PIECE_NAMES = [
+  "Version",
+  "Vin1Outpoint", "Vin1AuthOrMiscData", ...PIECE_NAMES.slice(2),
+];
+
+/** The unlock-arg layout of one NFT-family contract: its ancestor pieces, and whether the unlock LEADS with
+ *  an `authOrMiscData` arg (AuthBolt: [authOrMiscData, 27 ancestor pieces, 11 current-tx args]). */
+export interface SingleLayout {
+  pieceNames: readonly string[];
+  hasAuth: boolean;
+}
+/** MinSimpleBolt: 37 args = 26 ancestor pieces + 11 current-tx args. */
+export const MIN_SIMPLE_LAYOUT: SingleLayout = { pieceNames: PIECE_NAMES, hasAuth: false };
+/** AuthBolt: 39 args = authOrMiscData + 27 ancestor pieces + 11 current-tx args. */
+export const AUTH_BOLT_LAYOUT: SingleLayout = { pieceNames: AUTH_PIECE_NAMES, hasAuth: true };
+/** Unlock index of the first current-tx arg (`fundOutpoint`): after the optional auth arg and the ancestor pieces. */
+export const currentArgsStart = (l: SingleLayout): number => (l.hasAuth ? 1 : 0) + l.pieceNames.length;
+
 /** Extract one named NFT ancestor piece from an ancestor commit tx (its in[0] must have its
  *  sourceTransaction attached). `leadingValuePushes`: 0 = identity, 1 = discount/balance. */
-export function ancestorPiece(name: string, ancestorTx: Transaction, leadingValuePushes: number): number[] {
+export function ancestorPiece(
+  name: string, ancestorTx: Transaction, leadingValuePushes: number, layout: SingleLayout = MIN_SIMPLE_LAYOUT,
+): number[] {
   const in0 = ancestorTx.inputs[0];
   const in1 = ancestorTx.inputs[1];
-  const u = in0.unlockingScript!;                       // ancestor's bolt-spend unlock (37-arg layout)
-  const spentLock = Script.fromBinary((u.chunks[34]?.data as number[]) ?? []); // its in[0] CTX scriptCode
+  const u = in0.unlockingScript!;                       // ancestor's bolt-spend unlock (37 / 39-arg layout)
+  const cur = currentArgsStart(layout);                 // unlock index of the ancestor's own fundOutpoint
+  const spentLock = Script.fromBinary((u.chunks[cur + 8]?.data as number[]) ?? []); // its in[0] CTX scriptCode
   const sd = (i: number) => scriptChunk(spentLock, leadingValuePushes + i);     // prior token's data fields
   const outLock = ancestorTx.outputs[0].lockingScript;  // ancestor's OUTPUT token (vout0)
   const od = (i: number) => scriptChunk(outLock, leadingValuePushes + i);
+  // Zero-funding: an UNFUNDED ancestor commit has no in[1], a change-less one no out[2]. The contract
+  // derives its vin/vout counts from the SIZES of these pieces, so an absent input/output is passed as
+  // empty (OP_0), never invented.
   const changeOut = ancestorTx.outputs[2];
   switch (name) {
     case "Version": return le32(ancestorTx.version);
     case "Vin1Outpoint": return spentOutpoint(ancestorTx, 0);
-    case "Vin1FundOutpoint": return scriptChunk(u, 26);
-    case "Vin1ChangeOutput": return scriptChunk(u, 27);
-    case "Vin1BeneficiaryPubKeyHash": return scriptChunk(u, 28);
-    case "Vin1Sig": return scriptChunk(u, 29);
-    case "Vin1PubKey": return scriptChunk(u, 30);
-    case "Vin1CTXHeader": return scriptChunk(u, 31);
+    case "Vin1AuthOrMiscData": return scriptChunk(u, 0); // AuthBolt: the commit's own authOrMiscData (its first unlock push)
+    case "Vin1FundOutpoint": return scriptChunk(u, cur);
+    case "Vin1ChangeOutput": return scriptChunk(u, cur + 1);
+    case "Vin1BeneficiaryPubKeyHash": return scriptChunk(u, cur + 2);
+    case "Vin1Sig": return scriptChunk(u, cur + 3);
+    case "Vin1PubKey": return scriptChunk(u, cur + 4);
+    case "Vin1CTXHeader": return scriptChunk(u, cur + 5);
     case "Vin1CTXScriptCodePubKeyHash": return sd(0);
     case "Vin1CTXScriptCodePubKeyHashCommitment": return sd(1);
     case "Vin1CTXScriptCodeTxoType": return sd(2);
     case "Vin1CTXScriptCodeParentOutpoint": return sd(3);
     case "Vin1CTXScriptCodeGrandparentOutpoint": return sd(4);
-    case "Vin1CTXFooter": return scriptChunk(u, 35);
+    case "Vin1CTXFooter": return scriptChunk(u, cur + 9);
     case "Vin1NSequence": return le32((in0.sequence as number) ?? 0xffffffff);
-    case "Vin2Outpoint": return spentOutpoint(ancestorTx, 1);
-    case "Vin2Script": return in1.unlockingScript!.toBinary();
-    case "Vin2NSequence": return le32((in1.sequence as number) ?? 0xffffffff);
+    case "Vin2Outpoint": return in1 ? spentOutpoint(ancestorTx, 1) : [];
+    case "Vin2Script": return in1 ? in1.unlockingScript!.toBinary() : [];
+    case "Vin2NSequence": return in1 ? le32((in1.sequence as number) ?? 0xffffffff) : [];
     case "Vout1PubKeyHash": return od(0);
     case "Vout1PubKeyHashCommitment": return od(1);
     case "Vout1TxoType": return od(2);
     case "Vout1ParentOutpoint": return od(3);
     case "Vout1GrandparentOutpoint": return od(4);
-    case "ChangeValue": return le64(changeOut.satoshis as number);
-    case "ChangeScript": return changeOut.lockingScript.toBinary();
+    case "ChangeValue": return changeOut ? le64(changeOut.satoshis as number) : [];
+    case "ChangeScript": return changeOut ? changeOut.lockingScript.toBinary() : [];
     case "NLockTime": return le32(ancestorTx.lockTime);
     default: return [];
   }
 }
 
-/** All 26 ancestor pieces in unlockArgs order — PIECE_NAMES mapped through ancestorPiece. */
-export function singleAncestorPieces(ancestorTx: Transaction, leadingValuePushes: number): number[][] {
-  return PIECE_NAMES.map((name) => ancestorPiece(name, ancestorTx, leadingValuePushes));
+/** All ancestor pieces in unlockArgs order: the layout's piece names mapped through ancestorPiece. */
+export function singleAncestorPieces(
+  ancestorTx: Transaction, leadingValuePushes: number, layout: SingleLayout = MIN_SIMPLE_LAYOUT,
+): number[][] {
+  return layout.pieceNames.map((name) => ancestorPiece(name, ancestorTx, leadingValuePushes, layout));
 }
