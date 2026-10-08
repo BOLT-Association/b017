@@ -1,7 +1,7 @@
 // SimpleMultiBolt.sx.template.ts
 // Runtime lock/unlock script assembler for the optimised SimpleMultiBolt contract.
-// The two *_SCRIPT_SUFFIX constants are auto-patched from sxFiles/SimpleMultiBolt.sx.json
-// at build time (compileBoltContracts.mjs) - do NOT hand-edit them.
+// The two *_SCRIPT_SUFFIX constants are auto-patched from the pre-compiled production artifact
+// by scripts/build-simple-multi.mjs (build-time only) - do NOT hand-edit them.
 //
 // Layout (see multiBoltLib.ts):
 //   lock  = 11 data args + LOCK_SCRIPT_SUFFIX

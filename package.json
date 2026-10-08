@@ -40,7 +40,7 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p tsconfig.json",
-    "build:contract": "node scripts/build-contract.mjs",
+    "build:contract": "node scripts/build-simple-multi.mjs",
     "build:nft": "node scripts/build-min-simple-bolt.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
