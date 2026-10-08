@@ -34,7 +34,7 @@ import {
   PrivateKey,
   Hash,
 } from "@bsv/sdk";
-import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin } from "../boltLib.js";
+import { splitCtx, buildOutpoint, buildChangeOutput, createSignature, scriptChunksFromBin, type Signer } from "../boltLib.js";
 import { singleAncestorPieces, MIN_SIMPLE_LAYOUT, type SingleLayout } from "./singleAncestor.js";
 
 /** Number of leading ancestor-reconstruction args in the NFT unlock layout. */
@@ -56,7 +56,7 @@ export const emptySingleAncestorChunks = (count: number = SINGLE_ANCESTOR_ARG_CO
 };
 
 export interface SingleUnlockParams {
-  privateKey: PrivateKey;
+  privateKey: PrivateKey | Signer;
   /** The next owner's 20-byte pubKeyHash (commit + settle both commit-to the recipient). */
   beneficiaryPubKeyHash: number[];
   /** UNLOCK_SCRIPT_SUFFIX ASM for the specific contract (patched from its artifact). */
@@ -136,7 +136,7 @@ export function singleSpendUnlock(params: SingleUnlockParams): {
       const { ctxHeader, ctxCodeLen, ctxCodeUnlockScriptCode, ctxCodeLockScriptCode, ctxFooter, ctxCodeLockLen } =
         splitCtx(ctx, 2);
       const ctxForSig = ctxHeader.concat(...[ctxCodeLockLen, ctxCodeLockScriptCode, ctxFooter]);
-      const { sigForScript, pubkeyForScript } = createSignature(privateKey, ctxForSig, SIGNATURE_SCOPE);
+      const { sigForScript, pubkeyForScript } = await createSignature(privateKey, ctxForSig, SIGNATURE_SCOPE);
 
       // Melt: a null CTX (every CTX piece OP_0) takes the lock's melt branch, which checks only the owner's
       // signature and pubKey (plus the issuer guard on a genesis / 2nd-tx token). No ancestor, fund or change args.

@@ -16,6 +16,7 @@
 // settle must be passed together as the package (see README: "Receiving a token off-chain").
 import { ScriptTemplate, LockingScript, Script, PrivateKey, Transaction, UnlockingScript } from "@bsv/sdk";
 import { singleSpendUnlock } from "../../lib/single/singleSpend.js";
+import type { Signer } from "../../lib/boltLib.js";
 
 export default class MinSimpleTemplate implements ScriptTemplate {
   // Static UNLOCK suffix (after the 37 data pushes), patched from the artifact by
@@ -59,7 +60,7 @@ export default class MinSimpleTemplate implements ScriptTemplate {
    * @param prevTxs prior lineage txs (mint, commit, ...); a back-reaching settle (>=4 txs) is B2b-2
    */
   unlock(
-    privateKey: PrivateKey,
+    privateKey: PrivateKey | Signer,
     beneficiaryPubKeyHash: number[],
     prevTxs: Transaction[] = [],
     forceNoChange = false,
@@ -80,7 +81,7 @@ export default class MinSimpleTemplate implements ScriptTemplate {
    * A token that is still a genesis mint (or its first commit) can only be melted by the issuer key.
    */
   melt(
-    privateKey: PrivateKey,
+    privateKey: PrivateKey | Signer,
   ): { sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>; estimateLength: () => Promise<number> } {
     return singleSpendUnlock({
       privateKey, beneficiaryPubKeyHash: [], unlockScriptSuffixASM: this.UNLOCK_SCRIPT_SUFFIX, melt: true,
