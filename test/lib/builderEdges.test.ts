@@ -163,16 +163,16 @@ describe('SimpleMultiBOLT builder: forceNoFund / forceNoChange (out of protocol)
   })
 
   it('ancestorPiece reads an OP_0 lock field, and a field past the end of the scriptCode, as empty', () => {
-    // An unlock with the CTX pieces where the fungible layout expects them (chunk 192 on): a 104-byte header, then
+    // An unlock with the CTX pieces where the fungible layout expects them (chunk 164 on: ARGS2CTX_SMB, 192 before the dead ancestor args were removed): a 104-byte header, then
     // a scriptCode that is the single opcode OP_0, so lock field 0 is OP_0 and every later field is absent.
     const chunks: any[] = []
-    for (let k = 0; k < 192; k++) chunks.push({ op: 0 })
+    for (let k = 0; k < 164; k++) chunks.push({ op: 0 })
     const push = (data: number[]) => new Script().writeBin(data).chunks[0]
-    chunks.push(push(new Array(104).fill(0))) // 192: ctxHeader
-    chunks.push({ op: 0 }, { op: 0 })         // 193, 194
-    chunks.push(push([0x00]))                 // 195: ctxCodeLockScriptCode = OP_0
-    chunks.push({ op: 0 })                    // 196: ctxFooter
-    chunks.push(push([0x01]))                 // 197: ctxCodeLockLen (varint 1)
+    chunks.push(push(new Array(104).fill(0))) // 164: ctxHeader
+    chunks.push({ op: 0 }, { op: 0 })         // 165, 166
+    chunks.push(push([0x00]))                 // 167: ctxCodeLockScriptCode = OP_0
+    chunks.push({ op: 0 })                    // 168: ctxFooter
+    chunks.push(push([0x01]))                 // 169: ctxCodeLockLen (varint 1)
     const source = new Transaction(1, [], [{ satoshis: 1, lockingScript: Script.fromASM('OP_1') }])
     const tx = new Transaction(2, [{ sourceTransaction: source, sourceOutputIndex: 0, unlockingScript: new UnlockingScript(chunks), sequence: 0xffffffff } as any],
       [{ satoshis: 1, lockingScript: Script.fromASM('OP_1') }])

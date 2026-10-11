@@ -7,6 +7,47 @@ All notable changes to **b017** are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- **The genesis family: `FixedBOLT`, `OpenBOLT` and `SerialBOLT`.** Three token types whose lock leads with the
+  token's own asset outpoint (null on the mint, the mint outpoint from the first spend on) and the issuer's
+  `mintData` (0..255 bytes on the mint only, `OP_0` on every later output), so a token names its asset in O(1).
+  - `FixedBOLT` (fungible): one genesis per asset, a fixed supply. Only tokens of one genesis merge; a cross-genesis
+    or cross-issuer merge is refused by the covenant at the merge commit, and the class refuses it before building.
+  - `OpenBOLT` (fungible): one issuer, many mints. Tokens of different mints merge, and the merge commit re-roots the
+    stored outpoint (`lastMergeOrGenesisOutpoint`) to vin0's token outpoint; a cross-issuer merge is refused.
+  - `SerialBOLT` (NFT): each token carries its own mint outpoint as a serial; zero-funding like `MinSimpleBOLT` (a
+    commit or settle may carry no funding input, change is optional).
+  - Classes `FixedBOLT`, `OpenBOLT` (every `SimpleMultiBOLT` operation: mint with `mintData`, transfer, split, merge,
+    melt); templates `FixedMultiTemplate`, `OpenMultiTemplate`, `SerialBoltTemplate`; `genesisFieldFor`,
+    `mintDataFor`, `outpointOf`, `MINT_DATA_MAX_BYTES`. The fungible engine takes a `MultiLayout`
+    (`SIMPLE_MULTI_LAYOUT`, `FIXED_BOLT_LAYOUT`, `OPEN_BOLT_LAYOUT`); `SimpleMultiBOLT` is unchanged.
+  - Scanner: the three types are registered with two recognition specs each (`mint`: null outpoint + any mintData;
+    `postMint`: set outpoint + empty mintData), so a non-empty mintData after the mint is not a token.
+    `recognizeToken` returns the type and its phase (`recognizeType` is unchanged). `verifyEvents` pins the
+    **asset**, not only the issuer: every token output's outpoint must follow from its parent token (copied, the
+    mint outpoint at the first spend, or `OpenBOLT`'s re-root), and a `FixedBOLT` merge must not mix genesis
+    outpoints.
+  - Fingerprints: `FixedBOLT` `b07ea12b490c759d172016f71d0026c4894ff7d4eadfae75bd845ce72aa5fd81`, `OpenBOLT`
+    `47a41a00e199904ba84e2e0e4890d3d041782fa3ca283d26014218e4286b72b6`, `SerialBOLT`
+    `aee7eee8b1254aa765d3f896610d052a2b2da997665e3d9f3d37293ef86d6921`.
+  - Tests: every ancestor piece and leading push checked byte for byte against chains built by the reference
+    simulator (`genesisLayouts`, 27), Spend-engine lifecycles, mintData and merge rules (`GenesisMultiBOLT`, 10), the whole
+    zero-funding suite on `SerialBOLT` plus mintData and melt (`serialBoltZF`, 48), templates (9), scanner (21).
+
+### Changed
+- **BREAKING for existing tokens: `SimpleMultiBOLT` drops dead covenant code.** The `ancestorHas2TokenOutputs`
+  branch is removed: it rebuilt a commit carrying a second token, and no such commit can exist (a commit with a
+  second token output is refused at the commit, by the simulator and by both a Bitcoin SV and a teranode regtest).
+  With it go its 22 `Vout2*` ancestor args, plus the 6 issuer-key ancestor args nothing has read since the
+  issuer-counterfeit fix spliced the token's own `issuerPubKey`. Unlock args 198 -> 170 (75 ancestor pieces per
+  ancestor, was 89; `ARGS2CTX_SMB` 192 -> 164, `SKIP_SMB` 178 -> 150); the locking script is 403 bytes smaller
+  (static suffix 5103 -> 4700) in every token output, and every settle's unlocking script is smaller too. Every
+  covenant decision is unchanged: each executed pick reads the same stack item as before, on every lifecycle
+  fixture. The static bytecode changed, so the fingerprint changed:
+  `4a7613d176b46f03f1b06df86d7b96a667c31a277e2b4dbc5d5832d1c225fe34` (was
+  `368c45fdf92164e4e0869c9062be84621ea8ef040e8591399bf6ff3b8c819b11`). Tokens minted with the previous bytecode
+  keep it (the covenant travels in the token script) and are no longer recognised by `recognizeType`; reissue them.
+
+### Added
 - **The anchor, and `verifyAndBroadcast`.** The anchor is the token tx a batch stands on: the settle before its
   first commit (settle N-1), or the mint when the batch starts at genesis. What travels p2p is `[mint, c1, s1]` or
   `[sN-1, cN, sN]`. `verifyEvents` now validates the anchor first, like an event tx (golden fingerprint, issuer,

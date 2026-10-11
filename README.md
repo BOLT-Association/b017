@@ -6,12 +6,14 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 > **Status: `0.0.0-b2` (beta).** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
-> (625/625 unit tests, **99% statement / 100% function / 98% branch coverage**) but may still change before `0.1.0`. See
+> (764/764 unit tests, **99% statement / 100% function / 98% branch coverage**) but may still change before `0.1.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
 Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
 **SimpleMultiBOLT** (16-byte balance (x2 Bitcoin's base layer limit); mint / transfer / split / merge / melt), a minimal
-identity **NFT** (`MinSimpleBOLT`, zero-funding), its credential variant `AuthBOLT` (an arbitrary data field `authOrMiscData` of up to 75 bytes), and an off-chain **scanner** that recognises and verifies
+identity **NFT** (`MinSimpleBOLT`, zero-funding), its credential variant `AuthBOLT` (an arbitrary data field `authOrMiscData` of up to 75 bytes),
+the **genesis family** that stores each token's own asset outpoint (`FixedBOLT`: one genesis per asset; `OpenBOLT`: one
+issuer, many mints; `SerialBOLT`: an NFT serial), and an off-chain **scanner** that recognises and verifies
 **transactional events**. The only runtime dependency is a peer `@bsv/sdk`.
 
 Every protocol action is a **transactional event**: a transfer / split / merge is a **commit → settle
@@ -37,7 +39,7 @@ independent genesis tokens — reserve/cap trust is an issuer matter) or **netwo
 ```
 npm install
 npm run build          # clean + tsc -> dist/ (JS + .d.ts)
-npm test               # vitest (625 tests)
+npm test               # vitest (764 tests)
 npm run test:coverage  # vitest + v8 coverage -> coverage/ (text + HTML report)
 ```
 
@@ -77,12 +79,15 @@ library never touches the network. The signed `Transaction` is available as `tok
 ```ts
 import {
   recognizeType,   // (lockingScript, expected?) -> TokenType | null
+  recognizeToken,  // (lockingScript, expected?) -> { type, phase? } | null
   verifyEvent,     // validate ONE event (a commit→settle pair, or a melt) - same verdict as verifyEvents
   verifyEvents,    // validate a BATCH of events end to end (offline)
   verifyAndBroadcast, // verifyEvents + your broadcast of the batch's anchor (settle N-1 / the mint)
 } from "b017";
 
 const type = recognizeType(tx.outputs[0].lockingScript); // "SimpleMultiBOLT" | "MinSimpleBOLT" | ... | null
+// genesis family: also the phase - "mint" (null asset outpoint, any mintData) or "postMint" (empty mintData)
+const { type: t, phase } = recognizeToken(tx.outputs[0].lockingScript) ?? {};
 
 // Inspect a batch of transactional events for authenticity. Recognises the type, pins the issuer
 // across the whole batch, fingerprints every interface, then pairs the events: every commit must
@@ -174,15 +179,19 @@ sub-libraries).
 | Path | Role |
 | --- | --- |
 | `src/tokens/MultiBOLT.ts` | `SimpleMultiBOLT` — the fungible token class (mint/transfer/split/merge/melt). |
+| `src/tokens/GenesisMultiBOLT.ts` | `FixedBOLT` (one genesis per asset) and `OpenBOLT` (many mints, re-rooted merges): the fungible genesis family, every `SimpleMultiBOLT` operation plus `mintData` and the merge rules. |
 | `src/tokens/BOLT.ts` | `BOLT` — the abstract token base class. |
 | `src/tokens/templates/SimpleMulti.sx.template.ts` | Runtime lock/unlock/melt assembler for the fungible contract (compiled ASM suffix embedded). |
 | `src/tokens/templates/MinSimple.sx.template.ts` | Single-token (NFT) lock / unlock / melt template: `MinSimpleBOLT` (identity; a commit or settle may carry no funding input and change is optional, so p2p / SPV hops never need to be mined). |
 | `src/tokens/templates/AuthBolt.sx.template.ts` | `AuthBOLT`: carries an arbitrary data field `authOrMiscData` (<= 75 B, a direct push) created in a commit and authenticated by the next settle. Same lock layout as `MinSimpleBOLT`; told apart by its suffix fingerprint. Lock / unlock / melt. |
+| `src/tokens/templates/FixedMulti.sx.template.ts`, `OpenMulti.sx.template.ts` | The genesis-family fungible templates: SimpleMulti's layout behind two leading pushes (the asset outpoint, `mintData`). |
+| `src/tokens/templates/SerialBolt.sx.template.ts` | `SerialBOLT`: the NFT carrying its own mint outpoint and `mintData`; zero-funding. Lock / unlock / melt. |
+| `src/lib/genesis.ts` | The two leading pushes of the genesis family (`genesisFieldFor`, `mintDataFor`). |
 | `src/tokens/templates/pay2Proof.ts` | The `pay2Proof` UTXO template (the b017 marker proof output). |
 | `src/lib/boltLib.ts` | Layout-agnostic primitives (`verifyTx`, `buildOutpoint`, `splitCtx`, …) shared by both streams. |
 | `src/lib/single/` | Single-token (NFT) engine: `singleSpend` (unlock assembler) + `singleAncestor` (back-reach reconstruction). |
-| `src/lib/multi/multiBoltLib.ts` | Fungible-token engine: ancestor reconstruction for `SimpleMultiBOLT`. |
-| `src/lib/scanner/fingerprints.ts` | Per-type recognition (`recognizeType`, golden `recognizeP2P`) + the type `REGISTRY`. |
+| `src/lib/multi/multiBoltLib.ts` | Fungible-token engine: ancestor reconstruction per `MultiLayout` (`SimpleMultiBOLT`, `FixedBOLT`, `OpenBOLT`). |
+| `src/lib/scanner/fingerprints.ts` | Per-type recognition (`recognizeType`, `recognizeToken` with the genesis-family phase, golden `recognizeP2P`) + the type `REGISTRY`. |
 | `src/lib/scanner/verifyEvents.ts` | Off-chain event validator: batch verifier, per-event checker, and the anchor broadcast wrapper (`verifyEvents`, `verifyEvent`, `verifyAndBroadcast`). |
 | `src/lib/scanner/beef.ts` | The off-chain data package: Atomic BEEF over BEEF V2 (`toAtomicBeef`, `fromBeef`, `isBeef`). |
 
@@ -198,7 +207,7 @@ by concern (`test/tokens`, `test/templates`, `test/lib`, `test/scanner`), with s
 fixtures in `test/fixtures` and helpers in `test/helpers`.
 
 ```
-npm test               # 625 tests across 34 files
+npm test               # 764 tests across 40 files
 npm run test:coverage  # the same suite + a v8 coverage report (text to stdout, HTML in coverage/)
 ```
 
@@ -206,10 +215,10 @@ Latest run — **every source module is covered**, all above 98% statements:
 
 | Metric | Coverage |
 | --- | --- |
-| Statements | **99.7%** (2060/2066) |
-| Functions | **100.0%** (125/125) |
+| Statements | **99.7%** (2323/2329) |
+| Functions | **100.0%** (168/168) |
 | Lines | **99.7%** |
-| Branches | **98.3%** (1028/1045) |
+| Branches | **98.2%** (1135/1155) |
 
 Fail-safe guards that cannot fire (e.g. a `0xff` >4 GB script-length prefix, or a type/issuer check an
 upstream fingerprint already guarantees) are annotated `v8 ignore` with the reason inline. Most of the

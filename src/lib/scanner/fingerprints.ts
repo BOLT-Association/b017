@@ -3,6 +3,12 @@
 // A type's fingerprint is { pushLengths (the data-push byte layout) , suffixHash = sha256(static code) }.
 // issuerPubKey is always the LAST dynamic push (33 bytes); it identifies the issuer, not the type.
 //
+// The genesis family (FixedBOLT, OpenBOLT, SerialBOLT) leads with two more pushes: a 36-byte outpoint field and the
+// issuer's mintData, which is variable on the MINT and empty (OP_0) on every later output. So each has TWO specs:
+//   mint      field 0 = 36 zero bytes (null), mintData 0..255 bytes;
+//   postMint  field 0 = 36 bytes, not all zero,  mintData exactly 0 bytes.
+// Every other push is exact-length in both. A non-empty mintData after the mint is therefore unrecognised.
+//
 // The same golden-hash idea also fingerprints the p2Proof output (the b017 marker proof carried by
 // commit txs and consumed by settle txs): its only dynamic field is the 20-byte beneficiary pkh, so
 // recognizeP2P hashes the static skeleton (incl. the b017 marker bytes) and checks the pkh length.
@@ -10,18 +16,30 @@ import { Hash, Script, Utils } from "@bsv/sdk";
 import MinSimpleTemplate from "../../tokens/templates/MinSimple.sx.template.js";
 import AuthBoltTemplate from "../../tokens/templates/AuthBolt.sx.template.js";
 import SimpleMultiTemplate from "../../tokens/templates/SimpleMulti.sx.template.js";
+import FixedMultiTemplate from "../../tokens/templates/FixedMulti.sx.template.js";
+import OpenMultiTemplate from "../../tokens/templates/OpenMulti.sx.template.js";
+import SerialBoltTemplate from "../../tokens/templates/SerialBolt.sx.template.js";
 import Pay2ProofTemplate from "../../tokens/templates/pay2Proof.js";
 
 export type TokenType =
   | "MinSimpleBOLT"
   | "AuthBOLT"
-  | "SimpleMultiBOLT";
+  | "SimpleMultiBOLT"
+  | "FixedBOLT"
+  | "OpenBOLT"
+  | "SerialBOLT";
+
+/** Genesis-family recognition phase: the mint (null field, any mintData) or any later output. */
+export type TokenPhase = "mint" | "postMint";
 
 export interface TypeSpec {
   type: TokenType;
   dataPushCount: number;
+  /** Exact push lengths (for the genesis family: the postMint spec; the mint spec relaxes pushes 0-1). */
   pushLengths: number[];
   suffixHashHex: string;
+  /** Genesis family: leads with the 36-byte genesis / LMG field and the mintData push. */
+  genesis: boolean;
 }
 
 // Leading dynamic-push byte lengths per type (issuerPubKey is always the last, 33 bytes).
@@ -29,11 +47,20 @@ const LAYOUTS: Record<TokenType, readonly number[]> = Object.freeze({
   MinSimpleBOLT: [20, 20, 1, 36, 36, 33],
   AuthBOLT: [20, 20, 1, 36, 36, 33], // same lock layout as MinSimpleBOLT: told apart by the suffix hash alone
   SimpleMultiBOLT: [16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
+  FixedBOLT: [36, 0, 16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
+  OpenBOLT: [36, 0, 16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
+  SerialBOLT: [36, 0, 20, 20, 1, 36, 36, 33],
 });
+const GENESIS: ReadonlySet<TokenType> = new Set<TokenType>(["FixedBOLT", "OpenBOLT", "SerialBOLT"]);
+/** mintData is pushed with at most PUSHDATA1. */
+const MINT_DATA_MAX = 255;
 const SUFFIX: Record<TokenType, Script> = {
   MinSimpleBOLT: new MinSimpleTemplate().staticSuffix(),
   AuthBOLT: new AuthBoltTemplate().staticSuffix(),
   SimpleMultiBOLT: new SimpleMultiTemplate().staticSuffix(),
+  FixedBOLT: new FixedMultiTemplate().staticSuffix(),
+  OpenBOLT: new OpenMultiTemplate().staticSuffix(),
+  SerialBOLT: new SerialBoltTemplate().staticSuffix(),
 };
 
 export const sha256Hex = (bin: number[]): string => Utils.toHex(Hash.sha256(bin));
@@ -47,29 +74,48 @@ export const REGISTRY: Record<TokenType, TypeSpec> = Object.freeze(
         dataPushCount: LAYOUTS[type].length,
         pushLengths: Object.freeze([...LAYOUTS[type]]),
         suffixHashHex: sha256Hex(SUFFIX[type].toBinary()),
+        genesis: GENESIS.has(type),
       }),
     ]),
   ),
 ) as Record<TokenType, TypeSpec>;
 
+/** The leading pushes match a spec: exact lengths, except the genesis family's mint / postMint pair (see top). */
+function pushesMatch(lock: Script, spec: TypeSpec): TokenPhase | "exact" | null {
+  const n = spec.dataPushCount;
+  const lens = lock.chunks.slice(0, n).map((c) => c.data?.length ?? 0);
+  if (!spec.genesis) return lens.every((l, i) => l === spec.pushLengths[i]) ? "exact" : null;
+  if (!lens.every((l, i) => i < 2 || l === spec.pushLengths[i]) || lens[0] !== 36) return null;
+  const nullField = (lock.chunks[0].data as number[]).every((b) => b === 0);
+  if (nullField) return lens[1] <= MINT_DATA_MAX ? "mint" : null;
+  return lens[1] === 0 ? "postMint" : null;
+}
+
 /**
- * Recognise a locking script as a genuine BOLT token of a known type (or null).
+ * Recognise a locking script as a genuine BOLT token of a known type, with its genesis-family phase (or null).
  * Requires BOTH the leading-push layout AND the static-code hash to match a registered type —
  * so a tampered contract body or a non-token script is rejected.
  */
-export function recognizeType(lock: Script | null | undefined, expected?: TokenType): TokenType | null {
+export function recognizeToken(
+  lock: Script | null | undefined, expected?: TokenType,
+): { type: TokenType; phase?: TokenPhase } | null {
   if (!lock || !Array.isArray(lock.chunks)) return null;
   for (const spec of Object.values(REGISTRY)) {
     if (expected && spec.type !== expected) continue;
     const n = spec.dataPushCount;
     if (lock.chunks.length <= n) continue;
-    const lens = lock.chunks.slice(0, n).map((c) => c.data?.length ?? 0);
-    if (!lens.every((l, i) => l === spec.pushLengths[i])) continue;
+    const m = pushesMatch(lock, spec);
+    if (!m) continue;
     const suffix = new Script(lock.chunks.slice(n));
     if (sha256Hex(suffix.toBinary()) !== spec.suffixHashHex) continue;
-    return spec.type;
+    return m === "exact" ? { type: spec.type } : { type: spec.type, phase: m };
   }
   return null;
+}
+
+/** Recognise a locking script as a genuine BOLT token of a known type (or null). See recognizeToken. */
+export function recognizeType(lock: Script | null | undefined, expected?: TokenType): TokenType | null {
+  return recognizeToken(lock, expected)?.type ?? null;
 }
 
 /** The issuerPubKey is always the last dynamic data push of a recognised token. */

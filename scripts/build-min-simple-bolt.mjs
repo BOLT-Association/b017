@@ -4,7 +4,7 @@
 //
 //   node scripts/build-min-simple-bolt.mjs      (npm run build:nft)
 //
-// MinSimpleBolt (zero-funding, MSBoltZF) and AuthBolt (MinSimple + owner-supplied/transaction negotiated/challenge based authOrMiscData) are both built here.
+// MinSimpleBolt (zero-funding, MSBoltZF), SerialBolt (its genesis-family NFT) and AuthBolt (MinSimple + owner-supplied/transaction negotiated/challenge based authOrMiscData) are both built here.
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -17,6 +17,7 @@ const SX = resolve(PKG, '../sx')
 const TARGETS = [
   { artifact: 'MinSimpleBolt', template: 'MinSimple.sx.template.ts', golden: 'MinSimpleBolt.lockSuffix.hex' },
   { artifact: 'AuthBolt', template: 'AuthBolt.sx.template.ts', golden: 'AuthBolt.lockSuffix.hex' },
+  { artifact: 'SerialBolt', template: 'SerialBolt.sx.template.ts', golden: 'SerialBolt.lockSuffix.hex' },
 ]
 
 for (const t of TARGETS) {

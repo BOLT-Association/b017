@@ -3,6 +3,14 @@
 export { SimpleMultiBOLT } from "./tokens/MultiBOLT.js";
 export type { VerifierType } from "./tokens/MultiBOLT.js";
 export { default as SimpleMultiTemplate } from "./tokens/templates/SimpleMulti.sx.template.js";
+// The genesis family: FixedBOLT (one genesis per asset), OpenBOLT (many mints, re-rooted merges), SerialBOLT (NFT serial).
+export { FixedBOLT, OpenBOLT } from "./tokens/GenesisMultiBOLT.js";
+export { default as FixedMultiTemplate } from "./tokens/templates/FixedMulti.sx.template.js";
+export { default as OpenMultiTemplate } from "./tokens/templates/OpenMulti.sx.template.js";
+export { default as SerialBoltTemplate } from "./tokens/templates/SerialBolt.sx.template.js";
+export { genesisFieldFor, mintDataFor, outpointOf, MINT_DATA_MAX_BYTES } from "./lib/genesis.js";
+export { SIMPLE_MULTI_LAYOUT, FIXED_BOLT_LAYOUT, OPEN_BOLT_LAYOUT } from "./lib/multi/multiBoltLib.js";
+export type { MultiLayout } from "./lib/multi/multiBoltLib.js";
 export { BOLT } from "./tokens/BOLT.js";
 export { verifyTx, buildOutpoint, p2pkhUnlock, toSigner } from "./lib/boltLib.js";
 export type { Signer, Recipient } from "./lib/boltLib.js";
@@ -13,8 +21,8 @@ export { default as AuthBoltTemplate, AUTH_DATA_MAX_BYTES } from "./tokens/templ
 export { default as Pay2ProofTemplate } from "./tokens/templates/pay2Proof.js";
 
 // Token recognition — the scanner's fingerprint primitive.
-export { REGISTRY, recognizeType, recognizeP2P, issuerPubKeyOf, sha256Hex } from "./lib/scanner/fingerprints.js";
-export type { TokenType, TypeSpec } from "./lib/scanner/fingerprints.js";
+export { REGISTRY, recognizeType, recognizeToken, recognizeP2P, issuerPubKeyOf, sha256Hex } from "./lib/scanner/fingerprints.js";
+export type { TokenType, TypeSpec, TokenPhase } from "./lib/scanner/fingerprints.js";
 
 // The shared off-chain BOLT event validator (the scanner): a batch verifier + the per-event checker.
 // verifyAndBroadcast = verifyEvents + the caller's broadcast of the batch's ANCHOR (settle N-1 / the mint).

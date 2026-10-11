@@ -5,6 +5,22 @@ shape of the work is visible. (The in-flight pass — role folders, primitive de
 builder convergence, the `verifyEvent`/`verifyEvents` transactional-event model, and signing
 injection — is tracked separately and is not repeated here.)
 
+## The genesis family (shipped, see the CHANGELOG)
+Three contracts that store the token's genesis outpoint in every output, so a token names its
+own asset in O(1) instead of by walking its chain. They are now in this package (templates,
+classes, scanner recognition and asset pinning); what remains is the EventListener suffix:
+- **FixedBOLT** (fungible, from SimpleMultiBOLT): one mint, a fixed supply. Tokens merge only
+  with tokens of the same mint; the genesis outpoint is the asset id.
+- **OpenBOLT** (fungible, from FixedBOLT): one issuer, many mints. Tokens from different mints of
+  the same issuer merge, and a merge re-roots the stored outpoint (`lastMergeOrGenesisOutpoint`);
+  merges across issuers are refused.
+- **SerialBOLT** (NFT, from MinSimpleBOLT): each token carries its own mint outpoint as a serial,
+  so two NFTs from one issuer, even from one mint transaction, are told apart.
+
+All three lead their lock with the outpoint plus a variable-length `mintData` that only the mint
+carries (every later output carries `OP_0`). Remaining: an EventListener suffix for the genesis
+family, and token classes for the NFT family (`SerialBOLT` is template-only, like `MinSimpleBOLT`).
+
 ## Expand the token library
 - Add token types via a per-type **descriptor** (push layout + compiled artifact + field
   map) instead of bespoke per-type files — adding a type becomes data, not code.
