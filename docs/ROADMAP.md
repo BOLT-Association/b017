@@ -104,8 +104,8 @@ item, so the claim can be engaged with on its own terms rather than as a slogan.
 - Single source of truth for the two parallel index maps (`LAYOUTS` in `scan/fingerprints.ts`
   + `FIELDS` in `scan/verifyEvents.ts`) → derive both from one per-type descriptor.
 - Real fee/size estimation (today `nftSpend.estimateLength` hardcodes `2000`).
-- Resolve the class-vs-file name mismatches (`SimpleMultiBOLT` lives in `tokens/MultiBOLT.ts`),
-  then cut `0.1.0`. The release scaffolding is in place (README + badges, CHANGELOG, and CI
+- Resolve the class-vs-file name mismatches (`SimpleMultiBOLT` lives in `tokens/MultiBOLT.ts`)
+  before the first stable `1.0.0` (`0.1.0` is cut). The release scaffolding is in place (README + badges, CHANGELOG, and CI
   under `.github/workflows/ci.yml` with coverage upload and version-gated `npm publish` on push
   to `main`); still wanted is the hermetic browser walk in CI and resolving the naming before
   the first stable tag.

@@ -6,6 +6,8 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-11
+
 ### Changed
 - **Coverage is 100% on every metric and the thresholds enforce it** (`vitest.config.ts`: statements, functions,
   lines and branches 100; was 99 / 100 / 99 / 98), so a new uncovered branch fails the coverage run. Three
@@ -303,7 +305,8 @@ before `0.1.0`.
 - Build now cleans `dist/` before `tsc` so the published tarball contains no stale artifacts.
 - Added `repository`, `bugs`, `homepage`, and `keywords` metadata.
 
-[Unreleased]: https://github.com/BOLT-Association/b017/compare/v0.0.0-b2...HEAD
+[Unreleased]: https://github.com/BOLT-Association/b017/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/BOLT-Association/b017/compare/v0.0.0-b2...v0.1.0
 [0.0.0-b2]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b2
 [0.0.0-b1]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b1
 [0.0.0-b]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b
