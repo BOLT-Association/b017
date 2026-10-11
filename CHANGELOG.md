@@ -6,6 +6,23 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+- **Coverage is 100% on every metric and the thresholds enforce it** (`vitest.config.ts`: statements, functions,
+  lines and branches 100; was 99 / 100 / 99 / 98), so a new uncovered branch fails the coverage run. Three
+  reachable branches gained tests (`coverageEdges`: `p2pkhUnlock` signing from an attached source without a txid,
+  and refusing a txid with no source; a merge paid to a public-key recipient keeps the builder's signer). 14
+  defensive guards were marked unreachable with their reason (21 `v8 ignore` markers in all; none covers a covenant
+  path or a scanner verdict).
+- **`verifyTx` is documented as throw-on-failure, and the dead checks behind it are gone.** Every failure already
+  threw (a failing script: `Spend.validate()` throws rather than returning false), so `valid` was always `true` when
+  it returned. Its type now says so (`valid: true`; the `{ valid, scriptExecutions }` shape is kept, so callers are
+  unaffected), and the `if (!valid)` checks in `verifyTx` and the `SimpleMultiBOLT` builder are removed. A builder
+  failure now reads `<TX TYPE> not valid: <the script error>` (e.g. `MERGE COMMIT TX not valid: ... OP_EQUALVERIFY ...`);
+  the separate `Mint tx not valid` / `... tx not valid [bsv]` messages, which could never fire, are gone.
+  `npm run coverage:check` now compares the README's percentages and test counts, not the `(covered/total)`
+  fractions: V8 counts a few closure branches on some runs only, so the branch total moves by one or two between
+  identical runs while coverage stays 100%.
+
 ### Added
 - **The genesis family: `FixedBOLT`, `OpenBOLT` and `SerialBOLT`.** Three token types whose lock leads with the
   token's own asset outpoint (null on the mint, the mint outpoint from the first spend on) and the issuer's

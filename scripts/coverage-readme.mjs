@@ -69,6 +69,14 @@ if (after === before) {
   console.log(`README.md figures are current (${tests} tests, ${files} files, branches ${one(total.branches)}%)`)
   process.exit(0)
 }
+// V8's block coverage counts a few closure branches on some runs and not others, so the branch TOTAL can move by
+// one or two between identical runs (the coverage does not: every run is 100%). The check therefore compares the
+// percentages and test counts, not the (covered/total) fractions; a rewrite still records the latest fractions.
+const noFractions = (t) => t.replace(/\*\* \(\d+\/\d+\) \|/g, '** |')
+if (CHECK && noFractions(after) === noFractions(before)) {
+  console.log(`README.md figures are current (${tests} tests, ${files} files, branches ${one(total.branches)}%; fractions not compared)`)
+  process.exit(0)
+}
 if (CHECK) {
   console.error('README.md coverage figures are out of date. Run `npm run coverage:readme` and commit the result.')
   process.exit(1)

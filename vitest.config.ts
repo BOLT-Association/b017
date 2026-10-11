@@ -13,9 +13,9 @@ export default defineConfig({
       exclude: ['src/index.ts'], // pure re-export barrel
       reporter: ['text', 'text-summary', 'html', 'json', 'json-summary', 'lcov'],
       reportsDirectory: 'coverage',
-      // A floor, so coverage cannot fall silently. The target is 100 across the board: raise
-      // `branches` as each remaining gap is covered.
-      thresholds: { statements: 99, functions: 100, lines: 99, branches: 98 },
+      // 100 across the board: a new uncovered branch fails the run. It gets a test, or (a defensive TypeScript
+      // guard only) a `v8 ignore` with the reason it cannot fire.
+      thresholds: { statements: 100, functions: 100, lines: 100, branches: 100 },
     },
   },
 })
