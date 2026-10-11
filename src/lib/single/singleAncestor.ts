@@ -34,6 +34,16 @@ export const AUTH_PIECE_NAMES = [
   "Vin1Outpoint", "Vin1AuthOrMiscData", ...PIECE_NAMES.slice(2),
 ];
 
+/** SerialBolt's 27 ancestor pieces (genesis layout v3, built on MSBoltZF): PIECE_NAMES plus
+ *  `Vin1CTXScriptCodeMintData` (the ancestor commit's spent token's mintData: the mint's bytes when the
+ *  ancestor is the genesis spend, else empty) right after `Vin1CTXHeader`. Its lock leads with two pushes
+ *  (genesisOutpoint, mintData), so it is read with leadingValuePushes = 2. */
+export const SERIAL_PIECE_NAMES = [
+  ...PIECE_NAMES.slice(0, PIECE_NAMES.indexOf("Vin1CTXHeader") + 1),
+  "Vin1CTXScriptCodeMintData",
+  ...PIECE_NAMES.slice(PIECE_NAMES.indexOf("Vin1CTXHeader") + 1),
+];
+
 /** The unlock-arg layout of one NFT-family contract: its ancestor pieces, and whether the unlock LEADS with
  *  an `authOrMiscData` arg (AuthBolt: [authOrMiscData, 27 ancestor pieces, 11 current-tx args]). */
 export interface SingleLayout {
@@ -44,6 +54,10 @@ export interface SingleLayout {
 export const MIN_SIMPLE_LAYOUT: SingleLayout = { pieceNames: PIECE_NAMES, hasAuth: false };
 /** AuthBolt: 39 args = authOrMiscData + 27 ancestor pieces + 11 current-tx args. */
 export const AUTH_BOLT_LAYOUT: SingleLayout = { pieceNames: AUTH_PIECE_NAMES, hasAuth: true };
+/** SerialBolt: 38 args = 27 ancestor pieces + 11 current-tx args (zero-funding, as MinSimpleBolt). */
+export const SERIAL_BOLT_LAYOUT: SingleLayout = { pieceNames: SERIAL_PIECE_NAMES, hasAuth: false };
+/** SerialBolt's leading lock pushes (genesisOutpoint, mintData) = its leadingValuePushes. */
+export const SERIAL_BOLT_LEADING = 2;
 /** Unlock index of the first current-tx arg (`fundOutpoint`): after the optional auth arg and the ancestor pieces. */
 export const currentArgsStart = (l: SingleLayout): number => (l.hasAuth ? 1 : 0) + l.pieceNames.length;
 
@@ -74,6 +88,7 @@ export function ancestorPiece(
     case "Vin1Sig": return scriptChunk(u, cur + 3);
     case "Vin1PubKey": return scriptChunk(u, cur + 4);
     case "Vin1CTXHeader": return scriptChunk(u, cur + 5);
+    case "Vin1CTXScriptCodeMintData": return scriptChunk(spentLock, 1); // SerialBolt: lock chunk 1 (after genesisOutpoint)
     case "Vin1CTXScriptCodePubKeyHash": return sd(0);
     case "Vin1CTXScriptCodePubKeyHashCommitment": return sd(1);
     case "Vin1CTXScriptCodeTxoType": return sd(2);

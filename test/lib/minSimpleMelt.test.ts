@@ -11,6 +11,7 @@ import {
 } from '../helpers/minSimpleChain.js'
 import { minSimple } from '../helpers/minSimpleFamily.js'
 import { authBolt } from '../helpers/authBoltFamily.js'
+import { serialBolt } from '../helpers/serialBoltFamily.js'
 import { verifyEvents, verifyAndBroadcast } from '../../src/lib/scanner/verifyEvents.js'
 import { toAtomicBeef } from '../../src/lib/scanner/beef.js'
 import { buildOutpoint } from '../../src/lib/boltLib.js'
@@ -33,7 +34,7 @@ async function forgedToSettle1(fam: Family): Promise<Transaction[]> {
   return txs
 }
 
-for (const [fam, type] of [[minSimple, 'MinSimpleBOLT'], [authBolt, 'AuthBOLT']] as const) {
+for (const [fam, type] of [[minSimple, 'MinSimpleBOLT'], [authBolt, 'AuthBOLT'], [serialBolt, 'SerialBOLT']] as const) {
   describe(`${type}: the melt branch on the Spend engine`, () => {
     it('the owner melts a settled token, UNFUNDED (one input, one p2pkh output)', async () => {
       const txs = await buildChain(fam, {}, 3) // settle1: owner = user

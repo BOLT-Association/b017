@@ -55,7 +55,8 @@
 // Strict = golden byte fingerprint (recognizeType: leading-push layout + sha256(static code)).
 // Loose  = shape only (a P2PKH change output / external funding input may carry any pkh + value).
 import { OP, Spend, Transaction, Script, Utils } from "@bsv/sdk";
-import { recognizeType, recognizeP2P, issuerPubKeyOf, type TokenType } from "./fingerprints.js";
+import { recognizeType, recognizeP2P, issuerPubKeyOf, REGISTRY, type TokenType } from "./fingerprints.js";
+import { genesisFieldFor } from "../genesis.js";
 import { fromBeef, isBeef } from "./beef.js";
 
 // Field push-indices per type (parent/grandparent/issuer are the last 3 pushes; txoType varies).
@@ -64,6 +65,10 @@ const FIELDS: Record<TokenType, Record<FieldName, number>> = {
   MinSimpleBOLT: { pubKeyHash: 0, commitment: 1, txoType: 2, parent: 3, grandparent: 4 },
   AuthBOLT: { pubKeyHash: 0, commitment: 1, txoType: 2, parent: 3, grandparent: 4 },
   SimpleMultiBOLT: { pubKeyHash: 2, commitment: 3, txoType: 6, parent: 8, grandparent: 9 },
+  // the genesis family: two leading pushes (genesis / LMG field, mintData) before the base fields
+  FixedBOLT: { pubKeyHash: 4, commitment: 5, txoType: 8, parent: 10, grandparent: 11 },
+  OpenBOLT: { pubKeyHash: 4, commitment: 5, txoType: 8, parent: 10, grandparent: 11 },
+  SerialBOLT: { pubKeyHash: 2, commitment: 3, txoType: 4, parent: 5, grandparent: 6 },
 };
 const field = (lock: Script, type: TokenType, f: FieldName): number[] =>
   (lock.chunks[FIELDS[type][f]]?.data as number[]) ?? [];
@@ -244,6 +249,39 @@ function categorise(tx: Transaction, type: TokenType, byId: ById): { shape: Shap
     return { shape: { kind: "melt", tokenIn: 1, tokenOut: 0, proofOut: 0 }, tokenOutIdx: -1 };
   return null;
 }
+
+/**
+ * Genesis family: the asset field (lock push 0) of every token output must follow from its in-batch parent token
+ * (genesisFieldFor: null on the mint, the mint outpoint at the genesis spend, OpenBOLT's re-root at a merge commit,
+ * else copied); FixedBOLT also requires every token input of a tx to carry the output's genesis (one asset per
+ * merge). An output whose parent token is not in the batch is pinned by its own spends later in the batch.
+ */
+function genesisLineageFailure(txs: Transaction[], type: TokenType, byId: ById): string | null {
+  if (!REGISTRY[type].genesis) return null;
+  const parentIdx = FIELDS[type].parent;
+  const head = (lock: Script) => Utils.toHex(lock.chunks[0].data as number[]); // a recognised genesis token's 36-byte field
+  for (const tx of txs) {
+    const tokenIns = tx.inputs
+      .map((inp) => ({ src: sourceOf(inp, byId), vout: inp.sourceOutputIndex }))
+      .filter((x) => x.src && recognizeType(x.src.outputs[x.vout]?.lockingScript, type));
+    if (!tokenIns.length) continue; // a mint (its null field is enforced by the mint spec)
+    const vin0 = tokenIns[0];
+    tx.outputs.forEach((o, v) => {
+      if (!recognizeType(o.lockingScript, type)) return;
+      const reroot = type === "OpenBOLT" && fieldHex(o.lockingScript, type, "txoType") === "25";
+      const want = Utils.toHex(genesisFieldFor({ prevTx: vin0.src!, prevVoutIdx: vin0.vout, parentIdx, reroot }));
+      if (head(o.lockingScript) !== want) throw new Error(`tx ${tx.id("hex").slice(0, 8)} vout ${v}: ${type} asset field does not follow its lineage`);
+      if (type === "FixedBOLT")
+        for (const t of tokenIns.slice(1))
+          if (head(t.src!.outputs[t.vout].lockingScript) !== head(o.lockingScript))
+            throw new Error(`tx ${tx.id("hex").slice(0, 8)}: FixedBOLT merge of different genesis outpoints (different assets)`);
+    });
+  }
+  return null;
+}
+const lineageFailure = (txs: Transaction[], type: TokenType, byId: ById): string | null => {
+  try { return genesisLineageFailure(txs, type, byId); } catch (e: any) { return String(e.message); }
+};
 
 /** The first MINT in `txs` that no COMMIT in `txs` spends, or null. A mint is just an output naming an issuerPubKey;
  *  the issuer guard only runs when the genesis token is first SPENT, so a mint is authenticated only by a commit that
@@ -649,6 +687,8 @@ function scanBatch(txsIn: TxInput[], opts: ScanOpts, anchorTxsOut?: Transaction[
   const cats = txs.map((tx) => ({ tx, cat: categorise(tx, type, byId) }));
   for (const { tx, cat } of cats)
     if (!cat) return { ok: false, reason: `tx ${tx.id("hex").slice(0, 8)} is not a BOLT token tx`, type };
+  const lineage = lineageFailure(txs, type, byId);
+  if (lineage) return { ok: false, reason: lineage, type, issuerPubKeyHex };
 
   // Pair the events: every settle links back to a commit in the batch, and every commit is settled.
   // (Checked before the per-interface arrangement so a structurally-incomplete batch reports the

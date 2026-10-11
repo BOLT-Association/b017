@@ -22,11 +22,18 @@ export class SimpleMultiBOLT extends BOLT {
   balance: number[] = [];
   balanceCommit: number[] = new Array(16).fill(0x00);
   outputIndexN: number[] = [0x00];
+  /** Lock pushes that lead the SimpleMultiBolt fields (0 here; FixedBOLT / OpenBOLT 2). */
+  protected readonly leading: number = 0;
+
+  /** The script template for this token type; FixedBOLT / OpenBOLT override it. */
+  protected template(): SimpleMultiTemplate {
+    return new SimpleMultiTemplate();
+  }
 
   async mint(
     owner: PrivateKey | Signer,
     sourceTransaction: Transaction,
-    _mintData: string = "",
+    mintData: string | number[] = "",
     balance: number[] = [0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
   ) {
     const signer = toSigner(owner);
@@ -54,8 +61,10 @@ export class SimpleMultiBOLT extends BOLT {
     };
     this.pubKeyHash = Hash.hash160(pubKey);
     this.balance = balance;
+    // the issuer's mint bytes (a string is UTF-8); only the genesis family writes them on chain
+    this.mintData = typeof mintData === "string" ? Array.from(Buffer.from(mintData, "utf8")) : [...mintData];
 
-    const tokenLocking = new SimpleMultiTemplate().lock(
+    const tokenLocking = this.template().lock(
       pubKey as number[],
       this.prevTxs,
       this.balance,
@@ -116,7 +125,7 @@ export class SimpleMultiBOLT extends BOLT {
     const input = {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.voutIdx as number,
-      unlockingScriptTemplate: new SimpleMultiTemplate().unlock(
+      unlockingScriptTemplate: this.template().unlock(
         this.signer,
         recipientPubKey(toPrivKey) as number[],
         this.prevTxs as Transaction[],
@@ -154,7 +163,7 @@ export class SimpleMultiBOLT extends BOLT {
     const pubKeyHashCommit = isCommitTx
       ? toPubKeyHash
       : new Array(20).fill(0x00);
-    const tokenLocking = new SimpleMultiTemplate().lock(
+    const tokenLocking = this.template().lock(
       isCommitTx
         ? this.pubKey
         : (recipientPubKey(toPrivKey) as number[]),
@@ -322,9 +331,9 @@ export class SimpleMultiBOLT extends BOLT {
     return cleanTx;
   }
 
-  // Get the parent outpoint from a token's locking script (SMB lock chunk 8)
-  private getParentOutpoint(): number[] {
-    return this.tx!.outputs[this.voutIdx!].lockingScript.chunks[8].data as number[];
+  // Get the parent outpoint from a token's locking script (SMB lock chunk 8, + leading pushes)
+  protected getParentOutpoint(): number[] {
+    return this.tx!.outputs[this.voutIdx!].lockingScript.chunks[8 + this.leading].data as number[];
   }
 
   // Merge: absorb other token into this one
@@ -333,7 +342,7 @@ export class SimpleMultiBOLT extends BOLT {
     toKey: Recipient,
     fundingSource?: { tx: Transaction, vout: number, key?: PrivateKey | Signer },
   ): Promise<SimpleMultiBOLT> {
-    const tpl = new SimpleMultiTemplate();
+    const tpl = this.template();
     const proofTpl = new Pay2ProofTemplate();
     const version = 2;
     const toPubKeyHash = Hash.hash160(recipientPubKey(toKey));
@@ -511,7 +520,7 @@ export class SimpleMultiBOLT extends BOLT {
     splitBalanceCommit: number[],
     fundingSource?: { tx: Transaction, vout: number, key?: PrivateKey | Signer },
   ): Promise<[SimpleMultiBOLT, SimpleMultiBOLT]> {
-    const tpl = new SimpleMultiTemplate();
+    const tpl = this.template();
     const proofTpl = new Pay2ProofTemplate();
     const version = 2;
     const toPubKeyHashA = Hash.hash160(recipientPubKey(toKeyA));
@@ -654,7 +663,7 @@ export class SimpleMultiBOLT extends BOLT {
     this.balance = mainBalance;
 
     // Create second split token
-    const tokenB = new SimpleMultiBOLT();
+    const tokenB = new (this.constructor as new () => SimpleMultiBOLT)(); // same token class as this one
     tokenB.tx = settleTx;
     tokenB.voutIdx = 1;
     tokenB.prevTxs = [...this.prevTxs]; // share lineage
@@ -664,6 +673,7 @@ export class SimpleMultiBOLT extends BOLT {
     tokenB.issuerPubKey = this.issuerPubKey;
     tokenB.genesisOutpoint = this.genesisOutpoint;
     tokenB.balance = splitBalanceCommit;
+    tokenB.mintData = this.mintData;
     tokenB.skipVerify = this.skipVerify;
     tokenB.verifier = this.verifier;
 
@@ -674,7 +684,7 @@ export class SimpleMultiBOLT extends BOLT {
     const input = {
       sourceTransaction: this.tx,
       sourceOutputIndex: this.voutIdx as number,
-      unlockingScriptTemplate: new SimpleMultiTemplate().melt(this.signer),
+      unlockingScriptTemplate: this.template().melt(this.signer),
       sequence: 0xffffffff,
     };
     const funding = {
