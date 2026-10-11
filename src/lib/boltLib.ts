@@ -41,11 +41,16 @@ export const recipientPubKey = (r: Recipient): number[] =>
 export const recipientSigner = (r: Recipient): Signer | undefined =>
   Array.isArray(r) ? undefined : toSigner(r as PrivateKey | Signer);
 
-// Verify every input of a tx with the @bsv/sdk Spend engine.
+/**
+ * Verify every input of a tx with the @bsv/sdk Spend engine. THROWS on any failure (a missing source or unlocking
+ * script, a failing script - `Spend.validate()` throws rather than returning false - an output with no amount, or
+ * outputs worth more than inputs unless `skipOutputCheck`), so when it returns, `valid` is always `true`. The
+ * `{ valid, scriptExecutions }` shape is kept for existing callers.
+ */
 export const verifyTx = (
   tx: Transaction,
   skipOutputCheck: boolean = false
-): { valid: boolean; scriptExecutions: { spend: Spend; valid: boolean }[] } => {
+): { valid: true; scriptExecutions: { spend: Spend; valid: boolean }[] } => {
   let inputTotal = 0;
   const txid = tx.id("hex");
   const scriptExecutions: { spend: Spend; valid: boolean }[] = [];
@@ -76,10 +81,7 @@ export const verifyTx = (
       outputs: tx.outputs,
       lockTime: tx.lockTime,
     });
-    const valid = spend.validate();
-    scriptExecutions.push({ spend, valid });
-    /* v8 ignore next -- Spend.validate() throws on a failing script; it never returns false (verifyTx keeps its { valid } shape for callers) */
-    if (!valid) return { valid: false, scriptExecutions };
+    scriptExecutions.push({ spend, valid: spend.validate() }); // throws on a failing script
   }
   let outputTotal = 0;
   for (const out of tx.outputs) {

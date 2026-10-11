@@ -94,9 +94,7 @@ export class SimpleMultiBOLT extends BOLT {
     await mintTx.fee(0);
     await mintTx.sign();
 
-    let { valid } = verifyTx(mintTx);
-    /* v8 ignore next -- verifyTx throws on an invalid script rather than returning valid: false */
-    if (!valid) throw new Error("Mint tx not valid");
+    verifyTx(mintTx); // throws if the mint is not valid
     this.tx = mintTx;
     this.voutIdx = 0;
     this.prevTxs.push(this.tx);
@@ -732,12 +730,7 @@ export class SimpleMultiBOLT extends BOLT {
       }
     });
 
-    const { valid, scriptExecutions } = verifyTx(tx, true); // skipOutputCheck: zero-funding txs may have output > input
-    /* v8 ignore next 5 -- verifyTx throws on an invalid script rather than returning valid: false */
-    if (!valid) {
-      const failedIdx = scriptExecutions.findIndex(e => !e.valid);
-      console.log(`\n========== SCRIPT FAILURE [bsv] (${txType}) - INPUT ${failedIdx} ==========`);
-      throw new Error(`${txType} tx not valid [bsv]`);
-    }
+    // verifyTx throws if any input fails (skipOutputCheck: zero-funding txs may have output > input); name the tx
+    try { verifyTx(tx, true); } catch (e) { throw new Error(`${txType} not valid: ${(e as Error).message}`); }
   }
 }

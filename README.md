@@ -212,14 +212,14 @@ npm run test:coverage  # the same suite + a v8 coverage report (text to stdout, 
 ```
 
 Latest run — **every source module is fully covered**: 100% on every metric, enforced by the coverage thresholds. The
-24 `v8 ignore` markers sit only on defensive TypeScript guards, each stating why it cannot fire:
+21 `v8 ignore` markers sit only on defensive TypeScript guards, each stating why it cannot fire:
 
 | Metric | Coverage |
 | --- | --- |
-| Statements | **100.0%** (2306/2306) |
+| Statements | **100.0%** (2305/2305) |
 | Functions | **100.0%** (168/168) |
 | Lines | **100.0%** |
-| Branches | **100.0%** (1156/1156) |
+| Branches | **100.0%** (1153/1153) |
 
 Fail-safe guards that cannot fire (e.g. a `0xff` >4 GB script-length prefix, or a type/issuer check an
 upstream fingerprint already guarantees) are annotated `v8 ignore` with the reason inline; so are the checks

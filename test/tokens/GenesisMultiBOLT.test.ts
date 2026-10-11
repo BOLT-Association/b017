@@ -103,7 +103,7 @@ describe('FixedBOLT merges: one genesis only', () => {
     const b = await new FixedBOLT().mint(issuer, source(issuer, 90000), '', bal(1n))
     await a.transfer(child(issuer, '1'))
     await b.transfer(child(issuer, '2'))
-    await expect(SimpleMultiBOLT.prototype.merge.call(a, b, child(issuer, '400'))).rejects.toThrow(/MERGE COMMIT tx not valid|OP_EQUALVERIFY/)
+    await expect(SimpleMultiBOLT.prototype.merge.call(a, b, child(issuer, '400'))).rejects.toThrow(/MERGE COMMIT TX not valid: .*OP_EQUALVERIFY/)
   }, 600000)
 
   it('two issuers: refused before building', async () => {
@@ -145,6 +145,6 @@ describe('OpenBOLT merges: across genesis roots, re-rooted; one issuer', () => {
     const b = await new OpenBOLT().mint(other, source(other), '', bal(1n))
     await a.transfer(child(issuer, '1'))
     await b.transfer(child(other, '2'))
-    await expect(SimpleMultiBOLT.prototype.merge.call(a, b, child(issuer, '400'))).rejects.toThrow(/MERGE COMMIT tx not valid|OP_EQUALVERIFY/)
+    await expect(SimpleMultiBOLT.prototype.merge.call(a, b, child(issuer, '400'))).rejects.toThrow(/MERGE COMMIT TX not valid: .*OP_EQUALVERIFY/)
   }, 600000)
 })
