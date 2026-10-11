@@ -6,6 +6,17 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+- **Coverage is 100% on every metric and the thresholds enforce it** (`vitest.config.ts`: statements, functions,
+  lines and branches 100; was 99 / 100 / 99 / 98), so a new uncovered branch fails the coverage run. Three
+  reachable branches gained tests (`coverageEdges`: `p2pkhUnlock` signing from an attached source without a txid,
+  and refusing a txid with no source; a merge paid to a public-key recipient keeps the builder's signer). 17
+  defensive guards were marked unreachable with their reason (24 `v8 ignore` markers in all; none covers a covenant
+  path or a scanner verdict).
+  `npm run coverage:check` now compares the README's percentages and test counts, not the `(covered/total)`
+  fractions: V8 counts a few closure branches on some runs only, so the branch total moves by one or two between
+  identical runs while coverage stays 100%.
+
 ### Added
 - **The genesis family: `FixedBOLT`, `OpenBOLT` and `SerialBOLT`.** Three token types whose lock leads with the
   token's own asset outpoint (null on the mint, the mint outpoint from the first spend on) and the issuer's

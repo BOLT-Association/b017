@@ -71,6 +71,7 @@ const FIELDS: Record<TokenType, Record<FieldName, number>> = {
   SerialBOLT: { pubKeyHash: 2, commitment: 3, txoType: 4, parent: 5, grandparent: 6 },
 };
 const field = (lock: Script, type: TokenType, f: FieldName): number[] =>
+  /* v8 ignore next -- field() is only called on a lock recognizeType accepted, so the field chunk exists and carries data */
   (lock.chunks[FIELDS[type][f]]?.data as number[]) ?? [];
 const fieldHex = (lock: Script, type: TokenType, f: FieldName): string => Utils.toHex(field(lock, type, f));
 
@@ -78,6 +79,7 @@ const fieldHex = (lock: Script, type: TokenType, f: FieldName): string => Utils.
 // A short/empty buffer (a tampered or absent field) yields a txid that cannot match any real tx, so
 // the linkage check fails closed rather than throwing.
 function parseOutpoint(op: number[]): { txidHex: string; vout: number } {
+  /* v8 ignore next -- parseOutpoint is only fed field(), which always returns an array */
   const bytes = Array.isArray(op) ? op : [];
   const txidHex = Utils.toHex([...bytes.slice(0, 32)].reverse());
   const v = new Uint8Array(4);
@@ -198,8 +200,10 @@ type Cls = "token" | "p2p" | "p2pkh" | "external" | "other";
 type ById = Map<string, Transaction>;
 /** The tx an input spends: its attached source, else the tx of the batch its outpoint names. */
 const sourceOf = (input: any, byId: ById): Transaction | undefined =>
+  /* v8 ignore next -- an input with neither a txid nor an attached source cannot be serialised: byId is built from tx.id() first, which throws, and failClosed turns that into a refusal */
   input.sourceTransaction ?? (input.sourceTXID ? byId.get(input.sourceTXID) : undefined);
 /** The txid an input spends: the outpoint's, else the attached source's. */
+/* v8 ignore next -- same as sourceOf: by the time this runs every input has a txid or an attached source */
 const spentTxid = (input: any): string | undefined => input.sourceTXID ?? input.sourceTransaction?.id("hex");
 
 /** Classify an output's locking script. token = strict golden fingerprint; p2p = the b017 marker
@@ -207,6 +211,7 @@ const spentTxid = (input: any): string | undefined => input.sourceTXID ?? input.
 function classifyOut(lock: Script, type: TokenType): Cls {
   if (recognizeType(lock, type)) return "token";
   if (recognizeP2P(lock)) return "p2p"; // golden p2Proof fingerprint (b017 marker + static skeleton)
+  /* v8 ignore next -- an output with no locking script cannot be serialised (tx.id() throws first, failClosed refuses) */
   const c = lock?.chunks ?? [];
   if (
     c.length === 5 && c[0].op === OP.OP_DUP && c[1].op === OP.OP_HASH160 && c[2].data?.length === 20 &&
@@ -320,12 +325,14 @@ function executeInputs(txs: Transaction[], byId: ById): string | undefined {
       if (!out) return `script execution failed: tx ${id} input ${vin}: its source tx was not supplied`;
       let failure: string | undefined;
       try {
+        /* v8 ignore next -- an input with no unlocking script cannot be serialised (tx.id() throws first, failClosed refuses) */
         if (!input.unlockingScript) failure = "no unlocking script";
         else if (
           !new Spend({
             sourceTXID: outpointRef(input).sourceTXID,
             sourceOutputIndex: input.sourceOutputIndex,
             lockingScript: out.lockingScript,
+            /* v8 ignore next -- a source output of a parsed or signed tx always has its satoshis */
             sourceSatoshis: out.satoshis ?? 0,
             transactionVersion: tx.version,
             otherInputs: tx.inputs.filter((_: any, k: number) => k !== vin).map(outpointRef),
@@ -335,6 +342,7 @@ function executeInputs(txs: Transaction[], byId: ById): string | undefined {
             outputs: tx.outputs,
             lockTime: tx.lockTime,
           }).validate()
+        /* v8 ignore next -- Spend.validate() throws on a failing script; it never returns false */
         ) failure = "the script evaluated false";
       } catch (e: any) {
         failure = errText(e);
@@ -357,6 +365,7 @@ function requireSources(txs: Transaction[], byId: ById): { failure?: string; sou
       const input: any = tx.inputs[vin];
       const src = sourceOf(input, byId);
       if (!src || !src.outputs?.[input.sourceOutputIndex])
+        /* v8 ignore next -- every input has a txid by now (see sourceOf); the "?" only guards the message */
         return { failure: `source tx ${String(input.sourceTXID ?? "?").slice(0, 8)} of tx ${id} input ${vin} was not supplied (send the package as BEEF)`, sources: [] };
       const sid = src.id("hex");
       // An attached source must BE the tx the input names: the outpoint is what the signature commits to.
@@ -412,9 +421,11 @@ function anchorNotMinable(tx: Transaction, type: TokenType, byId: ById, why: str
 function valueOf(tx: Transaction, byId: ById): { inputSats: number; outputSats: number } {
   let inputSats = 0;
   for (const input of tx.inputs as any[]) {
+    /* v8 ignore next -- requireSources has run, so every source and its output exist, and a parsed or signed output has satoshis */
     inputSats += sourceOf(input, byId)?.outputs?.[input.sourceOutputIndex]?.satoshis ?? 0;
   }
   let outputSats = 0;
+  /* v8 ignore next -- an output of a parsed or signed tx always has its satoshis */
   for (const out of tx.outputs) outputSats += out.satoshis ?? 0;
   return { inputSats, outputSats };
 }

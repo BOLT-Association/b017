@@ -54,6 +54,7 @@ export const verifyTx = (
     if (typeof input.sourceTransaction !== "object") {
       throw new Error(`Verification failed: input ${i} of ${txid} is missing its source transaction.`);
     }
+    /* v8 ignore next 3 -- tx.id("hex") at the top of verifyTx already throws on an input with no unlocking script */
     if (typeof input.unlockingScript !== "object") {
       throw new Error(`Verification failed: input ${i} of ${txid} is missing its unlocking script.`);
     }
@@ -77,6 +78,7 @@ export const verifyTx = (
     });
     const valid = spend.validate();
     scriptExecutions.push({ spend, valid });
+    /* v8 ignore next -- Spend.validate() throws on a failing script; it never returns false (verifyTx keeps its { valid } shape for callers) */
     if (!valid) return { valid: false, scriptExecutions };
   }
   let outputTotal = 0;

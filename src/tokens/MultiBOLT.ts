@@ -95,6 +95,7 @@ export class SimpleMultiBOLT extends BOLT {
     await mintTx.sign();
 
     let { valid } = verifyTx(mintTx);
+    /* v8 ignore next -- verifyTx throws on an invalid script rather than returning valid: false */
     if (!valid) throw new Error("Mint tx not valid");
     this.tx = mintTx;
     this.voutIdx = 0;
@@ -141,6 +142,7 @@ export class SimpleMultiBOLT extends BOLT {
     };
     const funding = fundOverride || {
       sourceTransaction: this.tx,
+      /* v8 ignore next -- a token being spent always has its tx */
       sourceOutputIndex: this.tx?.outputs ? this.tx?.outputs.length - 1 : 0,
       unlockingScriptTemplate: p2pkhUnlock(this.signer),
       sequence: 0xffffffff,
@@ -689,6 +691,7 @@ export class SimpleMultiBOLT extends BOLT {
     };
     const funding = {
       sourceTransaction: this.tx,
+      /* v8 ignore next -- a token being melted always has its tx */
       sourceOutputIndex: this.tx?.outputs ? this.tx?.outputs.length - 1 : 0,
       unlockingScriptTemplate: p2pkhUnlock(this.signer),
       sequence: 0xffffffff,
@@ -730,6 +733,7 @@ export class SimpleMultiBOLT extends BOLT {
     });
 
     const { valid, scriptExecutions } = verifyTx(tx, true); // skipOutputCheck: zero-funding txs may have output > input
+    /* v8 ignore next 5 -- verifyTx throws on an invalid script rather than returning valid: false */
     if (!valid) {
       const failedIdx = scriptExecutions.findIndex(e => !e.valid);
       console.log(`\n========== SCRIPT FAILURE [bsv] (${txType}) - INPUT ${failedIdx} ==========`);

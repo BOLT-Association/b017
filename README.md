@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 > **Status: `0.0.0-b2` (beta).** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
-> (764/764 unit tests, **99% statement / 100% function / 98% branch coverage**) but may still change before `0.1.0`. See
+> (767/767 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `0.1.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
 Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
@@ -39,7 +39,7 @@ independent genesis tokens — reserve/cap trust is an issuer matter) or **netwo
 ```
 npm install
 npm run build          # clean + tsc -> dist/ (JS + .d.ts)
-npm test               # vitest (764 tests)
+npm test               # vitest (767 tests)
 npm run test:coverage  # vitest + v8 coverage -> coverage/ (text + HTML report)
 ```
 
@@ -207,23 +207,24 @@ by concern (`test/tokens`, `test/templates`, `test/lib`, `test/scanner`), with s
 fixtures in `test/fixtures` and helpers in `test/helpers`.
 
 ```
-npm test               # 764 tests across 40 files
+npm test               # 767 tests across 41 files
 npm run test:coverage  # the same suite + a v8 coverage report (text to stdout, HTML in coverage/)
 ```
 
-Latest run — **every source module is covered**, all above 98% statements:
+Latest run — **every source module is fully covered**: 100% on every metric, enforced by the coverage thresholds. The
+24 `v8 ignore` markers sit only on defensive TypeScript guards, each stating why it cannot fire:
 
 | Metric | Coverage |
 | --- | --- |
-| Statements | **99.7%** (2323/2329) |
+| Statements | **100.0%** (2306/2306) |
 | Functions | **100.0%** (168/168) |
-| Lines | **99.7%** |
-| Branches | **98.2%** (1135/1155) |
+| Lines | **100.0%** |
+| Branches | **100.0%** (1156/1156) |
 
 Fail-safe guards that cannot fire (e.g. a `0xff` >4 GB script-length prefix, or a type/issuer check an
-upstream fingerprint already guarantees) are annotated `v8 ignore` with the reason inline. Most of the
-remaining gaps are also unreachable: `@bsv/sdk`'s `Spend.validate()` throws rather than returning
-`false`, and `tx.id()` fails on a missing unlocking script before `verifyTx`'s own guard runs.
+upstream fingerprint already guarantees) are annotated `v8 ignore` with the reason inline; so are the checks
+behind `@bsv/sdk`'s `Spend.validate()` (it throws rather than returning `false`) and the guards a missing
+unlocking script can never reach (`tx.id()` fails first). Every other branch has a test.
 
 What the suite verifies: each contract template is byte-faithful to its sx-compiled artifact and
 spends under the `@bsv/sdk` Spend engine; the scanner's accept/reject decisions match the on-chain
