@@ -5,6 +5,7 @@ import BoltProof.Bridge.Bytes
 import BoltProof.Bridge.Generated.VectorTheorems
 import BoltProof.Bridge.Gadgets.Steps
 import BoltProof.Bridge.Gadgets.NullAncestor
+import BoltProof.Bridge.Gadgets.BalanceGuards
 
 /-!
 # BoltProof.Bridge

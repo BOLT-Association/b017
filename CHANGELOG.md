@@ -44,6 +44,9 @@ All notable changes to **b017** are documented here. The format is based on
   `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY` passes exactly when the concatenated ancestor arguments are empty and
   fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input, over bsv-script-lean's own instruction loop and
   with only the three standard axioms; nine per-instruction step lemmas it rests on.
+- **Lemma 6's over-take guard proved over the bytecode** (`Gadgets/BalanceGuards.lean`): the split commit's
+  `2d OP_PICK 34 OP_PICK OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY` passes exactly when `piece ≤ balance` and
+  fails with `SCRIPT_ERR_VERIFY` otherwise, for every input.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
