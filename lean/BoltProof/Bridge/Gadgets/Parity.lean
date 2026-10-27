@@ -44,7 +44,7 @@ open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Ga
 /-- Close `.next R = .next C` for two state records that agree up to arithmetic on the counters. -/
 macro "state_congr" : tactic =>
   `(tactic| (congr 1; all_goals (first | rfl | (congr 1 <;> (try simp only [List.length_cons, List.length_nil,
-      Nat.add_zero, Nat.zero_add, elementOverhead]) <;> omega))))
+      Nat.add_zero, Nat.zero_add, elementOverhead] at *) <;> omega))))
 
 /-- The head: `1a OP_PICK OP_2 OP_MOD OP_DUP` — the spent type's parity bit, twice. -/
 def parityHead : Bytes := [1, 0x1a, Op.OP_PICK, Op.OP_2, Op.OP_MOD, Op.OP_DUP]

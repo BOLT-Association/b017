@@ -483,4 +483,84 @@ theorem run_skip_op (env : Env) (t : Bytes) (st : State) (op : Nat) (hs : Skip e
   rw [run.eq_2]
   rcases hop with rfl | rfl | rfl <;> step_simp
 
+/-! ## Pushes, concatenation and conversions the NFT type selector uses -/
+
+/-- **A two-byte push** (`0x02 b1 b2`, `473–481`) under a flag word without MINIMALDATA:
+`[b1, b2]` pushed; no opcode counted. -/
+theorem run_push2 (env : Env) (t : Bytes) (st : State) (b1 b2 : Nat) (he : Exec env st)
+    (hmin : env.requireMinimal = false)
+    (hmem : st.memUsed + 2 + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [2, b1, b2] t st =
+      .next { st with stack := [b1, b2] :: st.stack, memUsed := st.memUsed + 2 + elementOverhead } := by
+  have hmem' : ¬ (st.memUsed + 2 + elementOverhead > env.params.limits.maxStackMemoryUsage) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- A two-byte push inside an inactive branch: parsed and skipped, nothing counted. -/
+theorem run_skip_push2 (env : Env) (t : Bytes) (st : State) (b1 b2 : Nat) (hs : Skip env st) :
+    run Eval.opExec env [2, b1, b2] t st = .next st := by
+  obtain ⟨hinact, hret, hgen⟩ := hs
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_CAT`** (`1687–1706`) on `x1` (below) and `x2` (top): both popped, `x1 ++ x2` pushed;
+post-Genesis no element-size bound applies. -/
+theorem run_cat (env : Env) (t : Bytes) (st : State) (x1 x2 : Bytes) (rest : List Bytes)
+    (hstk : st.stack = x2 :: x1 :: rest) (he : Exec env st)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hmem : st.memUsed - (x2.length + elementOverhead) - (x1.length + elementOverhead) +
+      (x1.length + x2.length) + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_CAT] t st =
+      .next { st with opCount := st.opCount + 1, stack := (x1 ++ x2) :: rest,
+                      memUsed := st.memUsed - (x2.length + elementOverhead) - (x1.length + elementOverhead) +
+                        (x1.length + x2.length) + elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed - (x2.length + elementOverhead) -
+      (x1.length + elementOverhead) + (x1.length + x2.length) + elementOverhead) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp [Ops.Splice.cat]
+
+/-- **`OP_BIN2NUM`** (`1780–1792`): the top re-encoded minimally, `encode (decode x)`, which must
+fit the number width. -/
+theorem run_bin2num (env : Env) (t : Bytes) (st : State) (x : Bytes) (rest : List Bytes)
+    (hstk : st.stack = x :: rest) (he : Exec env st)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hlen : (encode (decode x)).length ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed - (x.length + elementOverhead) + (encode (decode x)).length + elementOverhead ≤
+      env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_BIN2NUM] t st =
+      .next { st with opCount := st.opCount + 1, stack := encode (decode x) :: rest,
+                      memUsed := st.memUsed - (x.length + elementOverhead) + (encode (decode x)).length +
+                        elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hmin' : isMinimallyEncoded (encode (decode x)) env.params.limits.maxScriptNumLength = true := by
+    rw [isMinimallyEncoded_encode]; exact decide_eq_true hlen
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed - (x.length + elementOverhead) +
+      (encode (decode x)).length + elementOverhead) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp [Ops.Splice.bin2num, minimallyEncode]
+
+/-- **`OP_0NOTEQUAL`** (`1266–1268`): the top replaced by `1` if it is non-zero, else `0`; no
+width bound on the result. -/
+theorem run_0notequal (env : Env) (t : Bytes) (st : State) (x : Bytes) (rest : List Bytes)
+    (hstk : st.stack = x :: rest) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hl : x.length ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed - (x.length + elementOverhead) + (encode (if decode x = 0 then 0 else 1)).length +
+      elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_0NOTEQUAL] t st =
+      .next { st with opCount := st.opCount + 1, stack := encode (if decode x = 0 then 0 else 1) :: rest,
+                      memUsed := st.memUsed - (x.length + elementOverhead) +
+                        (encode (if decode x = 0 then 0 else 1)).length + elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hl' : ¬ (env.params.limits.maxScriptNumLength < x.length) := by omega
+  have hmem' : ¬ (st.memUsed - (x.length + elementOverhead) + (encode (if decode x = 0 then 0 else 1)).length +
+      elementOverhead > env.params.limits.maxStackMemoryUsage) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
 end BoltProof.Gadgets

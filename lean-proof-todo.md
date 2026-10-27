@@ -20,7 +20,10 @@ Follow-ups (the residual trust boundary, in order of value):
   - [x] L7, the fungible `txoType` parity check (`lean/BoltProof/Bridge/Gadgets/Parity.lean`: accepts iff the
         hand proof's predicate holds, and iff `Fam.edge .fungible a b` on the defined type bytes; step lemmas for
         OP_1, OP_2, OP_MOD, OP_1ADD, OP_DUP, OP_SWAP, OP_IF/OP_ELSE/OP_ENDIF and skipped instructions added).
-  - [ ] L7, the NFT family's type check (`MinSimpleBOLT` prologue `OP_2 OP_PICK OP_BIN2NUM OP_NOT …`).
+  - [x] L7, the NFT family's type selector (`lean/BoltProof/Bridge/Gadgets/NftType.lean`: the prologue's
+        `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` flag and the `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` selector
+        of all three NFT covenants write a `Fam.edge .nft` successor type; step lemmas for a two-byte push, OP_CAT,
+        OP_BIN2NUM and OP_0NOTEQUAL added).
 - [ ] Pin the exact `ScriptError` of every rejected vector (`PINNED` in `lean/vectors/export.test.ts`).
 - [x] A ledger-level theorem (T5) that every settle with a grandparent consumes the proof of a unique real
       commit — the fabricated-hop exclusion stated above the single-spend interface
