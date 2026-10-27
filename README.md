@@ -26,7 +26,9 @@ is bound into a self-validating Bitcoin Script covenant via a dual hash-commitme
 a token would require breaking SHA-256 or ECDSA. See [`docs/unforgeability.md`](docs/unforgeability.md)
 for the argument and the forgery tests that demonstrate it, and
 [`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
-full attack-vector analysis).
+full attack-vector analysis), and [`lean/README.md`](lean/README.md) for the **machine-checked**
+version: the theorems proved in Lean 4 from the covenant's lemmas, and the shipped covenant bytes
+run on the test suite's real transactions inside Lean with the bsv-script-lean consensus semantics.
 
 This is **third-party per-token unforgeability**: each unit is internally well-formed and traces
 to an issuer-signed mint. It is *not* a claim about **supply-honesty** (an issuer can mint many
@@ -41,6 +43,7 @@ npm install
 npm run build          # clean + tsc -> dist/ (JS + .d.ts)
 npm test               # vitest (767 tests)
 npm run test:coverage  # vitest + v8 coverage -> coverage/ (text + HTML report)
+npm run lean:vectors   # regenerate the Lean proof's transaction vectors (lean/BoltProof/Bridge/Generated/)
 ```
 
 `@bsv/sdk` is a **peer dependency** — your application provides the single shared instance.
