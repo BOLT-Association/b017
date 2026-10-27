@@ -42,6 +42,61 @@ jobs:
       - name: Verify package contents (npm pack)
         run: npm pack --dry-run
 
+  # Machine-checked proof (lean/): Layer 1 (the protocol model + Theorems 1-4, core Lean only) and
+  # Layer 2 (the shipped covenant bytes and real transactions evaluated by the bsv-script-lean
+  # consensus semantics). Also regenerates the Lean vectors from the test builders and fails on
+  # drift, and audits every theorem's axioms. Independent of the Node matrix.
+  lean-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Regenerate the Lean vectors and fail on drift
+        run: |
+          npm run lean:vectors
+          git diff --exit-code -- lean/BoltProof/Bridge/Generated lean/vectors/vectors.json
+
+      - name: Cache the Lean toolchain and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.elan
+            lean/.lake
+          key: lean-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-${{ hashFiles('lean/**/*.lean', 'lean/lakefile.toml') }}
+          restore-keys: |
+            lean-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-
+
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain "$(cat lean/lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch the Mathlib build cache (dependency of bsv-script-lean)
+        working-directory: lean
+        run: timeout 1800 lake exe cache get
+
+      - name: Build the proof
+        working-directory: lean
+        run: lake build
+
+      - name: Run every vector natively
+        working-directory: lean
+        run: lake exe boltvectors
+
+      - name: Audit axioms
+        run: node scripts/lean-axiom-check.mjs
+
   # Self-hosted coverage badge — no third-party service. Computes the statements % from the
   # coverage summary produced by build-test and writes a shields.io "endpoint" JSON to a dedicated
   # `badges` branch using the built-in GITHUB_TOKEN. The README badge points shields.io at that
