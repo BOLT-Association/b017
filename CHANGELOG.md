@@ -24,7 +24,8 @@ All notable changes to **b017** are documented here. The format is based on
   with only the three standard axioms; nine per-instruction step lemmas it rests on.
 - **Lemma 6's over-take guard proved over the bytecode** (`Gadgets/BalanceGuards.lean`): the split commit's
   `2d OP_PICK 34 OP_PICK OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY` passes exactly when `piece ≤ balance` and
-  fails with `SCRIPT_ERR_VERIFY` otherwise, for every input.
+  fails with `SCRIPT_ERR_VERIFY` otherwise, for every input. **Its merge sum guard** `2d OP_PICK 34 OP_PICK OP_ADD
+  OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` likewise passes exactly when `balance + other ≤ bound`.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with

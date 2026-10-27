@@ -119,8 +119,12 @@ end test), with only the three standard axioms, in the style of their `Gadget/Ha
   suffix) runs to its end, leaving the stack and the memory counter as it found them, exactly
   when `piece ≤ balance` (`splitGuard_accepts`, `splitGuard_next_iff`) and fails with
   `SCRIPT_ERR_VERIFY` otherwise (`splitGuard_refuses`): an inflating split is refused at its
-  commit for every input. The merge sum guard (`… OP_ADD OP_11 OP_PICK OP_LESSTHANOREQUAL
-  OP_VERIFY`), the settle-side re-checks and the L7 parity check are the next follow-ups. `lake exe boltvectors` runs the same verdicts natively and prints a
+  commit for every input. Likewise the merge commit's sum guard `2d OP_PICK 34 OP_PICK OP_ADD
+  OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` (`01 2d 79 01 34 79 93 5b 79 a1 69`) runs to its
+  end exactly when `balance + other ≤ bound`, the bound being the value the covenant keeps ten
+  deep (`mergeGuard_accepts`, `mergeGuard_refuses`, `mergeGuard_next_iff`): an overflowing
+  merge is refused at its commit for every input. The settle-side re-checks and the L7 parity
+  check are the next follow-ups. `lake exe boltvectors` runs the same verdicts natively and prints a
 table, with the pre-Chronicle verdict as an informative control.
 
 **Judging height, and a finding.** Every vector is judged at bsv-script-lean's
@@ -138,7 +142,7 @@ transactions are simply invalid. The P2PKH and proof inputs are valid in both er
 
 | Item | Status |
 |---|---|
-| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail and the Lemma 6 split over-take guard are proved for every input at the fragment level (`Gadgets/`); the merge guard, the settle re-checks and the L7 parity check are the next follow-ups. |
+| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail and both Lemma 6 commit guards (split over-take, merge sum) are proved for every input at the fragment level (`Gadgets/`); the settle re-checks and the L7 parity check are the next follow-ups. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
