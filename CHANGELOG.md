@@ -54,6 +54,11 @@ All notable changes to **b017** are documented here. The format is based on
   settle-typed one by a commit type, and fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input; on the six
   defined type bytes this is the Lean model's `Fam.edge .fungible` relation (`parityCheck_edge_iff`). Step lemmas
   for the conditionals (`OP_IF`, `OP_ELSE`, `OP_ENDIF`, skipped instructions) and the arithmetic added.
+- **Lemma 7 for the NFT family proved over the bytecode** (`Gadgets/NftType.lean`): the NFT covenants write the
+  produced type rather than check it — the prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` flag is `txoType ≠ 0`, and
+  the selector `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` of `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT`
+  appends type `0x00` to a commit-typed token's successor and `0x21` to a settle-typed one's, for every input; on
+  the family's type bytes this is the model's `Fam.edge .nft` relation (`nftTypeSel_edge`).
 - **Theorem 5, proof gating** (`lean/BoltProof/Theorems/ProofGating.lean`): the §8.1 fabricated-hop exclusion at the
   ledger level — under the UTXO no-double-spend rule a commit's proof output admits at most one settle, and under
   collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.

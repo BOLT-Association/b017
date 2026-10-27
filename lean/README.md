@@ -152,6 +152,17 @@ end test), with only the three standard axioms, in the style of their `Gadget/Ha
   family, exactly what these bytes enforce. The proof composes the fragment from four
   sub-fragments (head, settle-side branch taken or skipped, produced-type parity, complement)
   with `run_append`, and walks both outcomes of every conditional.
+* `Gadgets/NftType.lean` — **Lemma 7 for the NFT family, by construction.** The NFT covenants
+  do not check the produced type: they *write* it. The prologue derives the flag `txoType ≠ 0`
+  from the spent type (`OP_DUP OP_BIN2NUM OP_0NOTEQUAL`, `76 81 92`; `nftFlag_run`), and the
+  selector `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` (`01 d 79 63 02 01 00 67 02 01
+  21 68 7e`, depth `d = 0x17` at offset 534 of `MinSimpleBOLT` and 543 of `AuthBOLT`, `d = 0x18`
+  at offset 589 of `SerialBOLT`) appends the type field `01 00` when the flag is set and
+  `01 21` otherwise to the output being serialized, changing nothing else
+  (`nftTypeSel_run_commit`, `nftTypeSel_run_settle`). On the family's two type bytes the written
+  type is a `Fam.edge .nft` successor of the spent one (`nftTypeSel_edge`); as the serialized
+  outputs are bound by `hashOutputs` (Lemma 2), the NFT state machine holds with no spender
+  input in the choice.
 
 `lake exe boltvectors` runs the same verdicts natively and prints a
 table, with the pre-Chronicle verdict as an informative control.
@@ -171,7 +182,7 @@ transactions are simply invalid. The P2PKH and proof inputs are valid in both er
 
 | Item | Status |
 |---|---|
-| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail, both Lemma 6 commit guards (split over-take, merge sum) and the Lemma 7 parity check of the fungible covenant are proved for every input at the fragment level (`Gadgets/`); the Lemma 6 settle-side re-checks and the NFT family's type check are the next follow-ups. |
+| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail, both Lemma 6 commit guards (split over-take, merge sum), the Lemma 7 parity check of the fungible covenant and the Lemma 7 type selector of the NFT covenants are proved for every input at the fragment level (`Gadgets/`); the Lemma 6 settle-side re-checks are the next follow-up. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
