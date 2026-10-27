@@ -18,6 +18,10 @@ All notable changes to **b017** are documented here. The format is based on
   `docs/formal-proof.md` §1.6 states the remaining trust boundary (bytecode-to-interface fidelity beyond the
   covered inputs; A3; A4).
 - `test/helpers/minSimpleAttacks.ts`: the NFT red-team builders, shared by the suite and the exporter.
+- **Lemma 4 proved over the bytecode** (`lean/BoltProof/Bridge/Gadgets/`): the null-ancestor check's tail
+  `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY` passes exactly when the concatenated ancestor arguments are empty and
+  fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input, over bsv-script-lean's own instruction loop and
+  with only the three standard axioms; nine per-instruction step lemmas it rests on.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
