@@ -48,6 +48,12 @@ All notable changes to **b017** are documented here. The format is based on
   `2d OP_PICK 34 OP_PICK OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY` passes exactly when `piece ≤ balance` and
   fails with `SCRIPT_ERR_VERIFY` otherwise, for every input. **Its merge sum guard** `2d OP_PICK 34 OP_PICK OP_ADD
   OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` likewise passes exactly when `balance + other ≤ bound`.
+- **Lemma 7 proved over the bytecode** (`Gadgets/Parity.lean`): the fungible covenant's 29-byte parity check
+  (`1a OP_PICK OP_2 OP_MOD OP_DUP OP_IF … OP_ENDIF OP_DUP 27 OP_PICK OP_2 OP_MOD OP_SWAP OP_IF OP_0 OP_ELSE OP_1
+  OP_ENDIF OP_EQUALVERIFY`) passes exactly when a commit-typed spent token is followed by its own settle type and a
+  settle-typed one by a commit type, and fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input; on the six
+  defined type bytes this is the Lean model's `Fam.edge .fungible` relation (`parityCheck_edge_iff`). Step lemmas
+  for the conditionals (`OP_IF`, `OP_ELSE`, `OP_ENDIF`, skipped instructions) and the arithmetic added.
 - **Theorem 5, proof gating** (`lean/BoltProof/Theorems/ProofGating.lean`): the §8.1 fabricated-hop exclusion at the
   ledger level — under the UTXO no-double-spend rule a commit's proof output admits at most one settle, and under
   collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.
