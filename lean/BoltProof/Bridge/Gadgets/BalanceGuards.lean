@@ -236,4 +236,240 @@ theorem splitGuard_next_iff (env : Env) (t : Bytes) (st : State) (s : List Bytes
   · intro hle
     exact ⟨_, splitGuard_accepts env t st s bal piece hstk hbal hpiece hlen he hmin hops hb hp hd hone hmem hle⟩
 
+/-! ## The merge sum guard -/
+
+/-- The merge sum guard: `2d OP_PICK 34 OP_PICK OP_ADD OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY`
+(`01 2d 79 01 34 79 93 5b 79 a1 69`): the sum of the two balances must not exceed the bound the
+covenant keeps 10 deep. -/
+def mergeGuard : Bytes :=
+  [1, 0x2d, Op.OP_PICK, 1, 0x34, Op.OP_PICK, Op.OP_ADD, Op.OP_11, Op.OP_PICK, Op.OP_LESSTHANOREQUAL,
+    Op.OP_VERIFY]
+
+theorem decode_0b : decode [11] = 11 := by decide
+
+/-- The run of the merge guard up to its verify. -/
+theorem mergeGuard_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (bal other bound : Bytes)
+    (hstk : st.stack = s) (hbal : s.getD 45 [] = bal) (hother : s.getD 51 [] = other)
+    (hbound : s.getD 10 [] = bound)
+    (hlen : 51 < s.length) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 6 ≤ env.params.limits.maxOpsPerScript)
+    (hb : bal.length ≤ env.params.limits.maxScriptNumLength)
+    (ho : other.length ≤ env.params.limits.maxScriptNumLength)
+    (hbd : bound.length ≤ env.params.limits.maxScriptNumLength)
+    (hsum : (encode (decode bal + decode other)).length ≤ env.params.limits.maxScriptNumLength)
+    (hone : 1 ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed + bal.length + other.length + (encode (decode bal + decode other)).length + bound.length +
+      1 + 3 * elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env mergeGuard t st =
+      run Eval.opExec env [Op.OP_VERIFY] t
+        { st with opCount := st.opCount + 5,
+                  stack := encode (if decode bal + decode other ≤ decode bound then 1 else 0) :: s,
+                  memUsed := st.memUsed + (encode (if decode bal + decode other ≤ decode bound then 1 else 0)).length +
+                    elementOverhead } := by
+  obtain ⟨hact, hret, hgen⟩ := he
+  have hE : Exec env st := ⟨hact, hret, hgen⟩
+  have hrlen : (encode (if decode bal + decode other ≤ decode bound then 1 else 0)).length ≤ 1 := by
+    split <;> simp [encode_zero, vec_1]
+  -- 1. push 2d
+  have h1 := run_push1 env ([Op.OP_PICK] ++ ([1, 0x34] ++ ([Op.OP_PICK] ++ ([Op.OP_ADD] ++ ([Op.OP_11] ++
+    ([Op.OP_PICK] ++ ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY])))))) ++ t) st 0x2d hE hmin (by omega)
+  -- 2. pick 45 → bal
+  have h2 := run_pick env ([1, 0x34] ++ ([Op.OP_PICK] ++ ([Op.OP_ADD] ++ ([Op.OP_11] ++
+    ([Op.OP_PICK] ++ ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY]))))) ++ t)
+    { st with stack := [0x2d] :: s, memUsed := st.memUsed + 1 + elementOverhead }
+    [0x2d] s 45 rfl decode_2d (by omega) ⟨hact, hret, hgen⟩ hmin
+    (by show st.opCount + 1 ≤ _; omega) (by mem_omega)
+    (by show st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + ((s.getD 45 []).length + elementOverhead) ≤ _
+        rw [hbal]; mem_omega)
+  rw [hbal] at h2
+  -- 3. push 34
+  have h3 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_ADD] ++ ([Op.OP_11] ++
+    ([Op.OP_PICK] ++ ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY])))) ++ t)
+    { st with opCount := st.opCount + 1, stack := bal :: s,
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) }
+    0x34 ⟨hact, hret, hgen⟩ hmin
+    (by show st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) + 1 +
+          elementOverhead ≤ _
+        mem_omega)
+  -- 4. pick 52 → other
+  have hget52 : (bal :: s).getD 52 [] = other := by
+    rw [List.getD_cons_succ]; exact hother
+  have h4 := run_pick env ([Op.OP_ADD] ++ ([Op.OP_11] ++ ([Op.OP_PICK] ++ ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY]))) ++ t)
+    { st with opCount := st.opCount + 1, stack := [0x34] :: bal :: s,
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+                1 + elementOverhead }
+    [0x34] (bal :: s) 52 rfl decode_34 (by mem_omega) ⟨hact, hret, hgen⟩ hmin
+    (by show st.opCount + 1 + 1 ≤ _; omega) (by mem_omega)
+    (by rw [hget52]
+        show st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) + 1 +
+          elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) ≤ _
+        mem_omega)
+  rw [hget52] at h4
+  -- 5. add
+  have h5 := run_add env ([Op.OP_11] ++ ([Op.OP_PICK] ++ ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY])) ++ t)
+    { st with opCount := st.opCount + 1 + 1, stack := other :: bal :: s,
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+                1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) }
+    bal other s rfl ⟨hact, hret, hgen⟩ hmin (by show st.opCount + 1 + 1 + 1 ≤ _; omega) hb ho hsum
+    (by show st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+          1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) -
+          (other.length + elementOverhead) - (bal.length + elementOverhead) +
+          (encode (decode bal + decode other)).length + elementOverhead ≤ _
+        mem_omega)
+  -- 6. OP_11
+  have h6 := run_op11 env ([Op.OP_PICK] ++ ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY]) ++ t)
+    { st with opCount := st.opCount + 1 + 1 + 1, stack := encode (decode bal + decode other) :: s,
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+                1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) -
+                (other.length + elementOverhead) - (bal.length + elementOverhead) +
+                (encode (decode bal + decode other)).length + elementOverhead }
+    ⟨hact, hret, hgen⟩
+    (by show st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+          1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) -
+          (other.length + elementOverhead) - (bal.length + elementOverhead) +
+          (encode (decode bal + decode other)).length + elementOverhead + 1 + elementOverhead ≤ _
+        mem_omega)
+  -- 7. pick 11 → bound
+  have hget11 : (encode (decode bal + decode other) :: s).getD 11 [] = bound := by
+    rw [List.getD_cons_succ]; exact hbound
+  have h7 := run_pick env ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY] ++ t)
+    { st with opCount := st.opCount + 1 + 1 + 1, stack := [11] :: encode (decode bal + decode other) :: s,
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+                1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) -
+                (other.length + elementOverhead) - (bal.length + elementOverhead) +
+                (encode (decode bal + decode other)).length + elementOverhead + 1 + elementOverhead }
+    [11] (encode (decode bal + decode other) :: s) 11 rfl decode_0b (by mem_omega) ⟨hact, hret, hgen⟩ hmin
+    (by show st.opCount + 1 + 1 + 1 + 1 ≤ _; omega) (by mem_omega)
+    (by rw [hget11]
+        show st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+          1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) -
+          (other.length + elementOverhead) - (bal.length + elementOverhead) +
+          (encode (decode bal + decode other)).length + elementOverhead + 1 + elementOverhead -
+          ([11].length + elementOverhead) + (bound.length + elementOverhead) ≤ _
+        mem_omega)
+  rw [hget11] at h7
+  -- 8. lessthanorequal
+  have hdd : decode (encode (decode bal + decode other)) = decode bal + decode other := decode_encode _
+  have h8 := run_lte env ([Op.OP_VERIFY] ++ t)
+    { st with opCount := st.opCount + 1 + 1 + 1 + 1, stack := bound :: encode (decode bal + decode other) :: s,
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+                1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) -
+                (other.length + elementOverhead) - (bal.length + elementOverhead) +
+                (encode (decode bal + decode other)).length + elementOverhead + 1 + elementOverhead -
+                ([11].length + elementOverhead) + (bound.length + elementOverhead) }
+    (encode (decode bal + decode other)) bound s rfl ⟨hact, hret, hgen⟩ hmin
+    (by show st.opCount + 1 + 1 + 1 + 1 + 1 ≤ _; omega) hsum hbd
+    (by rw [hdd]
+        show st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (bal.length + elementOverhead) +
+          1 + elementOverhead - ([0x34].length + elementOverhead) + (other.length + elementOverhead) -
+          (other.length + elementOverhead) - (bal.length + elementOverhead) +
+          (encode (decode bal + decode other)).length + elementOverhead + 1 + elementOverhead -
+          ([11].length + elementOverhead) + (bound.length + elementOverhead) - (bound.length + elementOverhead) -
+          ((encode (decode bal + decode other)).length + elementOverhead) +
+          (encode (if decode bal + decode other ≤ decode bound then 1 else 0)).length + elementOverhead ≤ _
+        mem_omega)
+  rw [hdd] at h8
+  -- assemble
+  show run Eval.opExec env ([1, 0x2d] ++ ([Op.OP_PICK] ++ ([1, 0x34] ++ ([Op.OP_PICK] ++ ([Op.OP_ADD] ++
+    ([Op.OP_11] ++ ([Op.OP_PICK] ++ ([Op.OP_LESSTHANOREQUAL] ++ [Op.OP_VERIFY])))))))) t st = _
+  rw [run_append _ _ _ _ _ _ (framed_push1 _), h1]
+  simp only [GOut.andThen]
+  rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), hstk, h2]
+  simp only [GOut.andThen]
+  rw [run_append _ _ _ _ _ _ (framed_push1 _), h3]
+  simp only [GOut.andThen]
+  rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h4]
+  simp only [GOut.andThen]
+  rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h5]
+  simp only [GOut.andThen]
+  rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h6]
+  simp only [GOut.andThen]
+  rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h7]
+  simp only [GOut.andThen]
+  rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h8]
+  simp only [GOut.andThen]
+  congr 1
+  congr 1
+  mem_omega
+
+/-- **Lemma 6 (merge), accepted.** With `balance + other ≤ bound` the guard runs to its end,
+leaving the stack and the memory counter as it found them and five opcodes charged. -/
+theorem mergeGuard_accepts (env : Env) (t : Bytes) (st : State) (s : List Bytes) (bal other bound : Bytes)
+    (hstk : st.stack = s) (hbal : s.getD 45 [] = bal) (hother : s.getD 51 [] = other)
+    (hbound : s.getD 10 [] = bound)
+    (hlen : 51 < s.length) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 6 ≤ env.params.limits.maxOpsPerScript)
+    (hb : bal.length ≤ env.params.limits.maxScriptNumLength)
+    (ho : other.length ≤ env.params.limits.maxScriptNumLength)
+    (hbd : bound.length ≤ env.params.limits.maxScriptNumLength)
+    (hsum : (encode (decode bal + decode other)).length ≤ env.params.limits.maxScriptNumLength)
+    (hone : 1 ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed + bal.length + other.length + (encode (decode bal + decode other)).length + bound.length +
+      1 + 3 * elementOverhead ≤ env.params.limits.maxStackMemoryUsage)
+    (hle : decode bal + decode other ≤ decode bound) :
+    run Eval.opExec env mergeGuard t st =
+      .next { st with opCount := st.opCount + 6, stack := s, memUsed := st.memUsed } := by
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [mergeGuard_run env t st s bal other bound hstk hbal hother hbound hlen ⟨hact, hret, hgen⟩ hmin hops hb ho hbd
+    hsum hone hmem]
+  simp only [hle, if_true, vec_1]
+  rw [run_verify_true env t
+    { st with opCount := st.opCount + 5, stack := [1] :: s, memUsed := st.memUsed + [1].length + elementOverhead }
+    [1] s (by decide) rfl ⟨hact, hret, hgen⟩ (by show st.opCount + 5 + 1 ≤ _; omega)]
+  congr 1
+  all_goals (first | rfl |
+    (congr 1 <;> (try simp only [List.length_nil, List.length_cons, Nat.add_zero, Nat.zero_add, elementOverhead]) <;>
+      omega))
+
+/-- **Lemma 6 (merge), refused.** With `balance + other > bound` the guard fails with
+`SCRIPT_ERR_VERIFY`: an overflowing merge is refused at its commit. -/
+theorem mergeGuard_refuses (env : Env) (t : Bytes) (st : State) (s : List Bytes) (bal other bound : Bytes)
+    (hstk : st.stack = s) (hbal : s.getD 45 [] = bal) (hother : s.getD 51 [] = other)
+    (hbound : s.getD 10 [] = bound)
+    (hlen : 51 < s.length) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 6 ≤ env.params.limits.maxOpsPerScript)
+    (hb : bal.length ≤ env.params.limits.maxScriptNumLength)
+    (ho : other.length ≤ env.params.limits.maxScriptNumLength)
+    (hbd : bound.length ≤ env.params.limits.maxScriptNumLength)
+    (hsum : (encode (decode bal + decode other)).length ≤ env.params.limits.maxScriptNumLength)
+    (hone : 1 ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed + bal.length + other.length + (encode (decode bal + decode other)).length + bound.length +
+      1 + 3 * elementOverhead ≤ env.params.limits.maxStackMemoryUsage)
+    (hgt : decode bound < decode bal + decode other) :
+    ∃ st', run Eval.opExec env mergeGuard t st = .err .verify st' := by
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [mergeGuard_run env t st s bal other bound hstk hbal hother hbound hlen ⟨hact, hret, hgen⟩ hmin hops hb ho hbd
+    hsum hone hmem]
+  have hn : ¬ (decode bal + decode other ≤ decode bound) := by omega
+  simp only [hn, if_false, encode_zero]
+  exact ⟨_, run_verify_false env t
+    { st with opCount := st.opCount + 5, stack := [] :: s, memUsed := st.memUsed + [].length + elementOverhead }
+    [] s (by decide) rfl ⟨hact, hret, hgen⟩ (by show st.opCount + 5 + 1 ≤ _; omega)⟩
+
+/-- **Lemma 6 (merge) as an equivalence.** Under the guard's preconditions, it runs to its end
+iff `balance + other ≤ bound`. -/
+theorem mergeGuard_next_iff (env : Env) (t : Bytes) (st : State) (s : List Bytes) (bal other bound : Bytes)
+    (hstk : st.stack = s) (hbal : s.getD 45 [] = bal) (hother : s.getD 51 [] = other)
+    (hbound : s.getD 10 [] = bound)
+    (hlen : 51 < s.length) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 6 ≤ env.params.limits.maxOpsPerScript)
+    (hb : bal.length ≤ env.params.limits.maxScriptNumLength)
+    (ho : other.length ≤ env.params.limits.maxScriptNumLength)
+    (hbd : bound.length ≤ env.params.limits.maxScriptNumLength)
+    (hsum : (encode (decode bal + decode other)).length ≤ env.params.limits.maxScriptNumLength)
+    (hone : 1 ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed + bal.length + other.length + (encode (decode bal + decode other)).length + bound.length +
+      1 + 3 * elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    (∃ st', run Eval.opExec env mergeGuard t st = .next st') ↔ decode bal + decode other ≤ decode bound := by
+  constructor
+  · intro ⟨st', h⟩
+    by_contra hgt
+    obtain ⟨st'', h'⟩ := mergeGuard_refuses env t st s bal other bound hstk hbal hother hbound hlen he hmin hops hb ho
+      hbd hsum hone hmem (by omega)
+    rw [h] at h'
+    cases h'
+  · intro hle
+    exact ⟨_, mergeGuard_accepts env t st s bal other bound hstk hbal hother hbound hlen he hmin hops hb ho hbd hsum
+      hone hmem hle⟩
+
 end BoltProof.Gadgets

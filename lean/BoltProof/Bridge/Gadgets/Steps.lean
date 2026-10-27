@@ -34,7 +34,7 @@ macro "step_simp" : tactic =>
       Ops.Stack.pushCount, Ops.Splice.exec, Ops.Crypto.exec, Ops.Expansion.exec,
       popElem, pushElem, HookR.ofExcept, bind, Except.bind, pure, Except.pure, run.eq_1,
       Op.OP_0, Op.OP_PUSHDATA1, Op.OP_PUSHDATA2, Op.OP_PUSHDATA4, Op.OP_1NEGATE, Op.OP_1, Op.OP_16,
-      Op.OP_NOP, Op.OP_VER, Op.OP_IF, Op.OP_NOTIF, Op.OP_VERIF, Op.OP_VERNOTIF, Op.OP_ELSE,
+      Op.OP_11, Op.OP_NOP, Op.OP_VER, Op.OP_IF, Op.OP_NOTIF, Op.OP_VERIF, Op.OP_VERNOTIF, Op.OP_ELSE,
       Op.OP_ENDIF, Op.OP_VERIFY, Op.OP_RETURN, Op.OP_TOALTSTACK, Op.OP_FROMALTSTACK, Op.OP_2DROP,
       Op.OP_2DUP, Op.OP_3DUP, Op.OP_2OVER, Op.OP_2ROT, Op.OP_2SWAP, Op.OP_IFDUP, Op.OP_DEPTH,
       Op.OP_DROP, Op.OP_DUP, Op.OP_NIP, Op.OP_OVER, Op.OP_PICK, Op.OP_ROLL, Op.OP_ROT, Op.OP_SWAP,
@@ -224,5 +224,67 @@ theorem run_pick (env : Env) (t : Bytes) (st : State) (idx : Bytes) (s : List By
   rw [run.eq_2]
   step_simp
   all_goals omega
+
+/-- **`OP_ADD`** (`1304–1306`) on operands `b1` (below) and `b2` (top): both popped, the sum
+pushed; post-Genesis the result must fit the number width. -/
+theorem run_add (env : Env) (t : Bytes) (st : State) (b1 b2 : Bytes) (rest : List Bytes)
+    (hstk : st.stack = b2 :: b1 :: rest) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hl1 : b1.length ≤ env.params.limits.maxScriptNumLength)
+    (hl2 : b2.length ≤ env.params.limits.maxScriptNumLength)
+    (hres : (encode (decode b1 + decode b2)).length ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+      (encode (decode b1 + decode b2)).length + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_ADD] t st =
+      .next { st with opCount := st.opCount + 1,
+                      stack := encode (decode b1 + decode b2) :: rest,
+                      memUsed := st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+                        (encode (decode b1 + decode b2)).length + elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hl1' : ¬ (env.params.limits.maxScriptNumLength < b1.length) := by omega
+  have hl2' : ¬ (env.params.limits.maxScriptNumLength < b2.length) := by omega
+  have hres' : ¬ (env.params.limits.maxScriptNumLength < (encode (decode b1 + decode b2)).length) := by omega
+  have hmem' : ¬ (st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+      (encode (decode b1 + decode b2)).length + elementOverhead > env.params.limits.maxStackMemoryUsage) := by
+    omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_LESSTHANOREQUAL`** (`1351–1353`) on operands `b1` (below) and `b2` (top): both popped,
+`1` or `0` pushed as a script number. -/
+theorem run_lte (env : Env) (t : Bytes) (st : State) (b1 b2 : Bytes) (rest : List Bytes)
+    (hstk : st.stack = b2 :: b1 :: rest) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hl1 : b1.length ≤ env.params.limits.maxScriptNumLength)
+    (hl2 : b2.length ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+      (encode (if decode b1 ≤ decode b2 then 1 else 0)).length + elementOverhead ≤
+      env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_LESSTHANOREQUAL] t st =
+      .next { st with opCount := st.opCount + 1,
+                      stack := encode (if decode b1 ≤ decode b2 then 1 else 0) :: rest,
+                      memUsed := st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+                        (encode (if decode b1 ≤ decode b2 then 1 else 0)).length + elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hl1' : ¬ (env.params.limits.maxScriptNumLength < b1.length) := by omega
+  have hl2' : ¬ (env.params.limits.maxScriptNumLength < b2.length) := by omega
+  have hmem' : ¬ (st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+      (encode (if decode b1 ≤ decode b2 then 1 else 0)).length + elementOverhead >
+      env.params.limits.maxStackMemoryUsage) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_11`** (`488–507`): the small integer `11` pushed as `[0x0b]`; no opcode counted. -/
+theorem run_op11 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
+    (hmem : st.memUsed + 1 + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_11] t st =
+      .next { st with stack := [11] :: st.stack, memUsed := st.memUsed + 1 + elementOverhead } := by
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed + 1 + elementOverhead) := by omega
+  have h11 : encode (11 : Int) = [11] := by decide
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
 
 end BoltProof.Gadgets
