@@ -55,6 +55,7 @@ hypotheses, never axioms (`Model/Assumptions.lean`): `CollisionFree P` (A1) and
 | T3 Balance conservation | `Run.t3_conservation`, `Run.t3_no_melt`, `Run.t3_single_genesis`, `Run.t3_nft_count` (`Theorems/Balance.lean`) | none |
 | T2 Ownership | `t2_presented`, `t2_ownership`, `t2_no_keyless_spend` (`Theorems/Ownership.lean`) | A2 for `t2_ownership` |
 | T1 Authenticity | `Run.t1_authenticity`, `Run.t1_issuer_invariant`, `Run.live_rooted`, `Run.t1_rebuild_sound` (`Theorems/Authenticity.lean`) | A1 for `t1_rebuild_sound` only |
+| T5 Proof gating (the fabricated-hop exclusion, §8.1) | `Run.t5_proof_gating`, `Run.t5_balance_anchor`, `Run.t5_fabricated_hop_excluded` (`Theorems/ProofGating.lean`) | the UTXO rule `NoDoubleSpend` for gating; A1 for the balance anchor |
 
 Two statements are sharper than the prose:
 
@@ -68,6 +69,15 @@ Two statements are sharper than the prose:
   is well-founded, ends at a parentless genesis token of the run, that every token on it carries
   the run's issuer, and that every link is a real covenant-accepted transition whose types follow
   the machine (`Rooted`).
+
+**T5** is the ledger-level reading of the §8.1 fabricated-hop defence, stated above the
+single-spend interface: under the UTXO rule that no outpoint is consumed twice, two distinct
+settles of tokens with grandparents consume two distinct proof outpoints, so a commit's proof
+admits at most one settle, honest or forged; and under collision resistance the balance a settle
+carries is exactly the settle result of the real commit its grandparent names. A fabrication
+that runs no covenant can still exist on-chain (the run model admits only covenant-created
+tokens; the off-chain verifier's lineage checks refuse such an anchor), but it can extract
+nothing through a real proof beyond the real transition.
 
 `Theorems/Example.lean` builds the five-transaction NFT lifecycle of the test harness as a
 concrete run and proves it `Valid`, so the interface is not vacuous.

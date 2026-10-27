@@ -19,7 +19,9 @@ Follow-ups (the residual trust boundary, in order of value):
         OP_LESSTHANOREQUAL OP_VERIFY …`, needs OP_DUP and OP_14).
   - [ ] L7, the `txoType` parity check.
 - [ ] Pin the exact `ScriptError` of every rejected vector (`PINNED` in `lean/vectors/export.test.ts`).
-- [ ] A ledger-level theorem (T5) that every settle with a grandparent consumes the proof of a unique real
-      commit — the fabricated-hop exclusion stated above the single-spend interface.
+- [x] A ledger-level theorem (T5) that every settle with a grandparent consumes the proof of a unique real
+      commit — the fabricated-hop exclusion stated above the single-spend interface
+      (`lean/BoltProof/Theorems/ProofGating.lean`: `t5_proof_gating`, `t5_balance_anchor`,
+      `t5_fabricated_hop_excluded`; hypotheses: the UTXO no-double-spend rule and collision-freeness).
 - [ ] Decide the `is2ndTx` question recorded in `lean/README.md` (redundant on honest chains vs hardening the
       fungible family lacks).

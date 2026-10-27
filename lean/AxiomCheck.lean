@@ -24,3 +24,6 @@ open BoltProof
 #print axioms Run.t1_authenticity
 #print axioms Run.t1_issuer_invariant
 #print axioms Run.t1_rebuild_sound
+#print axioms Run.t5_proof_gating
+#print axioms Run.t5_balance_anchor
+#print axioms Run.t5_fabricated_hop_excluded
