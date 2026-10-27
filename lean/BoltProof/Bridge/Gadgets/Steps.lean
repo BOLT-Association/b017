@@ -24,7 +24,10 @@ open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Ga
 
 /-- The simp set that evaluates one non-push instruction of `run`: the loop's step, the
 dispatcher, every family hook, and the opcode constants their `if` chains compare against. -/
-macro "step_simp" : tactic =>
+syntax "step_simp" (" [" Lean.Parser.Tactic.simpArg,* "]")? : tactic
+macro_rules
+  | `(tactic| step_simp) => `(tactic| step_simp [])
+  | `(tactic| step_simp [$hs,*]) =>
   `(tactic| simp [getOpTail, execStep, execFlow, isOpcodeDisabled, checkMinimalPush, Eval.opExec,
       Ops.Arith.exec, Ops.Arith.isUnary, Ops.Arith.isBinary, Ops.Arith.unary, Ops.Arith.binary,
       Ops.Arith.readOperand, Ops.Arith.pushResult, Ops.Arith.pushBool, Ops.Arith.binaryValue,
@@ -34,7 +37,7 @@ macro "step_simp" : tactic =>
       Ops.Stack.pushCount, Ops.Splice.exec, Ops.Crypto.exec, Ops.Expansion.exec,
       popElem, pushElem, HookR.ofExcept, bind, Except.bind, pure, Except.pure, run.eq_1,
       Op.OP_0, Op.OP_PUSHDATA1, Op.OP_PUSHDATA2, Op.OP_PUSHDATA4, Op.OP_1NEGATE, Op.OP_1, Op.OP_16,
-      Op.OP_11, Op.OP_NOP, Op.OP_VER, Op.OP_IF, Op.OP_NOTIF, Op.OP_VERIF, Op.OP_VERNOTIF, Op.OP_ELSE,
+      Op.OP_11, Op.OP_2, Op.OP_NOP, Op.OP_VER, Op.OP_IF, Op.OP_NOTIF, Op.OP_VERIF, Op.OP_VERNOTIF, Op.OP_ELSE,
       Op.OP_ENDIF, Op.OP_VERIFY, Op.OP_RETURN, Op.OP_TOALTSTACK, Op.OP_FROMALTSTACK, Op.OP_2DROP,
       Op.OP_2DUP, Op.OP_3DUP, Op.OP_2OVER, Op.OP_2ROT, Op.OP_2SWAP, Op.OP_IFDUP, Op.OP_DEPTH,
       Op.OP_DROP, Op.OP_DUP, Op.OP_NIP, Op.OP_OVER, Op.OP_PICK, Op.OP_ROLL, Op.OP_ROT, Op.OP_SWAP,
@@ -47,7 +50,7 @@ macro "step_simp" : tactic =>
       Op.OP_WITHIN, Op.OP_RIPEMD160, Op.OP_SHA1, Op.OP_SHA256, Op.OP_HASH160, Op.OP_HASH256,
       Op.OP_CODESEPARATOR, Op.OP_CHECKSIG, Op.OP_CHECKSIGVERIFY, Op.OP_CHECKMULTISIG,
       Op.OP_CHECKMULTISIGVERIFY, Op.OP_NOP1, Op.OP_CHECKLOCKTIMEVERIFY, Op.OP_CHECKSEQUENCEVERIFY,
-      Op.OP_NOP9, Op.OP_NOP10, *])
+      Op.OP_NOP9, Op.OP_NOP10, *, $hs,*])
 
 /-- The preconditions every executing instruction shares (the module header). -/
 structure Exec (env : Env) (st : State) : Prop where
@@ -286,5 +289,198 @@ theorem run_op11 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
   obtain ⟨hact, hret, hgen⟩ := he
   rw [run.eq_2]
   step_simp
+
+/-! ## Small-integer pushes, arithmetic and stack shuffles the parity check uses -/
+
+/-- **`OP_1`** (`488–507`): `[1]` pushed; no opcode counted. -/
+theorem run_op1 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
+    (hmem : st.memUsed + 1 + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_1] t st =
+      .next { st with stack := [1] :: st.stack, memUsed := st.memUsed + 1 + elementOverhead } := by
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed + 1 + elementOverhead) := by omega
+  have h1 : encode (1 : Int) = [1] := by decide
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_2`** (`488–507`): `[2]` pushed; no opcode counted. -/
+theorem run_op2 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
+    (hmem : st.memUsed + 1 + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_2] t st =
+      .next { st with stack := [2] :: st.stack, memUsed := st.memUsed + 1 + elementOverhead } := by
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed + 1 + elementOverhead) := by omega
+  have h2 : encode (2 : Int) = [2] := by decide
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_MOD`** (`1324–1330`) on operands `b1` (below) and `b2` (top), `b2` non-zero: both
+popped, the truncated remainder pushed. -/
+theorem run_mod (env : Env) (t : Bytes) (st : State) (b1 b2 : Bytes) (rest : List Bytes)
+    (hstk : st.stack = b2 :: b1 :: rest) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hnz : decode b2 ≠ 0)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hl1 : b1.length ≤ env.params.limits.maxScriptNumLength)
+    (hl2 : b2.length ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+      (encode (Int.tmod (decode b1) (decode b2))).length + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_MOD] t st =
+      .next { st with opCount := st.opCount + 1,
+                      stack := encode (Int.tmod (decode b1) (decode b2)) :: rest,
+                      memUsed := st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+                        (encode (Int.tmod (decode b1) (decode b2))).length + elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hl1' : ¬ (env.params.limits.maxScriptNumLength < b1.length) := by omega
+  have hl2' : ¬ (env.params.limits.maxScriptNumLength < b2.length) := by omega
+  have hmem' : ¬ (st.memUsed - (b2.length + elementOverhead) - (b1.length + elementOverhead) +
+      (encode (Int.tmod (decode b1) (decode b2))).length + elementOverhead > env.params.limits.maxStackMemoryUsage) := by
+    omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_DUP`** (`980–987`): the top copied. -/
+theorem run_dup (env : Env) (t : Bytes) (st : State) (x : Bytes) (rest : List Bytes)
+    (hstk : st.stack = x :: rest) (he : Exec env st)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hmem : st.memUsed + x.length + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_DUP] t st =
+      .next { st with opCount := st.opCount + 1, stack := x :: x :: rest,
+                      memUsed := st.memUsed + x.length + elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed + x.length + elementOverhead) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_1ADD`** (`1237–1241`): the top incremented; post-Genesis the result must fit the
+number width. -/
+theorem run_1add (env : Env) (t : Bytes) (st : State) (x : Bytes) (rest : List Bytes)
+    (hstk : st.stack = x :: rest) (he : Exec env st) (hmin : env.requireMinimal = false)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript)
+    (hl : x.length ≤ env.params.limits.maxScriptNumLength)
+    (hres : (encode (decode x + 1)).length ≤ env.params.limits.maxScriptNumLength)
+    (hmem : st.memUsed - (x.length + elementOverhead) + (encode (decode x + 1)).length + elementOverhead ≤
+      env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_1ADD] t st =
+      .next { st with opCount := st.opCount + 1, stack := encode (decode x + 1) :: rest,
+                      memUsed := st.memUsed - (x.length + elementOverhead) + (encode (decode x + 1)).length +
+                        elementOverhead } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  have hl' : ¬ (env.params.limits.maxScriptNumLength < x.length) := by omega
+  have hres' : ¬ (env.params.limits.maxScriptNumLength < (encode (decode x + 1)).length) := by omega
+  have hmem' : ¬ (st.memUsed - (x.length + elementOverhead) + (encode (decode x + 1)).length + elementOverhead >
+      env.params.limits.maxStackMemoryUsage) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp
+
+/-- **`OP_SWAP`** (`1040–1046`): the top two exchanged. -/
+theorem run_swap (env : Env) (t : Bytes) (st : State) (a b : Bytes) (rest : List Bytes)
+    (hstk : st.stack = a :: b :: rest) (he : Exec env st)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript) :
+    run Eval.opExec env [Op.OP_SWAP] t st =
+      .next { st with opCount := st.opCount + 1, stack := b :: a :: rest } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp [Ops.Stack.swapTop]
+
+/-! ## Conditionals -/
+
+/-- **`OP_IF`** (`784–825`) on `[1]`: the top popped, the branch taken (`opIf true`). -/
+theorem run_if_one (env : Env) (t : Bytes) (st : State) (rest : List Bytes)
+    (hstk : st.stack = [1] :: rest) (he : Exec env st)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript) :
+    run Eval.opExec env [Op.OP_IF] t st =
+      .next { st with opCount := st.opCount + 1, stack := rest,
+                      memUsed := st.memUsed - (1 + elementOverhead), cond := st.cond.opIf true } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp [execIf, castToBool]
+
+/-- **`OP_IF`** on `[]`: the top popped, the branch skipped (`opIf false`). -/
+theorem run_if_nil (env : Env) (t : Bytes) (st : State) (rest : List Bytes)
+    (hstk : st.stack = [] :: rest) (he : Exec env st)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript) :
+    run Eval.opExec env [Op.OP_IF] t st =
+      .next { st with opCount := st.opCount + 1, stack := rest,
+                      memUsed := st.memUsed - (0 + elementOverhead), cond := st.cond.opIf false } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp [execIf, castToBool]
+
+/-- **`OP_ELSE`** (`827–833`) directly inside an `OP_IF`: the innermost condition flipped. It
+runs whether or not the branch is active. -/
+theorem run_else (env : Env) (t : Bytes) (st : State) (c : Cond) (b : Bool)
+    (hc : st.cond = c.opIf b) (hret : st.nonTopLevelReturn = false) (hgen : env.utxoAfterGenesis = true)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript) :
+    run Eval.opExec env [Op.OP_ELSE] t st =
+      .next { st with opCount := st.opCount + 1, cond := (c.opIf b).opElse } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  rw [run.eq_2]
+  step_simp [Cond.opIf, Cond.empty, Cond.hasOpElse, Cond.opElse, Cond.isActive]
+
+/-- **`OP_ENDIF`** (`835–840`) closing an `OP_IF` branch (no `OP_ELSE`): the condition popped. -/
+theorem run_endif_if (env : Env) (t : Bytes) (st : State) (c : Cond) (b : Bool)
+    (hc : st.cond = c.opIf b) (hret : st.nonTopLevelReturn = false) (hgen : env.utxoAfterGenesis = true)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript) :
+    run Eval.opExec env [Op.OP_ENDIF] t st = .next { st with opCount := st.opCount + 1, cond := c } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  rw [run.eq_2]
+  step_simp [Cond.opIf, Cond.empty, Cond.opEndif, Cond.isActive]
+  split <;> simp_all [Cond.opIf]
+
+/-- **`OP_ENDIF`** closing an `OP_IF … OP_ELSE` branch: the condition popped. -/
+theorem run_endif_else (env : Env) (t : Bytes) (st : State) (c : Cond) (b : Bool)
+    (hc : st.cond = (c.opIf b).opElse) (hret : st.nonTopLevelReturn = false) (hgen : env.utxoAfterGenesis = true)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript) :
+    run Eval.opExec env [Op.OP_ENDIF] t st = .next { st with opCount := st.opCount + 1, cond := c } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  rw [run.eq_2]
+  step_simp [Cond.opIf, Cond.opElse, Cond.empty, Cond.opEndif, Cond.isActive]
+  split <;> simp_all [Cond.opIf, Cond.opElse]
+
+/-! ## Skipped instructions inside an inactive branch -/
+
+/-- The preconditions of an instruction inside a branch that is not executing. -/
+structure Skip (env : Env) (st : State) : Prop where
+  inact : st.cond.isActive = false
+  ret : st.nonTopLevelReturn = false
+  gen : env.utxoAfterGenesis = true
+
+/-- A one-byte push inside an inactive branch: parsed and skipped, nothing counted. -/
+theorem run_skip_push1 (env : Env) (t : Bytes) (st : State) (b : Nat) (hs : Skip env st) :
+    run Eval.opExec env [1, b] t st = .next st := by
+  obtain ⟨hinact, hret, hgen⟩ := hs
+  rw [run.eq_2]
+  step_simp
+
+/-- `OP_0` inside an inactive branch: skipped, nothing counted. -/
+theorem run_skip_push0 (env : Env) (t : Bytes) (st : State) (hs : Skip env st) :
+    run Eval.opExec env [Op.OP_0] t st = .next st := by
+  obtain ⟨hinact, hret, hgen⟩ := hs
+  rw [run.eq_2]
+  step_simp
+
+/-- `OP_1` inside an inactive branch: skipped, nothing counted. -/
+theorem run_skip_op1 (env : Env) (t : Bytes) (st : State) (hs : Skip env st) :
+    run Eval.opExec env [Op.OP_1] t st = .next st := by
+  obtain ⟨hinact, hret, hgen⟩ := hs
+  rw [run.eq_2]
+  step_simp
+
+/-- A non-flow opcode above `OP_16` inside an inactive branch: counted, not executed. The
+parity check skips `OP_PICK`, `OP_1ADD` and `OP_EQUALVERIFY` this way. -/
+theorem run_skip_op (env : Env) (t : Bytes) (st : State) (op : Nat) (hs : Skip env st)
+    (hop : op = Op.OP_PICK ∨ op = Op.OP_1ADD ∨ op = Op.OP_EQUALVERIFY)
+    (hops : st.opCount + 1 ≤ env.params.limits.maxOpsPerScript) :
+    run Eval.opExec env [op] t st = .next { st with opCount := st.opCount + 1 } := by
+  have hops' : ¬ (st.opCount + 1 > env.params.limits.maxOpsPerScript) := by omega
+  obtain ⟨hinact, hret, hgen⟩ := hs
+  rw [run.eq_2]
+  rcases hop with rfl | rfl | rfl <;> step_simp
 
 end BoltProof.Gadgets

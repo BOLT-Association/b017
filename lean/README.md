@@ -112,10 +112,12 @@ bsv-script-lean's own instruction loop (`Gadget.run`, the semantics' `Machine.lo
 end test), with only the three standard axioms, in the style of their `Gadget/HashLock.lean`:
 
 * `Gadgets/Steps.lean`: the effect of one instruction on the machine state for `OP_SIZE`,
-  `OP_NIP`, `OP_0`, a one-byte push, `OP_EQUALVERIFY` (the failing case), `OP_VERIFY` (both
-  cases), `OP_GREATERTHANOREQUAL`, `OP_SUB` and `OP_PICK`, each under the reference's
-  preconditions (an executing branch, room under the op-count and memory limits, a post-Genesis
-  UTXO, the block path's flag word).
+  `OP_NIP`, `OP_0`, `OP_1`, `OP_2`, `OP_11`, a one-byte push, `OP_EQUALVERIFY` (the failing
+  case), `OP_VERIFY` (both cases), `OP_GREATERTHANOREQUAL`, `OP_LESSTHANOREQUAL`, `OP_SUB`,
+  `OP_ADD`, `OP_MOD`, `OP_1ADD`, `OP_DUP`, `OP_SWAP`, `OP_PICK`, the conditionals `OP_IF`
+  (both outcomes), `OP_ELSE` and `OP_ENDIF`, and the instructions an inactive branch skips,
+  each under the reference's preconditions (an executing branch, room under the op-count and
+  memory limits, a post-Genesis UTXO, the block path's flag word).
 * `Gadgets/NullAncestor.lean` — **Lemma 4 over the bytes.** The null-ancestor check's tail
   `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY` (`82 77 00 88`), which runs after the ancestor
   arguments are concatenated, reaches its end exactly when the concatenation is empty
@@ -133,8 +135,25 @@ end test), with only the three standard axioms, in the style of their `Gadget/Ha
   OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` (`01 2d 79 01 34 79 93 5b 79 a1 69`) runs to its
   end exactly when `balance + other ≤ bound`, the bound being the value the covenant keeps ten
   deep (`mergeGuard_accepts`, `mergeGuard_refuses`, `mergeGuard_next_iff`): an overflowing
-  merge is refused at its commit for every input. The settle-side re-checks and the L7 parity
-  check are the next follow-ups. `lake exe boltvectors` runs the same verdicts natively and prints a
+  merge is refused at its commit for every input. The settle-side re-checks are the next
+  follow-up.
+* `Gadgets/Parity.lean` — **Lemma 7 over the bytes.** The fungible covenant's parity check,
+  the 29 bytes `01 1a 79 52 97 76 63 01 26 79 8b 01 1c 79 88 68 76 01 27 79 52 97 7c 63 00 67
+  51 68 88` at offset 528 of the shipped `SimpleMultiBOLT` suffix (`1a OP_PICK OP_2 OP_MOD
+  OP_DUP OP_IF 26 OP_PICK OP_1ADD 1c OP_PICK OP_EQUALVERIFY OP_ENDIF OP_DUP 27 OP_PICK OP_2
+  OP_MOD OP_SWAP OP_IF OP_0 OP_ELSE OP_1 OP_ENDIF OP_EQUALVERIFY`), runs to its end exactly
+  when the hand proof's predicate holds — an odd (commit-typed) spent type forces the produced
+  type to be one less, byte for byte, and an even (settle-typed) spent type forces an odd one
+  (`parityCheck_next_iff`, with the state it leaves pinned down by `parityCheck_accepts_commit`
+  and `parityCheck_accepts_settle`) — and fails with `SCRIPT_ERR_EQUALVERIFY` otherwise
+  (`parityCheck_refuses_commit`, `parityCheck_refuses_settle`). On the six defined type bytes
+  this is the model's own edge relation: `parityCheck_edge_iff` states that the fragment accepts
+  iff `Fam.edge .fungible a b`, so the Layer-1 clauses `commit_type`/`settle_type` are, for this
+  family, exactly what these bytes enforce. The proof composes the fragment from four
+  sub-fragments (head, settle-side branch taken or skipped, produced-type parity, complement)
+  with `run_append`, and walks both outcomes of every conditional.
+
+`lake exe boltvectors` runs the same verdicts natively and prints a
 table, with the pre-Chronicle verdict as an informative control.
 
 **Judging height, and a finding.** Every vector is judged at bsv-script-lean's
@@ -152,7 +171,7 @@ transactions are simply invalid. The P2PKH and proof inputs are valid in both er
 
 | Item | Status |
 |---|---|
-| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail and both Lemma 6 commit guards (split over-take, merge sum) are proved for every input at the fragment level (`Gadgets/`); the settle re-checks and the L7 parity check are the next follow-ups. |
+| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail, both Lemma 6 commit guards (split over-take, merge sum) and the Lemma 7 parity check of the fungible covenant are proved for every input at the fragment level (`Gadgets/`); the Lemma 6 settle-side re-checks and the NFT family's type check are the next follow-ups. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
