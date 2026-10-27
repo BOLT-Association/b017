@@ -48,6 +48,9 @@ All notable changes to **b017** are documented here. The format is based on
   `2d OP_PICK 34 OP_PICK OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY` passes exactly when `piece ≤ balance` and
   fails with `SCRIPT_ERR_VERIFY` otherwise, for every input. **Its merge sum guard** `2d OP_PICK 34 OP_PICK OP_ADD
   OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` likewise passes exactly when `balance + other ≤ bound`.
+- **Theorem 5, proof gating** (`lean/BoltProof/Theorems/ProofGating.lean`): the §8.1 fabricated-hop exclusion at the
+  ledger level — under the UTXO no-double-spend rule a commit's proof output admits at most one settle, and under
+  collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
