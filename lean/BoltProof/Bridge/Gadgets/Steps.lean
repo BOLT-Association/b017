@@ -292,6 +292,28 @@ theorem run_op11 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
 
 /-! ## Small-integer pushes, arithmetic and stack shuffles the parity check uses -/
 
+/-- **`OP_5`** (`488–507`): `[5]` pushed; no opcode counted. -/
+theorem run_op5 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
+    (hmem : st.memUsed + 1 + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_5] t st =
+      .next { st with stack := [5] :: st.stack, memUsed := st.memUsed + 1 + elementOverhead } := by
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed + 1 + elementOverhead) := by omega
+  have h5 : encode (5 : Int) = [5] := by decide
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp [Op.OP_5]
+
+/-- **`OP_14`** (`488–507`): `[14]` pushed; no opcode counted. -/
+theorem run_op14 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
+    (hmem : st.memUsed + 1 + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :
+    run Eval.opExec env [Op.OP_14] t st =
+      .next { st with stack := [14] :: st.stack, memUsed := st.memUsed + 1 + elementOverhead } := by
+  have hmem' : ¬ (env.params.limits.maxStackMemoryUsage < st.memUsed + 1 + elementOverhead) := by omega
+  have h14 : encode (14 : Int) = [14] := by decide
+  obtain ⟨hact, hret, hgen⟩ := he
+  rw [run.eq_2]
+  step_simp [Op.OP_14]
+
 /-- **`OP_1`** (`488–507`): `[1]` pushed; no opcode counted. -/
 theorem run_op1 (env : Env) (t : Bytes) (st : State) (he : Exec env st)
     (hmem : st.memUsed + 1 + elementOverhead ≤ env.params.limits.maxStackMemoryUsage) :

@@ -59,6 +59,11 @@ All notable changes to **b017** are documented here. The format is based on
   the selector `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` of `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT`
   appends type `0x00` to a commit-typed token's successor and `0x21` to a settle-typed one's, for every input; on
   the family's type bytes this is the model's `Fam.edge .nft` relation (`nftTypeSel_edge`).
+- **Lemma 6's bounds and settle-side re-checks proved over the bytecode** (`Gadgets/BalanceBounds.lean`): the
+  balance bound check (`0 ≤ balance ≤ 2¹²⁷−1`, offsets 610 and 621), the merge settle's sum re-check (offset 781)
+  and the split settle's remainder re-check (offset 935) each pass exactly when their arithmetic predicate holds
+  and fail with `SCRIPT_ERR_VERIFY` otherwise, for every input; with the commit guards this closes Lemma 6 at the
+  fragment level.
 - **Theorem 5, proof gating** (`lean/BoltProof/Theorems/ProofGating.lean`): the §8.1 fabricated-hop exclusion at the
   ledger level — under the UTXO no-double-spend rule a commit's proof output admits at most one settle, and under
   collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.
