@@ -6,6 +6,55 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- **A machine-checked proof** (`lean/`, Lean 4). Layer 1 states Lemmas 1–7 of `docs/formal-proof.md` as the
+  covenant interface and proves Theorems 1–4 from it for both families over arbitrary runs, with Assumptions 1–2
+  as hypotheses and only Lean's three standard axioms; a concrete NFT lifecycle is proved a valid run. Layer 2
+  runs the shipped covenant bytes on the test suite's real transactions — the honest lifecycles and every
+  red-team attack, plus the historical fabricated-hop chain against its pre-fix bytes — inside Lean with the
+  bsv-script-lean v1.2.0 consensus semantics and registers each verdict with the kernel (`native_decide`), and
+  recomputes the scanner's suffix fingerprints. `npm run lean:vectors` regenerates the vectors deterministically;
+  the new CI job `lean-proof` builds the proof, runs every vector, audits axioms and fails on vector drift.
+  `docs/formal-proof.md` §1.6 states the remaining trust boundary (bytecode-to-interface fidelity beyond the
+  covered inputs; A3; A4).
+- `test/helpers/minSimpleAttacks.ts`: the NFT red-team builders, shared by the suite and the exporter.
+- **Lemma 4 proved over the bytecode** (`lean/BoltProof/Bridge/Gadgets/`): the null-ancestor check's tail
+  `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY` passes exactly when the concatenated ancestor arguments are empty and
+  fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input, over bsv-script-lean's own instruction loop and
+  with only the three standard axioms; nine per-instruction step lemmas it rests on.
+- **Lemma 6's over-take guard proved over the bytecode** (`Gadgets/BalanceGuards.lean`): the split commit's
+  `2d OP_PICK 34 OP_PICK OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY` passes exactly when `piece ≤ balance` and
+  fails with `SCRIPT_ERR_VERIFY` otherwise, for every input. **Its merge sum guard** `2d OP_PICK 34 OP_PICK OP_ADD
+  OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` likewise passes exactly when `balance + other ≤ bound`.
+- **Lemma 7 proved over the bytecode** (`Gadgets/Parity.lean`): the fungible covenant's 29-byte parity check
+  (`1a OP_PICK OP_2 OP_MOD OP_DUP OP_IF … OP_ENDIF OP_DUP 27 OP_PICK OP_2 OP_MOD OP_SWAP OP_IF OP_0 OP_ELSE OP_1
+  OP_ENDIF OP_EQUALVERIFY`) passes exactly when a commit-typed spent token is followed by its own settle type and a
+  settle-typed one by a commit type, and fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input; on the six
+  defined type bytes this is the Lean model's `Fam.edge .fungible` relation (`parityCheck_edge_iff`). Step lemmas
+  for the conditionals (`OP_IF`, `OP_ELSE`, `OP_ENDIF`, skipped instructions) and the arithmetic added.
+- **Lemma 7 for the NFT family proved over the bytecode** (`Gadgets/NftType.lean`): the NFT covenants write the
+  produced type rather than check it — the prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` flag is `txoType ≠ 0`, and
+  the selector `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` of `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT`
+  appends type `0x00` to a commit-typed token's successor and `0x21` to a settle-typed one's, for every input; on
+  the family's type bytes this is the model's `Fam.edge .nft` relation (`nftTypeSel_edge`).
+- **Lemma 6's bounds and settle-side re-checks proved over the bytecode** (`Gadgets/BalanceBounds.lean`): the
+  balance bound check (`0 ≤ balance ≤ 2¹²⁷−1`, offsets 610 and 621), the merge settle's sum re-check (offset 781)
+  and the split settle's remainder re-check (offset 935) each pass exactly when their arithmetic predicate holds
+  and fail with `SCRIPT_ERR_VERIFY` otherwise, for every input; with the commit guards this closes Lemma 6 at the
+  fragment level.
+- **Theorem 5, proof gating** (`lean/BoltProof/Theorems/ProofGating.lean`): the §8.1 fabricated-hop exclusion at the
+  ledger level — under the UTXO no-double-spend rule a commit's proof output admits at most one settle, and under
+  collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.
+
+### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
+- **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
+  `SCRIPT_ERR_SIG_PUSHONLY` (the unlocking script carries OP_PUSH_TX opcodes after `OP_CODESEPARATOR`); under
+  Chronicle rules all 69 vectors (138 inputs) verify or fail exactly as `docs/formal-proof.md` predicts. The
+  security claims hold for Chronicle consensus; on a pre-Chronicle node the transactions are invalid.
+- **A cross-issuer merge is refused by the other token's covenant** (input 1 of the merge commit,
+  `SCRIPT_ERR_EQUALVERIFY`): both covenants pin the output's `issuerPubKey` to their own, as the interface clause
+  `l_merge_same_issuer` states.
+
 ## [0.1.0] - 2026-10-11
 
 ### Changed
