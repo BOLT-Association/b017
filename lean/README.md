@@ -23,6 +23,7 @@ on *every* input is not claimed.
 | `BoltProof/Bridge/Generated/*.lean` | 2 | generated | The covenant suffixes, 69 real transactions with prevouts and expectations, one theorem per transaction. **Do not hand-edit**: `npm run lean:vectors`. |
 | `BoltProof/Bridge/Bytes.lean` | 2 | bsv-script-lean | The suffix fingerprints (`REGISTRY`) recomputed with bsv-script-lean's SHA-256. |
 | `BoltProof/Bridge/VectorsMain.lean` | 2 | bsv-script-lean | `lake exe boltvectors`: runs every vector natively and prints a verdict table. |
+| `BoltProof/Bridge/Gadgets/*.lean` | 2 | bsv-script-lean `Gadget` | Fragment-level proofs over the loop itself: per-instruction step lemmas (`Steps.lean`) and the covenant fragments proved from them. |
 | `AxiomCheck.lean`, `AXIOMS-ALLOWED` | — | — | The axiom audit (`node scripts/lean-axiom-check.mjs`): three standard axioms for Layer 1, plus `native_decide`'s per-theorem axiom for Layer 2 only. |
 | `vectors/export.test.ts` | — | vitest | The exporter: builds the test suite's honest and adversarial transactions and writes `Generated/`. |
 
@@ -94,7 +95,25 @@ functions):
 
 These theorems use `native_decide`: the kernel trusts Lean's compiled evaluator for them, which
 Lean 4.34 records as one auxiliary axiom per theorem (`<theorem>._native.native_decide.ax_*`,
-the successor of `Lean.ofReduceBool`). `lake exe boltvectors` runs the same verdicts natively and prints a
+the successor of `Lean.ofReduceBool`).
+
+**Fragment-level proofs (no evaluator trust).** `Gadgets/` proves covenant fragments over
+bsv-script-lean's own instruction loop (`Gadget.run`, the semantics' `Machine.loop` without the
+end test), with only the three standard axioms, in the style of their `Gadget/HashLock.lean`:
+
+* `Gadgets/Steps.lean`: the effect of one instruction on the machine state for `OP_SIZE`,
+  `OP_NIP`, `OP_0`, a one-byte push, `OP_EQUALVERIFY` (the failing case), `OP_VERIFY` (both
+  cases), `OP_GREATERTHANOREQUAL`, `OP_SUB` and `OP_PICK`, each under the reference's
+  preconditions (an executing branch, room under the op-count and memory limits, a post-Genesis
+  UTXO, the block path's flag word).
+* `Gadgets/NullAncestor.lean` — **Lemma 4 over the bytes.** The null-ancestor check's tail
+  `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY` (`82 77 00 88`), which runs after the ancestor
+  arguments are concatenated, reaches its end exactly when the concatenation is empty
+  (`nullTail_accepts`, `nullTail_next_iff`) and fails with `SCRIPT_ERR_EQUALVERIFY` otherwise
+  (`nullTail_refuses`). The hand proof's "any non-null field makes the size positive and fails
+  the check" is a theorem about the instructions themselves, for every input, not only the
+  exported vectors. The remaining fragments (the L6 guards, the L7 parity check) are the next
+  follow-ups. `lake exe boltvectors` runs the same verdicts natively and prints a
 table, with the pre-Chronicle verdict as an informative control.
 
 **Judging height, and a finding.** Every vector is judged at bsv-script-lean's
@@ -112,7 +131,7 @@ transactions are simply invalid. The P2PKH and proof inputs are valid in both er
 
 | Item | Status |
 |---|---|
-| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved.** Evidenced on 138 inputs by Layer 2. A fragment-level proof with bsv-script-lean's `Gadget` triples is future work. |
+| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail is proved for every input at the fragment level (`Gadgets/NullAncestor.lean`); the L6 and L7 fragments are the next follow-ups. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
