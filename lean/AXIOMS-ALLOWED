@@ -1,0 +1,11 @@
+# Axioms a BoltProof theorem may depend on, checked by scripts/lean-axiom-check.mjs.
+# Layer 1 (BoltProof.Theorems.*, BoltProof.Model.*): Lean's three standard axioms only.
+propext
+Classical.choice
+Quot.sound
+# Layer 2 (BoltProof.Bridge.*): additionally the native evaluator, used by `native_decide` to run
+# bsv-script-lean's semantics on real transactions. Lean 4.34 records it as one auxiliary axiom per
+# theorem, `<theorem>._native.native_decide.ax_<n>_<m>` (older toolchains: `Lean.ofReduceBool`).
+# Never allowed under Layer 1.
+bridge-only: Lean.ofReduceBool
+bridge-only-pattern: ^BoltProof\.Bridge\.[A-Za-z0-9_.']+\._native\.native_decide\.ax_[0-9]+_[0-9]+$

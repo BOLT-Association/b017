@@ -1,0 +1,11 @@
+# BoltProof: a Lean 4 machine-checked companion to docs/formal-proof.md.
+#
+#   BoltProofCore - the protocol model and Theorems 1-4 (core Lean only; no Mathlib, no bsv-script-lean)
+name = "boltproof"
+version = "0.1.0"
+defaultTargets = ["BoltProofCore"]
+
+[[lean_lib]]
+name = "BoltProofCore"
+roots = ["BoltProof.Core"]
+globs = ["BoltProof.Core", "BoltProof.Model.+", "BoltProof.Theorems.+"]
