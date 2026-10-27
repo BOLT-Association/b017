@@ -1,11 +1,31 @@
 # BoltProof: a Lean 4 machine-checked companion to docs/formal-proof.md.
 #
-#   BoltProofCore - the protocol model and Theorems 1-4 (core Lean only; no Mathlib, no bsv-script-lean)
+# Two libraries:
+#   BoltProofCore   - the protocol model and Theorems 1-4 (core Lean only; no Mathlib, no bsv-script-lean)
+#   BoltProofBridge - the bytecode bridge: the shipped covenant bytes and real transactions evaluated
+#                     by the bsv-script-lean consensus semantics (pulls in its Mathlib closure)
+#
+# The toolchain (lean-toolchain) is pinned to the one bsv-script-lean v1.2.0 uses. Never run
+# `lake update` casually: the manifest pins bsvscript (and, through it, Mathlib) to exact commits.
 name = "boltproof"
 version = "0.1.0"
-defaultTargets = ["BoltProofCore"]
+defaultTargets = ["BoltProofCore", "BoltProofBridge"]
+
+[[require]]
+name = "bsvscript"
+git = "https://github.com/Calhooon/bsv-script-lean"
+rev = "6139161cac59383cf9ab15659c2521a337ba953a" # tag v1.2.0
+subDir = "lean"
 
 [[lean_lib]]
 name = "BoltProofCore"
 roots = ["BoltProof.Core"]
 globs = ["BoltProof.Core", "BoltProof.Model.+", "BoltProof.Theorems.+"]
+
+[[lean_lib]]
+name = "BoltProofBridge"
+roots = ["BoltProof.Bridge"]
+
+[[lean_exe]]
+name = "boltvectors"
+root = "BoltProof.Bridge.VectorsMain"

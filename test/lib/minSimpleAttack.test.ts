@@ -24,6 +24,7 @@ import {
   type Family,
 } from '../helpers/minSimpleChain.js'
 import { minSimple as fam } from '../helpers/minSimpleFamily.js'
+import { fabricate, commitFabricated, settleFabricated, commitWith } from '../helpers/minSimpleAttacks.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 import { buildOutpoint } from '../../src/lib/boltLib.js'
 
@@ -46,45 +47,6 @@ describe('controls - the honest lifecycle verifies under this harness', () => {
 //   tx1 fabricate the resting token: victim issuer, attacker owner, parent != 0, gp = 0
 //   tx2 commit it ('21')   -> escapes the issuer guard + the ancestor rebuild
 //   tx3 settle it ('00')   -> must rebuild tx1 as a genuine commit -> refused
-async function fabricate(o: { txoType?: number; parent?: boolean } = {}): Promise<Transaction[]> {
-  const txoType = o.txoType ?? 0x00
-  const funding = new Transaction(1, [], [{ satoshis: 5000, lockingScript: new P2PKH().lock(aPkh) }])
-  const tx0 = new Transaction(); tx0.version = 2
-  tx0.addInput({ sourceTransaction: funding, sourceOutputIndex: 0, unlockingScriptTemplate: new P2PKH().unlock(attackerKey), sequence: 0xffffffff })
-  tx0.addOutput({ satoshis: 4000, lockingScript: new P2PKH().lock(aPkh) })
-  tx0.addOutput({ satoshis: 1, lockingScript: p2pb(aPkh) }) // vout1: a non-zero outpoint the attacker controls + proof slot
-  await tx0.sign()
-  const txs = [tx0]
-  const parent = o.parent === false ? ZERO36 : buildOutpoint(tx0, 1)
-  const tx1 = new Transaction(); tx1.version = 2
-  tx1.addInput({ sourceTransaction: tx0, sourceOutputIndex: 0, unlockingScriptTemplate: new P2PKH().unlock(attackerKey), sequence: 0xffffffff })
-  tx1.addOutput({ satoshis: 1, lockingScript: tpl.lock(aPkh, issuerPub, ZERO20, [txoType], parent, ZERO36) }) // victim issuer
-  tx1.addOutput({ satoshis: 3800, lockingScript: new P2PKH().lock(aPkh) }) // funds the commit
-  await tx1.sign()
-  txs.push(tx1)
-  return txs
-}
-
-const commitFabricated = async (txs: Transaction[]) => {
-  const fabParent = (txs[1].outputs[0].lockingScript.chunks[3].data as number[])
-  txs.push(await spendToken({
-    fam, txs, from: { tx: 1, vout: 0 }, actor: attackerKey, beneficiary: aPkh, fund: { tx: 1, vout: 1 }, change: true,
-    fundKey: attackerKey,
-    outputs: [fam.lock(aPkh, aPkh, [0x21], op(txs, 1, 0), fabParent), p2pb(aPkh)],
-  }))
-  return txs
-}
-
-const settleFabricated = async (txs: Transaction[]) => {
-  txs.push(await spendToken({
-    fam, txs, from: { tx: 2, vout: 0 }, actor: attackerKey, beneficiary: aPkh, fund: { tx: 2, vout: 2 }, change: true,
-    proof: { src: { tx: 0, vout: 1 }, key: attackerKey }, // the grandparent co-spend placeholder
-    prevTxs: [txs[0], txs[1], txs[0], txs[2]],             // ancestor slot (len-3) = the fabricating tx1
-    outputs: [fam.lock(aPkh, ZERO20, [0x00], op(txs, 2, 0), op(txs, 1, 0))],
-  }))
-  return txs
-}
-
 describe('B1 - a fabricated orphan cannot complete an event (the refused settle is the model)', () => {
   it('B1.0 a lone commit of the fabrication is accepted - but a commit is not an event', async () => {
     const txs = await commitFabricated(await fabricate())
@@ -157,15 +119,6 @@ describe('B4 - the txoType state machine is covenant-determined', () => {
   it('B4.0 control: commit (00->21) then settle (21->00) is accepted', async () => {
     expect(verifyChain(await buildChain(fam, {}, 3)).ok).toBe(true)
   })
-
-  const commitWith = async (txoType: number) => {
-    const txs = await mintToken(fam)
-    txs.push(await spendToken({
-      fam, txs, from: { tx: 0, vout: 0 }, actor: issuerKey, beneficiary: uPkh, fund: { tx: 0, vout: 1 }, change: true,
-      outputs: [fam.lock(iPkh, uPkh, [txoType], op(txs, 0, 0), ZERO36), p2pb(uPkh)],
-    }))
-    return txs
-  }
 
   it('B4.1 settle->settle: a 00 token forced to emit a 00 output is refused', async () => {
     expect(rejectedAt(verifyChain(await commitWith(0x00)))).toBe(1) // covenant computes 21

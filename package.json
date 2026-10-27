@@ -48,6 +48,7 @@
     "coverage:gaps": "npm run coverage:run && node scripts/coverage-gaps.mjs",
     "coverage:readme": "npm run coverage:run && node scripts/coverage-readme.mjs",
     "coverage:check": "npm run coverage:run && node scripts/coverage-readme.mjs --check",
+    "lean:vectors": "vitest run --config vitest.lean.config.ts",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
