@@ -33,7 +33,9 @@ family, and token classes for the NFT family (`SerialBOLT` is template-only, lik
   [`AutoBOLT-design.md`](AutoBOLT-design.md). Motivation is no longer "probably redundant": beyond
   the donation feature, permissionless settle carries a standalone **security** rationale — it
   *erases the durable unfinalized-commit state* — and is **load-bearing for MetaNetBOLT** (finalising
-  content nodes whose publisher is offline). Still **gated on the formal proof**.
+  content nodes whose publisher is offline). Still **gated on the formal proof** — now
+  machine-checked for the shipped families (`lean/`); an AutoBOLT variant needs its own covenant
+  interface and vectors there before it ships.
 - FreeBOLT / OpenBOLT — / HookBOLT / WrapBOLT ? MUST VALIDATE PROTOCOL LOGIC BEFORE Arbitrary Code Execution
 - **MetaNetBOLT** — tokenised, Layer-1-validated Metanet domains: the issuer key is the stable MURL
   root, nodes are *settled* BOLT txs, sites are served peer-to-peer as self-proving BEEFs (SPV +

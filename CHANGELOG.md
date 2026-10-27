@@ -29,6 +29,26 @@ All notable changes to **b017** are documented here. The format is based on
 - **`docs/ROADMAP.md`** records, as deferred work, aligning the NFT issuer guard with the fungible rule (drop the
   `txoType` term from `is2ndTx`): an optimisation, not a fix, to be folded into the next NFT bytecode rebuild since
   it changes the fingerprint and needs a reissue.
+- **A machine-checked proof** (`lean/`, Lean 4). Layer 1 states Lemmas 1–7 of `docs/formal-proof.md` as the
+  covenant interface and proves Theorems 1–4 from it for both families over arbitrary runs, with Assumptions 1–2
+  as hypotheses and only Lean's three standard axioms; a concrete NFT lifecycle is proved a valid run. Layer 2
+  runs the shipped covenant bytes on the test suite's real transactions — the honest lifecycles and every
+  red-team attack, plus the historical fabricated-hop chain against its pre-fix bytes — inside Lean with the
+  bsv-script-lean v1.2.0 consensus semantics and registers each verdict with the kernel (`native_decide`), and
+  recomputes the scanner's suffix fingerprints. `npm run lean:vectors` regenerates the vectors deterministically;
+  the new CI job `lean-proof` builds the proof, runs every vector, audits axioms and fails on vector drift.
+  `docs/formal-proof.md` §1.6 states the remaining trust boundary (bytecode-to-interface fidelity beyond the
+  covered inputs; A3; A4).
+- `test/helpers/minSimpleAttacks.ts`: the NFT red-team builders, shared by the suite and the exporter.
+
+### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
+- **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
+  `SCRIPT_ERR_SIG_PUSHONLY` (the unlocking script carries OP_PUSH_TX opcodes after `OP_CODESEPARATOR`); under
+  Chronicle rules all 69 vectors (138 inputs) verify or fail exactly as `docs/formal-proof.md` predicts. The
+  security claims hold for Chronicle consensus; on a pre-Chronicle node the transactions are invalid.
+- **A cross-issuer merge is refused by the other token's covenant** (input 1 of the merge commit,
+  `SCRIPT_ERR_EQUALVERIFY`): both covenants pin the output's `issuerPubKey` to their own, as the interface clause
+  `l_merge_same_issuer` states.
 
 ### Fixed
 - **Docs: `formal-proof.md` Lemma 5 still described the pre-F3 fungible guard** ("the only issuer check ...
