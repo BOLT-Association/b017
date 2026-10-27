@@ -1,0 +1,347 @@
+// Lean vector exporter — `npm run lean:vectors`.
+//
+// Builds the honest lifecycles and the adversarial transactions of the test suite with the real
+// builders (every tx is signed and, where the builder allows it, verified on the @bsv/sdk Spend
+// engine), then writes them as Lean source for the bsv-script-lean bridge:
+//   lean/BoltProof/Bridge/Generated/Vectors.lean         the transactions, prevouts and expectations
+//   lean/BoltProof/Bridge/Generated/VectorTheorems.lean  one `native_decide` theorem per vector
+//   lean/BoltProof/Bridge/Generated/Bytes.lean           the covenant suffixes + REGISTRY fingerprints
+//   lean/vectors/vectors.json                            the same data for humans and other tools
+//
+// Expectations come from the @bsv/sdk Spend engine (valid / invalid per input). An invalid input is
+// `anyInvalid` until its exact bsv-script-lean `ScriptError` is pinned in PINNED below, after a
+// triage run of `lake exe boltvectors`. A change in an expectation is a reviewed regeneration.
+//
+// Signatures are RFC6979-deterministic and every key is fixed, so the output is byte-for-byte
+// reproducible: CI regenerates and `git diff --exit-code`s the Generated/ directory.
+import { it, expect } from 'vitest'
+import { readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+import { Hash, P2PKH, PrivateKey, Spend, Transaction } from '@bsv/sdk'
+import {
+  buildChain, meltToken, spendToken, p2pb, issuerKey, userKey, bucketKey, attackerKey,
+  iPkh, uPkh, aPkh, ZERO20, ZERO36, pub, type Family,
+} from '../../test/helpers/minSimpleChain.js'
+import { minSimple } from '../../test/helpers/minSimpleFamily.js'
+import { authBolt } from '../../test/helpers/authBoltFamily.js'
+import { serialBolt } from '../../test/helpers/serialBoltFamily.js'
+import { fabricate, commitFabricated, settleFabricated, commitWith } from '../../test/helpers/minSimpleAttacks.js'
+import { appendOutput } from '../../test/helpers/counterfeit.js'
+import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
+import { REGISTRY } from '../../src/lib/scanner/fingerprints.js'
+import { buildOutpoint } from '../../src/lib/boltLib.js'
+import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
+import AuthBoltTemplate from '../../src/tokens/templates/AuthBolt.sx.template.js'
+import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
+import SerialBoltTemplate from '../../src/tokens/templates/SerialBolt.sx.template.js'
+import { emitBytes, emitTheorems, emitVectors, type Expect, type Vec } from './leanEmit.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const ROOT = join(__dirname, '..', '..')
+const GENERATED = join(ROOT, 'lean', 'BoltProof', 'Bridge', 'Generated')
+
+/** Pinned bsv-script-lean error codes, keyed `<vector>#<input>`. Filled from a triage run. */
+const PINNED: Record<string, string> = {
+  // the NFT family (triage run: lake exe boltvectors, bsv-script-lean v1.2.0, post-Chronicle block path)
+  'minsimple_melt_by_non_owner#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'auth_melt_by_non_owner#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'serial_melt_by_non_owner#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b1_resting_settle#0': 'SCRIPT_ERR_EQUALVERIFY', // the grandparent txid check
+  'nft_b1_2_genesis_shape_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // issuerPubKey == pubKey
+  'nft_b1_3_nonzero_type_commit#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b2_1_owner_substituted_at_settle#0': 'SCRIPT_ERR_EQUALVERIFY', // hashOutputs
+  'nft_b2_2_owner_substituted_at_commit#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b3_1_non_issuer_genesis_spend#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b4_1_settle_to_settle#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b4_2_commit_to_commit#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b4_3_undefined_type_02#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b4_3_undefined_type_20#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'nft_b4_3_undefined_type_ff#0': 'SCRIPT_ERR_EQUALVERIFY',
+  // the fungible family
+  'smb_inflated_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // hashOutputs
+  'smb_split_overtake_commit#0': 'SCRIPT_ERR_VERIFY', // `sub 0 greaterThanOrEqual verify`
+  'smb_split_overtake_settle#0': 'SCRIPT_ERR_VERIFY',
+  'smb_merge_overflow_commit#0': 'SCRIPT_ERR_VERIFY', // the sum bound, in both covenants
+  'smb_merge_overflow_commit#1': 'SCRIPT_ERR_VERIFY',
+  'smb_merge_overflow_settle#0': 'SCRIPT_ERR_VERIFY',
+  'smb_cross_issuer_merge_commit#1': 'SCRIPT_ERR_EQUALVERIFY', // the OTHER token's covenant pins its issuer
+  'smb_cross_issuer_merge_settle#0': 'SCRIPT_ERR_EQUALVERIFY',
+  'smb_extra_output_settle#0': 'SCRIPT_ERR_CHECKSIGVERIFY', // the OP_PUSH_TX preimage no longer matches
+  'smb_extra_output_settle#1': 'SCRIPT_ERR_EVAL_FALSE', // the funding P2PKH signature covered the outputs
+  'smb_wrong_key_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // hash160(pubKey) == pubKeyHash
+  'smb_wrong_key_commit#1': 'SCRIPT_ERR_EQUALVERIFY',
+}
+
+// ---------------------------------------------------------------------------------------------
+// Verdicts on the @bsv/sdk Spend engine, per input (the same construction as verifyTx).
+// ---------------------------------------------------------------------------------------------
+function sdkVerdict(tx: Transaction, i: number): { ok: true } | { ok: false; message: string } {
+  const input = tx.inputs[i]
+  const sourceOutput = input.sourceTransaction!.outputs[input.sourceOutputIndex]
+  const spend = new Spend({
+    sourceTXID: input.sourceTXID ?? input.sourceTransaction!.id('hex'),
+    sourceOutputIndex: input.sourceOutputIndex,
+    lockingScript: sourceOutput.lockingScript,
+    sourceSatoshis: sourceOutput.satoshis || 0,
+    transactionVersion: tx.version,
+    otherInputs: tx.inputs.filter((_, idx) => idx !== i),
+    unlockingScript: input.unlockingScript!,
+    inputSequence: input.sequence ?? 0xffffffff,
+    inputIndex: i,
+    outputs: tx.outputs,
+    lockTime: tx.lockTime,
+  })
+  try {
+    return spend.validate() ? { ok: true } : { ok: false, message: 'validate() returned false' }
+  } catch (e: any) {
+    return { ok: false, message: String(e?.message ?? e) }
+  }
+}
+
+const vectors: Vec[] = []
+
+/** Export one transaction: every input with its prevout and its Spend-engine expectation. */
+function add(name: string, family: string, tx: Transaction, note: string, opts: { skip?: number[] } = {}): void {
+  if (vectors.some((v) => v.name === name)) throw new Error(`duplicate vector ${name}`)
+  tx.inputs.forEach((inp) => { if (!inp.sourceTXID && inp.sourceTransaction) inp.sourceTXID = inp.sourceTransaction.id('hex') })
+  const prevouts = tx.inputs.map((inp, i) => {
+    if (opts.skip?.includes(i)) return { script: '', satoshis: 0 }
+    const src = inp.sourceTransaction!.outputs[inp.sourceOutputIndex]
+    return { script: src.lockingScript.toHex(), satoshis: src.satoshis || 0 }
+  })
+  const sdk: string[] = []
+  const expect: Expect[] = tx.inputs.map((_, i) => {
+    if (opts.skip?.includes(i)) return 'skip'
+    const v = sdkVerdict(tx, i)
+    if (v.ok) { sdk.push(`${i}:valid`); return 'valid' }
+    sdk.push(`${i}:invalid(${v.message.replace(/\s+/g, ' ').slice(0, 80)})`)
+    const code = PINNED[`${name}#${i}`]
+    return code ? { invalid: code } : 'anyInvalid'
+  })
+  vectors.push({ name, family, txHex: tx.toHex(), prevouts, expect, note: `${note} [sdk: ${sdk.join(' ')}]` })
+}
+
+/** Export a whole chain with per-tx names. */
+function addChain(prefix: string, family: string, txs: Transaction[], labels: string[], note: string): void {
+  txs.forEach((tx, i) => add(`${prefix}_${labels[i] ?? `tx${i}`}`, family, tx, `${note}: ${labels[i] ?? `tx${i}`}`))
+}
+
+const NFT_LABELS = ['mint', 'commit1', 'settle1', 'commit2', 'settle2']
+
+// ---------------------------------------------------------------------------------------------
+// The fungible builders of test/tokens/MultiBOLT.test.ts.
+// ---------------------------------------------------------------------------------------------
+const MASK64 = (BigInt(1) << BigInt(64)) - BigInt(1)
+function bal(amount: bigint): number[] {
+  const x = amount & ((BigInt(1) << BigInt(128)) - BigInt(1))
+  const buf = Buffer.alloc(16)
+  buf.writeBigUInt64LE(x & MASK64, 0)
+  buf.writeBigUInt64LE((x >> BigInt(64)) & MASK64, 8)
+  return Array.from(buf)
+}
+const smbIssuer = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000001', 'hex')
+const smbIssuer2 = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000002', 'hex')
+const child = (k: PrivateKey, n: string) => k.deriveChild(k.toPublicKey(), n)
+const SIM_BALANCE = BigInt('0x1ffffffffffffe')
+const freshSource = (key = smbIssuer): Transaction =>
+  new Transaction(1, [], [{
+    satoshis: 1000, change: true,
+    lockingScript: new P2PKH().lock(Hash.hash160(key.toPublicKey().encode(true) as number[])),
+  }])
+
+// ---------------------------------------------------------------------------------------------
+it('exports the Lean vectors', async () => {
+  // ---- NFT family: honest lifecycles -------------------------------------------------------------
+  for (const [fam, type] of [[minSimple, 'MinSimpleBOLT'], [authBolt, 'AuthBOLT'], [serialBolt, 'SerialBOLT']] as const) {
+    const tag = type.replace('BOLT', '').toLowerCase()
+    const txs = await buildChain(fam, {}, 5)
+    addChain(`${tag}_honest`, type, txs, NFT_LABELS, `${type} honest lifecycle (test/helpers/minSimpleChain.ts buildChain)`)
+    add(`${tag}_melt_unfunded`, type, await meltToken({ fam, txs: txs.slice(0, 3), from: { tx: 2, vout: 0 }, actor: userKey }),
+      `${type} owner melts settle1, unfunded (test/lib/minSimpleMelt.test.ts)`)
+    add(`${tag}_melt_funded`, type, await meltToken({ fam, txs: txs.slice(0, 3), from: { tx: 2, vout: 0 }, actor: userKey, fund: { tx: 2, vout: 1 } }),
+      `${type} owner melts settle1, funded`)
+    add(`${tag}_melt_by_non_owner`, type, await meltToken({ fam, txs: txs.slice(0, 3), from: { tx: 2, vout: 0 }, actor: attackerKey }),
+      `${type} §8.2 melt by non-owner: refused (Lemma 1 on the melt path)`)
+  }
+
+  // ---- NFT family: the red-team suite (test/lib/minSimpleAttack.test.ts) ---------------------------
+  const fam = minSimple
+  const type = 'MinSimpleBOLT'
+  const op = (txs: Transaction[], t: number, v: number) => buildOutpoint(txs[t], v)
+  const tpl = new MinSimpleTemplate()
+  {
+    const txs = await settleFabricated(await commitFabricated(await fabricate()))
+    addChain('nft_b1_resting', type, txs, ['fund', 'fabricate', 'commit', 'settle'],
+      'B1.0/B1.1 a fabricated RESTING token (txoType 00, parent != 0, gp = 0) naming the victim issuer: its commit is accepted, its settle dies in the grandparent reconstruction')
+  }
+  {
+    const txs = await commitFabricated(await fabricate({ parent: false }))
+    add('nft_b1_2_genesis_shape_commit', type, txs[2], 'B1.2 a fabricated GENESIS shape (parent = 0) re-arms the issuer guard: the commit is refused')
+  }
+  {
+    const txs = await commitFabricated(await fabricate({ txoType: 0x02 }))
+    add('nft_b1_3_nonzero_type_commit', type, txs[2], 'B1.3/B4.4 any non-zero txoType on a fabricated token re-arms the issuer guard (is2ndTx): the commit is refused')
+  }
+  {
+    // B2.1 substituting the settle-revealed owner
+    const txs = await buildChain(fam, {}, 2)
+    txs.push(await spendToken({
+      fam, txs, from: { tx: 1, vout: 0 }, actor: issuerKey, beneficiary: uPkh, fund: { tx: 1, vout: 2 }, change: true,
+      outputs: [fam.lock(aPkh, ZERO20, [0x00], op(txs, 1, 0), op(txs, 0, 0))],
+    }))
+    add('nft_b2_1_owner_substituted_at_settle', type, txs[2], 'B2.1 the settle names an owner other than the committed recipient: refused (Lemma 2, hashOutputs)')
+  }
+  {
+    // B2.2 substituting the commit-carried owner
+    const txs = await buildChain(fam, {}, 1)
+    txs.push(await spendToken({
+      fam, txs, from: { tx: 0, vout: 0 }, actor: issuerKey, beneficiary: uPkh, fund: { tx: 0, vout: 1 }, change: true,
+      outputs: [fam.lock(aPkh, uPkh, [0x21], op(txs, 0, 0), ZERO36), p2pb(uPkh)],
+    }))
+    add('nft_b2_2_owner_substituted_at_commit', type, txs[1], 'B2.2 the commit output carries an owner other than the spender: refused (Lemma 2)')
+  }
+  {
+    // B3.1 a non-issuer spending the genesis
+    const other = pub(userKey)
+    const bad: Family = { ...fam, lock: (o, c, t, p, g) => tpl.lock(o, other, c, t, p, g) }
+    const txs = await buildChain(bad, {}, 2)
+    add('nft_b3_1_non_issuer_genesis_spend', type, txs[1], 'B3.1 the genesis names another issuer than the spending key: refused (Lemma 5)')
+  }
+  {
+    // B4: the txoType machine
+    add('nft_b4_1_settle_to_settle', type, (await commitWith(0x00))[1], 'B4.1 a 00 token forced to emit a 00 output: refused (Lemma 7)')
+    const txs = await buildChain(fam, {}, 2)
+    txs.push(await spendToken({
+      fam, txs, from: { tx: 1, vout: 0 }, actor: issuerKey, beneficiary: uPkh, fund: { tx: 1, vout: 2 }, change: true,
+      outputs: [fam.lock(uPkh, ZERO20, [0x21], op(txs, 1, 0), op(txs, 0, 0))],
+    }))
+    add('nft_b4_2_commit_to_commit', type, txs[2], 'B4.2 a 21 token forced to emit a 21 output: refused (Lemma 7)')
+    for (const t of [0x02, 0x20, 0xff]) {
+      add(`nft_b4_3_undefined_type_${t.toString(16).padStart(2, '0')}`, type, (await commitWith(t))[1],
+        `B4.3 an undefined output txoType 0x${t.toString(16)}: refused (Lemma 7)`)
+    }
+  }
+
+  // ---- Fungible: honest lifecycles (test/tokens/MultiBOLT.test.ts) -------------------------------
+  {
+    let token = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(SIM_BALANCE))
+    token = await token.transfer(child(smbIssuer, '1'))
+    token = await token.transfer(child(smbIssuer, '2'))
+    const [main, piece] = await token.split(child(smbIssuer, '10'), child(smbIssuer, '11'), bal(BigInt(1)))
+    addChain('smb_honest_a', 'SimpleMultiBOLT', main.prevTxs,
+      ['mint', 'commit1', 'settle1', 'commit2', 'settle2', 'splitCommit', 'splitSettle'],
+      'SimpleMultiBOLT honest lifecycle A: mint → transfer ×2 → split')
+    void piece
+  }
+  {
+    let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(SIM_BALANCE))
+    let b = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1)))
+    a = await a.transfer(child(smbIssuer, '1'))
+    b = await b.transfer(child(smbIssuer, '2'))
+    const bLineage = [...b.prevTxs]
+    const merged = await a.merge(b, child(smbIssuer, '400'))
+    addChain('smb_honest_b_lineageB', 'SimpleMultiBOLT', bLineage, ['mint', 'commit1', 'settle1'],
+      'SimpleMultiBOLT honest lifecycle B, second token: mint → transfer')
+    const aTxs = merged.prevTxs
+    addChain('smb_honest_b', 'SimpleMultiBOLT', aTxs, ['mint', 'commit1', 'settle1', 'mergeCommit', 'mergeSettle'],
+      'SimpleMultiBOLT honest lifecycle B: mint ×2 → transfer → merge')
+    const melted = await merged.melt()
+    add('smb_honest_b_melt', 'SimpleMultiBOLT', melted.tx!, 'SimpleMultiBOLT honest lifecycle B: melt of the merged token')
+  }
+
+  // ---- Fungible: adversarial builds (skipVerify lets the builder emit what the covenant refuses) ----
+  {
+    const t = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+    t.skipVerify = true
+    t.balance = bal(BigInt(1001))
+    await t.transfer(child(smbIssuer, '1'))
+    add('smb_inflated_commit', 'SimpleMultiBOLT', t.prevTxs[1], '§8.3 the commit output claims 1001 on a 1000 token: refused (Lemma 2/6, hashOutputs)')
+  }
+  {
+    const t0 = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+    const t = await t0.transfer(child(smbIssuer, '1'))
+    t.skipVerify = true
+    const [main] = await t.split(child(smbIssuer, '10'), child(smbIssuer, '11'), bal(BigInt(1001)))
+    const n = main.prevTxs.length
+    add('smb_split_overtake_commit', 'SimpleMultiBOLT', main.prevTxs[n - 2], '§8.3 split with piece 1001 > balance 1000: the commit is refused (Lemma 6 over-take guard)')
+    add('smb_split_overtake_settle', 'SimpleMultiBOLT', main.prevTxs[n - 1], '§8.3 split with piece 1001 > balance 1000: the settle re-asserts remainder ≥ 0')
+  }
+  {
+    const big = (BigInt(1) << BigInt(127)) - BigInt(1)
+    let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(big))
+    let b = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1)))
+    a = await a.transfer(child(smbIssuer, '1'))
+    b = await b.transfer(child(smbIssuer, '2'))
+    a.skipVerify = true
+    b.skipVerify = true
+    const merged = await a.merge(b, child(smbIssuer, '400'))
+    const n = merged.prevTxs.length
+    add('smb_merge_overflow_commit', 'SimpleMultiBOLT', merged.prevTxs[n - 2], '§8.3 merge whose sum exceeds 2^127 − 1: the commit is refused (Lemma 6 range)')
+    add('smb_merge_overflow_settle', 'SimpleMultiBOLT', merged.prevTxs[n - 1], '§8.3 merge whose sum exceeds 2^127 − 1: the settle re-asserts the bound')
+  }
+  {
+    let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(500)))
+    let b = await new SimpleMultiBOLT().mint(smbIssuer2, freshSource(smbIssuer2), '', bal(BigInt(7)))
+    a = await a.transfer(child(smbIssuer, '1'))
+    b = await b.transfer(child(smbIssuer2, '2'))
+    a.skipVerify = true
+    b.skipVerify = true
+    const merged = await a.merge(b, child(smbIssuer, '400'))
+    const n = merged.prevTxs.length
+    add('smb_cross_issuer_merge_commit', 'SimpleMultiBOLT', merged.prevTxs[n - 2], 'merge of tokens of two different issuers: what the bytes say (interface clause l_merge_same_issuer)')
+    add('smb_cross_issuer_merge_settle', 'SimpleMultiBOLT', merged.prevTxs[n - 1], 'merge of tokens of two different issuers, the settle')
+  }
+  {
+    // §8.5 an extra output appended at the raw-byte level to an honest settle
+    const t0 = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+    const t = await t0.transfer(child(smbIssuer, '1'))
+    const settle = t.prevTxs[2]
+    const tampered = Transaction.fromHex(appendOutput(settle.toHex(), '6a04b01700ff', 0))
+    tampered.inputs.forEach((inp, i) => { inp.sourceTransaction = settle.inputs[i].sourceTransaction })
+    add('smb_extra_output_settle', 'SimpleMultiBOLT', tampered, '§8.5 an OP_RETURN output appended to an honest settle: refused (Lemma 2, hashOutputs)')
+  }
+  {
+    // §8.2 wrong-key spend: the commit is signed by a key that is not the owner
+    const t = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+    t.skipVerify = true
+    t.signer = child(smbIssuer, '99') as any
+    await t.transfer(child(smbIssuer, '1'), undefined, undefined, true)
+    add('smb_wrong_key_commit', 'SimpleMultiBOLT', t.prevTxs[1], '§8.2 the genesis spent with a key whose hash160 is not the owner: refused (Lemma 1)')
+  }
+
+  // ---- History: the fabricated-hop chain against the PRE-FIX bytes --------------------------------
+  {
+    const fx = JSON.parse(readFileSync(join(ROOT, 'test', 'fixtures', 'fabricated-hop-chain.json'), 'utf8')) as {
+      names: string[]; hexes: string[]; refs: [number, number][][]
+    }
+    const txs = fx.hexes.map((h) => Transaction.fromHex(h))
+    fx.refs.forEach((refs, i) => {
+      refs.forEach(([t, v], j) => {
+        txs[i].inputs[j].sourceTransaction = txs[t]
+        txs[i].inputs[j].sourceOutputIndex = v
+      })
+    })
+    fx.names.forEach((name, i) => {
+      const skip = txs[i].inputs.map((_, j) => j).filter((j) => !fx.refs[i][j])
+      add(`fabhop_prefix_${name.replace(/[^a-zA-Z0-9]+/g, '_')}`, 'SimpleMultiBOLT(pre-fix)', txs[i],
+        `test/fixtures/fabricated-hop-chain.json ${name}: the historical chain a regtest Teranode ACCEPTED against the pre-fix covenant; valid here reproduces that acceptance in Lean`,
+        { skip })
+    })
+  }
+
+  // ---- Emit ---------------------------------------------------------------------------------------
+  const entries = [
+    { ident: 'simpleMulti', type: 'SimpleMultiBOLT', suffixHex: new SimpleMultiTemplate().staticSuffix().toHex(), fingerprintHex: REGISTRY.SimpleMultiBOLT.suffixHashHex },
+    { ident: 'minSimple', type: 'MinSimpleBOLT', suffixHex: new MinSimpleTemplate().staticSuffix().toHex(), fingerprintHex: REGISTRY.MinSimpleBOLT.suffixHashHex },
+    { ident: 'authBolt', type: 'AuthBOLT', suffixHex: new AuthBoltTemplate().staticSuffix().toHex(), fingerprintHex: REGISTRY.AuthBOLT.suffixHashHex },
+    { ident: 'serialBolt', type: 'SerialBOLT', suffixHex: new SerialBoltTemplate().staticSuffix().toHex(), fingerprintHex: REGISTRY.SerialBOLT.suffixHashHex },
+  ]
+  mkdirSync(GENERATED, { recursive: true })
+  writeFileSync(join(GENERATED, 'Vectors.lean'), emitVectors(vectors))
+  writeFileSync(join(GENERATED, 'VectorTheorems.lean'), emitTheorems(vectors))
+  writeFileSync(join(GENERATED, 'Bytes.lean'), emitBytes(entries))
+  writeFileSync(join(__dirname, 'vectors.json'), JSON.stringify({ vectors, suffixes: entries }, null, 1))
+  expect(vectors.length).toBeGreaterThan(40)
+  console.log(`exported ${vectors.length} vectors`)
+})
