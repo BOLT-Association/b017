@@ -135,8 +135,19 @@ end test), with only the three standard axioms, in the style of their `Gadget/Ha
   OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` (`01 2d 79 01 34 79 93 5b 79 a1 69`) runs to its
   end exactly when `balance + other ≤ bound`, the bound being the value the covenant keeps ten
   deep (`mergeGuard_accepts`, `mergeGuard_refuses`, `mergeGuard_next_iff`): an overflowing
-  merge is refused at its commit for every input. The settle-side re-checks are the next
-  follow-up.
+  merge is refused at its commit for every input.
+* `Gadgets/BalanceBounds.lean` — **Lemma 6's bounds and settle-side re-checks over the bytes.**
+  The bound check `d OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_5 OP_PICK
+  OP_LESSTHANOREQUAL OP_VERIFY` (offsets 610 and 621, on the spent balance and the other
+  balance) runs to its end exactly when `0 ≤ balance ≤ bound`, the bound being the sixteen bytes
+  `ff…ff7f` (`2¹²⁷ − 1`) the covenant pushes at offset 566 (`boundCheck_next_iff`); the merge
+  settle's `2f OP_PICK 2f OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_ADD OP_DUP
+  OP_14 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` (offset 781) exactly when `0 ≤ other` and
+  `balance + other ≤ bound`, leaving the sum for the 16-byte field (`mergeSettle_next_iff`); the
+  split settle's `2f OP_PICK 2f OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_SUB
+  OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY` (offset 935) exactly when `0 ≤ piece ≤ balance`,
+  leaving the remainder (`splitSettle_next_iff`); each fails with `SCRIPT_ERR_VERIFY` otherwise.
+  With `BalanceGuards.lean` this closes Lemma 6 at the fragment level.
 * `Gadgets/Parity.lean` — **Lemma 7 over the bytes.** The fungible covenant's parity check,
   the 29 bytes `01 1a 79 52 97 76 63 01 26 79 8b 01 1c 79 88 68 76 01 27 79 52 97 7c 63 00 67
   51 68 88` at offset 528 of the shipped `SimpleMultiBOLT` suffix (`1a OP_PICK OP_2 OP_MOD
@@ -182,7 +193,7 @@ transactions are simply invalid. The P2PKH and proof inputs are valid in both er
 
 | Item | Status |
 |---|---|
-| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail, both Lemma 6 commit guards (split over-take, merge sum), the Lemma 7 parity check of the fungible covenant and the Lemma 7 type selector of the NFT covenants are proved for every input at the fragment level (`Gadgets/`); the Lemma 6 settle-side re-checks are the next follow-up. |
+| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Not proved in full.** Evidenced on 138 inputs by Layer 2; the Lemma 4 tail, every Lemma 6 fragment (the balance bounds, the split and merge commit guards, the split and merge settle re-checks), the Lemma 7 parity check of the fungible covenant and the Lemma 7 type selector of the NFT covenants are proved for every input at the fragment level (`Gadgets/`). What remains is the glue between the fragments: that the covenant reaches each fragment with the fields at the depths the fragment lemmas name, which Layer 2 evidences on its 138 inputs. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |

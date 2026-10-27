@@ -8,6 +8,7 @@ import BoltProof.Bridge.Gadgets.NullAncestor
 import BoltProof.Bridge.Gadgets.BalanceGuards
 import BoltProof.Bridge.Gadgets.Parity
 import BoltProof.Bridge.Gadgets.NftType
+import BoltProof.Bridge.Gadgets.BalanceBounds
 
 /-!
 # BoltProof.Bridge

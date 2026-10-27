@@ -15,8 +15,11 @@ Follow-ups (the residual trust boundary, in order of value):
         (`lean/BoltProof/Bridge/Gadgets/BalanceGuards.lean`).
   - [x] L6, the merge sum guard `2d OP_PICK 34 OP_PICK OP_ADD OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY`
         (`BalanceGuards.lean`; step lemmas for OP_ADD, OP_LESSTHANOREQUAL and OP_11 added).
-  - [ ] L6, the settle-side re-checks (`… OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_ADD OP_DUP OP_14 OP_PICK
-        OP_LESSTHANOREQUAL OP_VERIFY …`, needs OP_DUP and OP_14).
+  - [x] L6, the balance bounds and the settle-side re-checks (`lean/BoltProof/Bridge/Gadgets/BalanceBounds.lean`:
+        `boundCheck` at offsets 610/621, the merge settle's `mergeSettle` at 781, the split settle's `splitSettle`
+        at 935; step lemmas for OP_5 and OP_14 added).
+  - [ ] The glue between fragments: that the covenant reaches each fragment with the fields at the depths the
+        lemmas name (today evidenced by Layer 2's 138 inputs, not proved).
   - [x] L7, the fungible `txoType` parity check (`lean/BoltProof/Bridge/Gadgets/Parity.lean`: accepts iff the
         hand proof's predicate holds, and iff `Fam.edge .fungible a b` on the defined type bytes; step lemmas for
         OP_1, OP_2, OP_MOD, OP_1ADD, OP_DUP, OP_SWAP, OP_IF/OP_ELSE/OP_ENDIF and skipped instructions added).
