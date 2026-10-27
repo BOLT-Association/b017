@@ -11,8 +11,10 @@ Follow-ups (the residual trust boundary, in order of value):
   - [x] L4, the null-ancestor size check's tail `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY`
         (`lean/BoltProof/Bridge/Gadgets/NullAncestor.lean`), plus the per-instruction step lemmas it rests on
         (`Steps.lean`: SIZE, NIP, OP_0, a one-byte push, EQUALVERIFY, VERIFY, GREATERTHANOREQUAL, SUB, PICK).
-  - [ ] L6, the split over-take and merge sum guards (`… OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY`,
-        `… OP_ADD … OP_LESSTHANOREQUAL OP_VERIFY`).
+  - [x] L6, the split over-take guard `2d OP_PICK 34 OP_PICK OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY`
+        (`lean/BoltProof/Bridge/Gadgets/BalanceGuards.lean`).
+  - [ ] L6, the merge sum guard `2d OP_PICK 34 OP_PICK OP_ADD OP_11 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` and the
+        settle-side re-checks (need step lemmas for OP_ADD, OP_LESSTHANOREQUAL, OP_DUP and the small-integer pushes).
   - [ ] L7, the `txoType` parity check.
 - [ ] Pin the exact `ScriptError` of every rejected vector (`PINNED` in `lean/vectors/export.test.ts`).
 - [ ] A ledger-level theorem (T5) that every settle with a grandparent consumes the proof of a unique real
