@@ -6,6 +6,30 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- **`docs/issuer-guard.md`: the issuer guard of each family, decoded from the shipped bytecode.** The NFT
+  prologue derives `is2ndTx = (grandparent == 0 && txoType != 0)` and requires the issuer under
+  `isGenesis || is2ndTx`; the fungible prologue requires the issuer under `isGenesis || grandparent == 0`, the F3
+  fix of 2026-09-07, which is a strict superset. The document tells apart the three things that keep being
+  conflated (the fabricated hop and its balance anchor; F3 and its zero-grandparent guard; `is2ndTx`, an NFT-only
+  design feature that predates both), gives the timeline with commit ids, explains why the NFT family can tolerate
+  the zero-grandparent orphan at its commit and the fungible family cannot, and says why `is2ndTx` must **not** be
+  ported (it would close nothing, and the prologue length is the rebuild's `signCtx` slice offset).
+- **`test/lib/multiBoltIssuerGuard.test.ts`** pins the fungible guard on the bytes: a non-issuer's spend of an
+  `is2ndTx`-shaped token (`21`, no grandparent) and of an F3-shaped token (`20`, no grandparent), each naming the
+  victim issuer and carrying 2^100, is refused at the guard's own `OP_EQUALVERIFY` (lock opcode 24, asserted to be
+  the `OP_IF OP_13 OP_PICK OP_EQUALVERIFY` of the prologue); the honest first settle, and the same bytes under the
+  attacker's own issuer key, are accepted. No existing test exercised this guard directly.
+- **`docs/ROADMAP.md`** records, as deferred work, aligning the NFT issuer guard with the fungible rule (drop the
+  `txoType` term from `is2ndTx`): an optimisation, not a fix, to be folded into the next NFT bytecode rebuild since
+  it changes the fingerprint and needs a reissue.
+
+### Fixed
+- **Docs: `formal-proof.md` Lemma 5 still described the pre-F3 fungible guard** ("the only issuer check ...
+  fires when the spent token is parentless"). The lemma now states the shipped rule for both families inline,
+  with a two-line provenance note in place of stacked corrections; §8.1 gains the F3 row and §9 the new suite; the
+  README links the new document and notes that both families demand the issuer at the first settle too.
+
 ## [0.1.0] - 2026-10-11
 
 ### Changed
