@@ -139,6 +139,22 @@ theorem decode_lit (b : Nat) (hb : b < 128) : decode [b] = b := by
 @[simp] theorem castToBool_one : castToBool [1] = true := by decide
 @[simp] theorem castToBool_nil : castToBool [] = false := rfl
 
+/-- The boolean flags the covenants compute (`OP_NOT`, `OP_0NOTEQUAL`, `OP_BOOLAND`, …) as propositions. -/
+@[simp] theorem ite_one_zero_eq_zero (c : Prop) [Decidable c] : ((if c then (1 : Int) else 0) = 0) ↔ ¬ c := by
+  split_ifs <;> simp [*]
+@[simp] theorem ite_zero_one_eq_zero (c : Prop) [Decidable c] : ((if c then (0 : Int) else 1) = 0) ↔ c := by
+  split_ifs <;> simp [*]
+@[simp] theorem encode_one : encode 1 = [1] := by decide
+/-- `OP_IF` on a computed flag is the flag's proposition. -/
+@[simp] theorem castToBool_encode_ite (c : Prop) [Decidable c] :
+    castToBool (encode (if c then 1 else 0)) = decide c := by
+  split_ifs <;> simp [*, encode_zero]
+
+/-- A single byte is true unless it is `0x00` or the negative zero `0x80`. -/
+theorem castToBool_single (b : Nat) : castToBool [b] = decide (b ≠ 0 ∧ b ≠ 128) := by
+  unfold castToBool
+  by_cases h0 : b = 0 <;> by_cases h1 : b = 128 <;> simp [h0, h1]
+
 /-- The tracker after `OP_IF`: active iff the enclosing branch was and the condition holds. -/
 @[simp] theorem isActive_opIf (C : Cond) (b : Bool) : (C.opIf b).isActive = (C.isActive && b) := by
   cases b <;> simp [Cond.isActive, Cond.opIf]
