@@ -20,6 +20,8 @@ import BoltProof.Bridge.Glue.Regress
 import BoltProof.Bridge.Glue.SimpleMulti.Spec
 import BoltProof.Bridge.Glue.SimpleMulti.PushTx
 import BoltProof.Bridge.Glue.SimpleMulti.Reaches
+import BoltProof.Bridge.Glue.SimpleMulti.Blocks
+import BoltProof.Bridge.Glue.SimpleMulti.Arms
 
 /-!
 # BoltProof.Bridge.Glue

@@ -136,6 +136,30 @@ theorem getOpTail_op {op : Nat} (hop : Op.OP_PUSHDATA4 < op) (g : Bytes) : getOp
 theorem decode_lit (b : Nat) (hb : b < 128) : decode [b] = b := by
   simp [decode, decodeRev, beNat, Nat.mod_eq_of_lt hb, Nat.not_le.mpr hb]
 
+/-- Two bytes, the low one first, with the high one below `0x80`: the number they denote (the
+rebuilds' `PICK` depths past 127, such as `[0xd4, 0x00]`). -/
+theorem decode_lit2 (a b : Nat) (ha : a < 256) (hb : b < 128) : decode [a, b] = ((a + 256 * b : Nat) : Int) := by
+  simp [decode, decodeRev, beNat, Nat.mod_eq_of_lt hb, Nat.not_le.mpr hb]
+  omega
+
+/-- A byte string whose tail is true is true: `OP_IF` on a built output, whose last bytes are the
+`OP_CHECKSIG` of its script. -/
+theorem castToBool_append_of_right (x y : Bytes) (hy : castToBool y = true) : castToBool (x ++ y) = true := by
+  induction x with
+  | nil => simpa using hy
+  | cons b x ih =>
+    rw [List.cons_append]
+    rcases hxy : x ++ y with _ | ⟨c, rest⟩
+    · rw [hxy] at ih
+      simp [castToBool] at ih
+    · rw [hxy] at ih
+      simp [castToBool, ih]
+
+/-- A byte string headed by a non-zero byte other than `0x80` is true (a built output's script
+length byte heads it). -/
+theorem castToBool_cons_of_ne (b : Nat) (bs : Bytes) (hb : b ≠ 0) (hb' : b ≠ 128) : castToBool (b :: bs) = true := by
+  cases bs <;> simp [castToBool, hb, hb']
+
 @[simp] theorem castToBool_one : castToBool [1] = true := by decide
 @[simp] theorem castToBool_nil : castToBool [] = false := rfl
 

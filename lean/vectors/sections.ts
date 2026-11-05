@@ -44,6 +44,10 @@ const nftTypeSel = (d: string) => `01${d}796302010067020121687e`
 const pad16 = '82609f6301007e68'.repeat(16)
 const optTail = '7c827b876382' + '7c7e6775010068' + '7e'
 const anchor = '63014379815188759388677601238763750142798151876394886701427981528877876968670143798151887575886868'
+// `IF 3 ELSE 2 ENDIF` and `IF 4 ELSE 3 ENDIF`: the rebuilt transaction's input and output counts, on the flags
+// "the ancestor has a second input" and "a second output" (ancestor data again).
+const ite32 = '6353675268'
+const ite43 = '6354675368'
 
 export const LANDMARKS: Record<string, Landmark[]> = {
   simpleMulti: [
@@ -57,6 +61,8 @@ export const LANDMARKS: Record<string, Landmark[]> = {
     { name: 'pad16', hex: pad16, at: [], auto: 2 },
     { name: 'optTail', hex: optTail, at: [], auto: 50 },
     { name: 'anchor', hex: anchor, at: [], auto: 2 },
+    { name: 'ite32', hex: ite32, at: [], auto: 2 },
+    { name: 'ite43', hex: ite43, at: [], auto: 2 },
     { name: 'nullTail', hex: nullTail, at: [4648] },
   ],
   minSimple: [

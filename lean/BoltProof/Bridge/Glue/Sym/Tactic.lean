@@ -92,7 +92,7 @@ macro_rules
       List.drop_succ_cons, List.drop_zero, List.drop_nil, List.drop_one, List.tail_cons,
       List.getElem?_cons_zero, List.getElem?_cons_succ, List.getElem?_nil, Option.getD_some, Option.getD_none,
       List.eraseIdx_cons_zero, List.eraseIdx_cons_succ, List.length_cons, List.length_nil,
-      decode_lit, decode_nil, Nat.reduceLT, decode_encode, Int.toNat_natCast, Int.reduceToNat, Nat.cast_ofNat, List.drop_drop,
+      decode_lit, decode_lit2, decode_nil, Nat.reduceLT, Nat.reduceMul, decode_encode, Int.toNat_natCast, Int.reduceToNat, Nat.cast_ofNat, List.drop_drop,
       Nat.reduceAdd, Int.reduceAdd, Int.reduceSub, Int.reduceMul, Int.reduceTMod, Int.reduceLT, Int.reduceLE,
       Int.reduceEq,
       opEndif_opIf, opEndif_opElse_opIf, Bool.not_true, Bool.not_false, Bool.false_eq_true, Bool.true_eq_false,
@@ -135,7 +135,8 @@ private def headIsFoldedChunk (hType : Expr) : MetaM Bool := do
   return pargs[4]!.isConst
 
 /-- The kind of the folded chunk heading the program in `h`: the part of the chunk constant's name
-after its last underscore (`SimpleMulti.c797_pad16` is a `pad16`), which names the block rule. -/
+after its last underscore (`SimpleMulti.c797_pad16` is a `pad16`), which names the block rule; for
+a flow chunk, the whole name (`c1961_if`), the key of the lemma reading the arm it opens. -/
 private def headChunkKind (hType : Expr) : MetaM (Option String) := do
   unless ← headIsFoldedChunk hType do return none
   let hType ← instantiateMVars hType
@@ -145,7 +146,11 @@ private def headChunkKind (hType : Expr) : MetaM (Option String) := do
   let .str _ last := c | return none
   let parts := last.splitOn "_"
   if parts.length < 2 then return none
-  return some parts.getLast!
+  let kind := parts.getLast!
+  -- a folded flow chunk heads a whole conditional arm read as one block (`secondInA`, …): the rule
+  -- is keyed by the chunk's full name
+  if kind == "if" || kind == "notif" || kind == "else" || kind == "endif" then return some last
+  return some kind
 
 /-- The state record of the run in `h`, as its seven fields. -/
 private def stateFields (hType : Expr) : MetaM (Option (Array Expr)) := do
@@ -365,8 +370,8 @@ private def mkActivity (h : Ident) (active : Bool) (extra : Array Ident) : Tacti
 /-- Evaluate the popped condition in `h`'s tracker under the hypotheses named. -/
 private def decideCond (h : Ident) (extra : Array Ident) : TacticM Unit := withMainContext do
   let extras ← extra.mapM fun i => `(Lean.Parser.Tactic.simpLemma| $i:ident)
-  evalTactic (← `(tactic| simp (config := { decide := true, failIfUnchanged := false }) only
-    [castToBool_single, castToBool_one, castToBool_nil, castToBool_encode_ite, encode_zero, encode_one, decode_nil, bne_iff_ne, ne_eq, decide_eq_true_eq, decide_true, decide_false, Int.reduceTMod, Int.reduceAdd, Int.reduceSub, Int.reduceEq, Int.reduceLT, Int.reduceLE, Bool.and_true, Bool.and_false,
+  evalTactic (← `(tactic| simp (config := { decide := true, failIfUnchanged := false, maxDischargeDepth := 6 }) only
+    [castToBool_single, castToBool_one, castToBool_nil, castToBool_encode_ite, castToBool_append_of_right, castToBool_cons_of_ne, encode_zero, encode_one, decode_nil, decode_lit2, Nat.reduceLT, Nat.reduceMul, Nat.reduceAdd, Nat.cast_ofNat, bne_iff_ne, ne_eq, decide_eq_true_eq, decide_true, decide_false, Int.reduceTMod, Int.reduceAdd, Int.reduceSub, Int.reduceEq, Int.reduceLT, Int.reduceLE, Bool.and_true, Bool.and_false,
      Bool.true_and, Bool.false_and, Bool.or_true, Bool.or_false, Bool.true_or, Bool.false_or, Bool.not_true,
      Bool.not_false, ↓reduceIte, not_not, not_false_eq_true, not_true_eq_false, and_true, and_false, true_and,
      false_and, or_true, or_false, true_or, false_or, $extras,*] at $h:ident))
