@@ -419,10 +419,10 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   §4.7), `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
-  properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time
-  carries the security. They are carried as `HonestOutputs`/`HonestMelt` today only because `Accepts` lists them.
-  The fix is in Layer 1: drop `l2_melt`, weaken `l2_outs` to "the expected outputs come first", restrict `version`
-  to non-melts, and define `Spend.produced` and the per-spend token lists from `expectedOuts` rather than from
-  every token-shaped output of the transaction; Theorems 3 and 4 and `RunLemmas.lean` sum over `s.tx.tokens` and
-  move with it. Scheduled as its own step after the fungible paths, so that the refinements carry only the
-  cryptographic assumptions and the lineage link.
+  properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
+  which is proved, carries the security. They are the model's scope (the run model admits only covenant-built
+  token outputs; `Theorems/ProofGating.lean` says so, and the off-chain lineage check refuses the rest), and the
+  refinement carries them as the explicit hypotheses `HonestOutputs`/`HonestMelt`. They stay in `Accepts`: the
+  theorems are proved with them, and moving `Spend.produced` onto `expectedOuts` would touch five theorem files
+  for no change in what is proved. `Residual` therefore reads: the cryptographic assumptions, the lineage link,
+  and the scope assumptions.
