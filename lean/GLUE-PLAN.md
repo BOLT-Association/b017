@@ -1,6 +1,6 @@
 # Closing the glue gap: a plan for a symbolic proof that the covenant bytes enforce `Accepts`
 
-Status: **M1–M3 delivered, M4–M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
+Status: **M1–M4 delivered, M5–M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
 bsv-script-lean v1.2.0 (`6139161c`). Everything marked *(trace)* comes from a symbolic trace of the shipped
 suffix bytes in `BoltProof/Bridge/Generated/Bytes.lean` and is confirmed by execution or by a block lemma
 before it is relied on; everything else was checked against the source.
@@ -382,3 +382,25 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   top for the null tail), so the `_inv` corollaries were not needed. Two more byte-level findings: the covenant
   never checks the `fd` of the preimage's scriptCode varint (it drops the byte at 104 and reads two length bytes),
   and a settle at genesis takes the signing key as the new token's issuer push (suffix 559–569), like a commit.
+- **M4, the refinement** (`Bridge/Glue/Refine/`, `Bridge/Glue/MinSimple/Abs.lean`): `minSimple_refines` is proved
+  (`Refine/MinSimple.lean`): a spend of a `MinSimpleBOLT` token that `Eval.verifyScript` judges valid under the
+  judging parameters, read into the model by `spendOf`, satisfies `Accepts P .nft`, under `Residual`: `PushTxSound`
+  (stated about the block run, as M3 left it), second-preimage freedom of the four byte strings the spend hashes
+  (A1 stated on the spend's own data: a global injectivity of `hash256` is false, and a theorem assuming it empty),
+  `GpReal` (the named grandparent is a real, well-formed transaction with the token at the named index and a proof
+  output at index 1, whose abstract id the primitives agree on; the run-level argument discharges it), `Agrees`
+  (the primitives compute `hash160` and this spend's `OP_CHECKSIG`), and `HonestOutputs`/`HonestMelt` for
+  Finding 1. Route B, with one representation change in Layer 1: a settle-typed token's commitment is `zeroPKH`
+  (the twenty zero bytes the bytes write) rather than `[]`, so the abstraction of the new lock is the model's
+  `settleToken` byte for byte. `Refine/Verify.lean` reads the verdict (`run_of_valid`, `envOK_phase2`),
+  `Refine/Serial.lean` round-trips the node's serialisation (`decodeTx_serTx`, `readTxOut_serTxOut`,
+  `preimage_fields`), `Refine/Weld.lean` reads the covenant's output templates as the model's locks, and
+  `Refine/Facts.lean` discharges the twenty-six clauses from the facts. Three more byte-level findings: the melt arm
+  checks neither the version nor anything about the outputs (so `version` joins `l2_melt` among the clauses a melt
+  does not enforce; `HonestMelt` carries both); the recipient hash and, at genesis, the signing key are copied into
+  the new token's pushes without a width check (`ArgsWF`); and only the txid half of `grandparentOutpoint` is bound
+  by the rebuild (the index half is `GpReal`'s). The guards of D6 are `Bridge/Glue/Regress.lean`: the five real
+  `MinSimpleBOLT` spends read through `spendOf` have the kinds, sighash bytes, output shapes and ancestors the model
+  expects, and `minSimple_refines` applies to the first commit, the second settle (with its rebuild) and the melt,
+  every decidable hypothesis checked on the vector's data, so `Accepts` follows for them from `Residual` alone.
+  Open from M4: Option A (a lossless `TxDesc`), for the run-level composition.

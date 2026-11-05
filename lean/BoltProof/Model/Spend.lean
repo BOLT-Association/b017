@@ -121,11 +121,11 @@ def commitToken (s : Spend Txid) : Token Txid :=
       | _, _ => 0 }
 
 /-- The token(s) a settle produces at output index `i` (Lemma 2 / Lemma 6): ownership moves
-to the committed recipient, the type is the matching settle type, the balance is
-`settledBalance`. -/
+to the committed recipient, the commitment is cleared to the zero hash the bytes write, the type
+is the matching settle type, the balance is `settledBalance`. -/
 def settleToken (fam : Fam) (s : Spend Txid) (i : Nat) : Token Txid :=
   { owner := if i = 0 then s.spent.commitment else s.spent.commitment2
-    commitment := []
+    commitment := zeroPKH
     commitment2 := []
     txoType := fam.settleOf s.spent.txoType
     parent := some s.spentOutpoint

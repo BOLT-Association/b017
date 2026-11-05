@@ -24,9 +24,11 @@ Follow-ups (the residual trust boundary, in order of value):
         script leaves, per-family `Enforced` predicates, the `reaches_*` theorems for every proved fragment, and a
         refinement to `Accepts` with its residual assumptions stated; it also records two interface clauses the
         bytes do not enforce (`l2_melt`, the change half of `l2_outs`) and three documentation corrections.
-        Landed so far (M1–M3): the chunked suffixes and offset theorems, the inversion step lemmas and the
-        `sym_all` driver, and for MinSimpleBOLT `minSimple_sound`, `reaches_nftTypeSel` and `reaches_nullTail`
-        (`lean/BoltProof/Bridge/Glue/MinSimple/Sound.lean`). Open: M4–M7.
+        Landed so far (M1–M4): the chunked suffixes and offset theorems, the inversion step lemmas and the
+        `sym_all` driver, and for MinSimpleBOLT `minSimple_sound`, `reaches_nftTypeSel`, `reaches_nullTail`
+        (`lean/BoltProof/Bridge/Glue/MinSimple/Sound.lean`) and the refinement `minSimple_refines` to `Accepts`
+        with its residual assumptions stated (`lean/BoltProof/Bridge/Glue/Refine/MinSimple.lean`), applied to the
+        real vectors (`lean/BoltProof/Bridge/Glue/Regress.lean`). Open: M5–M7.
   - [x] L7, the fungible `txoType` parity check (`lean/BoltProof/Bridge/Gadgets/Parity.lean`: accepts iff the
         hand proof's predicate holds, and iff `Fam.edge .fungible a b` on the defined type bytes; step lemmas for
         OP_1, OP_2, OP_MOD, OP_1ADD, OP_DUP, OP_SWAP, OP_IF/OP_ELSE/OP_ENDIF and skipped instructions added).

@@ -14,6 +14,10 @@ abbrev Bytes := List Nat
 /-- A 20-byte public-key hash, `hash160 pk`. -/
 abbrev PKH := Bytes
 
+/-- The all-zero hash the covenants write where a settle-typed token carries no commitment:
+twenty zero bytes, the width of a `hash160`. -/
+def zeroPKH : PKH := List.replicate 20 0
+
 /-- A compressed public key. -/
 abbrev PubKey := Bytes
 

@@ -9,6 +9,13 @@ import BoltProof.Bridge.Glue.MinSimple.Spec
 import BoltProof.Bridge.Glue.MinSimple.PushTx
 import BoltProof.Bridge.Glue.MinSimple.Paths
 import BoltProof.Bridge.Glue.MinSimple.Sound
+import BoltProof.Bridge.Glue.MinSimple.Abs
+import BoltProof.Bridge.Glue.Refine.Verify
+import BoltProof.Bridge.Glue.Refine.Serial
+import BoltProof.Bridge.Glue.Refine.Facts
+import BoltProof.Bridge.Glue.Refine.Weld
+import BoltProof.Bridge.Glue.Refine.MinSimple
+import BoltProof.Bridge.Glue.Regress
 
 /-!
 # BoltProof.Bridge.Glue
@@ -22,5 +29,11 @@ rules; the few evaluator-trusted identities live in `BoltProof.Bridge` (`Bridge/
 * `MinSimple/`: what the `MinSimpleBOLT` suffix enforces, proved by running it symbolically along
   each of its ten paths (M3): `Spec.lean` states it, `PushTx.lean` abstracts the lock's own
   `OP_PUSH_TX` block, `Paths/` runs the paths, `Sound.lean` assembles `minSimple_sound` and the
-  `reaches_*` theorems.
+  `reaches_*` theorems; `Abs.lean` reads a real spend into the model's `Spend`.
+* `Refine/`: the refinement to the covenant interface (M4): `Verify.lean` reads a valid verdict as a
+  run of the lock, `Serial.lean` round-trips the node's serialisation, `Weld.lean` and `Facts.lean`
+  turn the facts the run leaves into the model's clauses, and `MinSimple.lean` proves
+  `minSimple_refines`: the bytes accept only what `Accepts` admits, under the residual assumptions
+  it states. `Regress.lean` (namespace `BoltProof.Bridge.Glue`, `native_decide`) reads the real
+  `MinSimpleBOLT` vectors through the abstraction and applies the theorem to them.
 -/
