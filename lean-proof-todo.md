@@ -19,7 +19,11 @@ Follow-ups (the residual trust boundary, in order of value):
         `boundCheck` at offsets 610/621, the merge settle's `mergeSettle` at 781, the split settle's `splitSettle`
         at 935; step lemmas for OP_5 and OP_14 added).
   - [ ] The glue between fragments: that the covenant reaches each fragment with the fields at the depths the
-        lemmas name (today evidenced by Layer 2's 138 inputs, not proved).
+        lemmas name (today evidenced by Layer 2's 138 inputs, not proved). Planned in `lean/GLUE-PLAN.md`
+        (milestones M1–M7): a symbolic, inversion-style run of each shipped suffix from the stack the unlocking
+        script leaves, per-family `Enforced` predicates, the `reaches_*` theorems for every proved fragment, and a
+        refinement to `Accepts` with its residual assumptions stated; it also records two interface clauses the
+        bytes do not enforce (`l2_melt`, the change half of `l2_outs`) and three documentation corrections.
   - [x] L7, the fungible `txoType` parity check (`lean/BoltProof/Bridge/Gadgets/Parity.lean`: accepts iff the
         hand proof's predicate holds, and iff `Fam.edge .fungible a b` on the defined type bytes; step lemmas for
         OP_1, OP_2, OP_MOD, OP_1ADD, OP_DUP, OP_SWAP, OP_IF/OP_ELSE/OP_ENDIF and skipped instructions added).
