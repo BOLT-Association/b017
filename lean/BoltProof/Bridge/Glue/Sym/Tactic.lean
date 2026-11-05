@@ -118,6 +118,35 @@ private def headOp (hType : Expr) : MetaM (Option Nat) := do
   let op ← whnfD pargs[1]!
   Meta.evalNat op
 
+/-- Is the program in `h : run _ _ (c ++ k) _ _ = _` headed by a folded chunk, a constant `c`? Only
+then is a block rule tried: unifying a block lemma's `c ++ k` against a bare variable makes the
+unifier unfold `List.append`, which does not terminate in useful time. -/
+private def headIsFoldedChunk (hType : Expr) : MetaM Bool := do
+  let hType ← instantiateMVars hType
+  let some (_, lhs, _) := hType.eq? | return false
+  let fn := lhs.getAppFn
+  unless fn.isConstOf ``BsvScript.Gadget.run do return false
+  let args := lhs.getAppArgs
+  unless args.size == 5 do return false
+  let prog := args[2]!
+  unless prog.getAppFn.isConstOf ``HAppend.hAppend do return false
+  let pargs := prog.getAppArgs
+  unless pargs.size == 6 do return false
+  return pargs[4]!.isConst
+
+/-- The kind of the folded chunk heading the program in `h`: the part of the chunk constant's name
+after its last underscore (`SimpleMulti.c797_pad16` is a `pad16`), which names the block rule. -/
+private def headChunkKind (hType : Expr) : MetaM (Option String) := do
+  unless ← headIsFoldedChunk hType do return none
+  let hType ← instantiateMVars hType
+  let some (_, lhs, _) := hType.eq? | return none
+  let prog := lhs.getAppArgs[2]!
+  let .const c _ := prog.getAppArgs[4]! | return none
+  let .str _ last := c | return none
+  let parts := last.splitOn "_"
+  if parts.length < 2 then return none
+  return some parts.getLast!
+
 /-- The state record of the run in `h`, as its seven fields. -/
 private def stateFields (hType : Expr) : MetaM (Option (Array Expr)) := do
   let hType ← instantiateMVars hType
@@ -208,6 +237,17 @@ elab "sym_run" h:ident hact:(colGt ident)? : tactic => do
 
 /-! ## Skipping an inactive arm -/
 
+/-- `sym_skipblock h hin` steps `h : run (c ++ k) …` over the folded chunk `c` inside an inactive
+arm, by the chunk's skip lemma: the rule `sym_skipblockrule "<kind>" h hin` registered next to the
+block lemmas (`SimpleMulti/Blocks.lean`), as for `sym_block`. `hin` is the activity hypothesis of
+the arm. -/
+syntax "sym_skipblockrule" str ident ident : tactic
+
+elab "sym_skipblock" h:ident hin:ident : tactic => withMainContext do
+  let hDecl ← getLocalDeclFromUserName h.getId
+  let some kind ← headChunkKind hDecl.type | throwError "sym_skipblock: {h} is not at a folded chunk"
+  evalTactic (← `(tactic| sym_skipblockrule $(Syntax.mkStrLit kind) $h:ident $hin:ident))
+
 /-- What one inactive instruction does to the nesting: stop (the arm's own `OP_ELSE`/`OP_ENDIF`,
 or an opcode outside the table), or step with a given depth change. -/
 private inductive SkipAction where
@@ -220,7 +260,16 @@ private def skipStep (h hin : Ident) (depth : Nat) : TacticM SkipAction := withM
   let he := mkIdent (Name.mkSimple "he")
   let hr := mkIdent (Name.mkSimple "hr")
   let hDecl ← getLocalDeclFromUserName h.getId
-  let some op ← headOp hDecl.type | return .stop
+  let some op ← headOp hDecl.type
+    | -- a folded chunk: its skip lemma if one is registered (`sym_skipblock`), else the end of the arm
+      unless ← headIsFoldedChunk hDecl.type do return .stop
+      let s ← saveState
+      try
+        withoutRecover do evalTactic (← `(tactic| sym_skipblock $h:ident $hin:ident))
+        return .step 0
+      catch _ =>
+        s.restore
+        return .stop
   let hinTerm ← `((by simp only [isActive_opIf, isActive_opElse_opIf, Bool.and_false, Bool.and_true,
     Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]))
   let oldVars ← stateVars hDecl.type
@@ -329,6 +378,22 @@ private partial def collectIdents (stx : Syntax) : Array Ident :=
   | .node _ _ args => args.foldl (fun acc a => acc ++ collectIdents a) #[]
   | _ => #[]
 
+/-! ## Blocks -/
+
+/-- `sym_block h hact` replaces `h : run (c ++ k) …`, where `c` is a folded chunk, by the run of
+`k` after a block lemma for `c`. The chunk's kind, the part of its name after the last underscore
+(`c797_pad16` is a `pad16`), selects the rule `sym_blockrule "<kind>" h hact`, registered with
+`macro_rules` where the block lemmas live (`SimpleMulti/Blocks.lean`); the rule applies its lemma
+to `h` with the hypotheses `he` and `hr` of the context and the activity hypothesis given.
+`sym_all` tries it whenever the program's head is a folded chunk, and stops there when no rule
+applies. -/
+syntax "sym_blockrule" str ident ident : tactic
+
+elab "sym_block" h:ident hact:ident : tactic => withMainContext do
+  let hDecl ← getLocalDeclFromUserName h.getId
+  let some kind ← headChunkKind hDecl.type | throwError "sym_block: {h} is not at a folded chunk"
+  evalTactic (← `(tactic| sym_blockrule $(Syntax.mkStrLit kind) $h:ident $hact:ident))
+
 /-- `sym_all h hyps*` (the module header). -/
 elab "sym_all" h:ident hs:(colGt ident)* : tactic => do
   let extras : Array Ident := hs.map fun s => ⟨s.raw⟩
@@ -339,11 +404,26 @@ elab "sym_all" h:ident hs:(colGt ident)* : tactic => do
   -- the activity hypotheses of the enclosing arms, innermost last; the current one on top
   let mut hacts : Array Ident := #[← mkActivity h true (extras.push baseHact)]
   let mut total : Nat := 0
+  let mut blocks : Nat := 0
   repeat
     let hact := hacts.back!
     total := total + (← runWith h hact true)
     let hDecl ← withMainContext (getLocalDeclFromUserName h.getId)
-    let some op ← withMainContext (headOp hDecl.type) | break
+    let op? ← withMainContext (headOp hDecl.type)
+    let some op := op?
+      | -- a folded chunk: a block lemma if one is registered for it, else the end of the walk
+        unless ← withMainContext (headIsFoldedChunk hDecl.type) do break
+        let s ← saveState
+        let ok ← try
+            withoutRecover do evalTactic (← `(tactic| sym_block $h:ident $hact:ident))
+            pure true
+          catch _ =>
+            s.restore
+            pure false
+        if ok then
+          blocks := blocks + 1
+          continue
+        else break
     if op == 0x63 || op == 0x64 then
       -- enter the conditional: evaluate what the hypotheses decide on the stack (an `OP_IFDUP`'s copy,
       -- a flag), pop the condition, decide it
@@ -393,6 +473,6 @@ elab "sym_all" h:ident hs:(colGt ident)* : tactic => do
       logInfo m!"sym_all: stopped at opcode {op} after {total} instructions"
       break
     total := total + 1
-  logInfo m!"sym_all: {total} instructions"
+  logInfo m!"sym_all: {total} instructions, {blocks} blocks"
 
 end BoltProof.Glue
