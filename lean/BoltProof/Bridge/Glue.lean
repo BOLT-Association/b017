@@ -1,6 +1,10 @@
 import BoltProof.Bridge.Glue.Sections
 import BoltProof.Bridge.Glue.Sym.Basic
 import BoltProof.Bridge.Glue.Sym.Steps
+import BoltProof.Bridge.Glue.Sym.Skip
+import BoltProof.Bridge.Glue.Sym.SkipSteps
+import BoltProof.Bridge.Glue.Sym.Tactic
+import BoltProof.Bridge.Glue.Sym.Examples
 
 /-!
 # BoltProof.Bridge.Glue

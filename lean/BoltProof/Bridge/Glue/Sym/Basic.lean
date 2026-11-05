@@ -130,4 +130,30 @@ theorem getOpTail_push {n : Nat} (hn : 1 ≤ n ∧ n ≤ 75) (g : Bytes) :
 theorem getOpTail_op {op : Nat} (hop : Op.OP_PUSHDATA4 < op) (g : Bytes) : getOpTail op g = some ([], 0) := by
   simp [getOpTail, Nat.not_le.mpr hop]
 
+/-! ## Small facts the driver normalises with -/
+
+/-- A single byte below `0x80` is the script number it denotes. -/
+theorem decode_lit (b : Nat) (hb : b < 128) : decode [b] = b := by
+  simp [decode, decodeRev, beNat, Nat.mod_eq_of_lt hb, Nat.not_le.mpr hb]
+
+@[simp] theorem castToBool_one : castToBool [1] = true := by decide
+@[simp] theorem castToBool_nil : castToBool [] = false := rfl
+
+/-- The tracker after `OP_IF`: active iff the enclosing branch was and the condition holds. -/
+@[simp] theorem isActive_opIf (C : Cond) (b : Bool) : (C.opIf b).isActive = (C.isActive && b) := by
+  cases b <;> simp [Cond.isActive, Cond.opIf]
+
+/-- The tracker after `OP_IF … OP_ELSE`: active iff the enclosing branch was and the condition fails. -/
+@[simp] theorem isActive_opElse_opIf (C : Cond) (b : Bool) :
+    ((C.opIf b).opElse).isActive = (C.isActive && !b) := by
+  cases b <;> simp [Cond.isActive, Cond.opIf, Cond.opElse]
+
+/-- `OP_ENDIF` closes an `OP_IF` without an `OP_ELSE`. -/
+@[simp] theorem opEndif_opIf (C : Cond) (b : Bool) : (C.opIf b).opEndif = C := by
+  cases C; cases b <;> simp [Cond.opIf, Cond.opEndif]
+
+/-- `OP_ENDIF` closes an `OP_IF … OP_ELSE`. -/
+@[simp] theorem opEndif_opElse_opIf (C : Cond) (b : Bool) : ((C.opIf b).opElse).opEndif = C := by
+  cases C; cases b <;> simp [Cond.opIf, Cond.opElse, Cond.opEndif]
+
 end BoltProof.Glue
