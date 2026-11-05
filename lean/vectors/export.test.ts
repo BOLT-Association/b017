@@ -36,7 +36,7 @@ import AuthBoltTemplate from '../../src/tokens/templates/AuthBolt.sx.template.js
 import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
 import SerialBoltTemplate from '../../src/tokens/templates/SerialBolt.sx.template.js'
 import { emitBytes, emitChunks, emitTheorems, emitVectors, type Expect, type Vec } from './leanEmit.js'
-import { cutSections, LANDMARKS } from './sections.js'
+import { cutSections, EXTRA_CUTS, LANDMARKS } from './sections.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
@@ -419,7 +419,7 @@ it('exports the Lean vectors', async () => {
   const NAMESPACE: Record<string, string> = { simpleMulti: 'SimpleMulti', minSimple: 'MinSimple', authBolt: 'AuthBolt', serialBolt: 'SerialBolt' }
   const chunkEntries = entries.map((e) => {
     const bytes = Array.from(Buffer.from(e.suffixHex, 'hex'))
-    return { ident: e.ident, type: e.type, namespace: `BoltProof.Bridge.Generated.${NAMESPACE[e.ident]}`, bytes, sections: cutSections(bytes, LANDMARKS[e.ident]) }
+    return { ident: e.ident, type: e.type, namespace: `BoltProof.Bridge.Generated.${NAMESPACE[e.ident]}`, bytes, sections: cutSections(bytes, LANDMARKS[e.ident], EXTRA_CUTS[e.ident]) }
   })
   writeFileSync(join(GENERATED, 'Chunks.lean'), emitChunks(chunkEntries))
   writeFileSync(join(__dirname, 'vectors.json'), JSON.stringify({ vectors, suffixes: entries }, null, 1))

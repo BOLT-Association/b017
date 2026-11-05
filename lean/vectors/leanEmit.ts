@@ -111,7 +111,7 @@ export function emitChunks(entries: ChunkEntry[]): string {
   }
   const blocks = entries.map((e) => {
     const defs = e.sections.map((s) => {
-      const what = s.kind === 'landmark' ? `the \`${s.name.split('_').slice(2).join('_')}\` fragment` : s.kind === 'flow' ? 'flow opcode' : 'straight-line run'
+      const what = s.kind === 'landmark' ? `the \`${s.name.split('_').slice(1).join('_')}\` fragment` : s.kind === 'flow' ? 'flow opcode' : 'straight-line run'
       return `/-- \`[${s.start}, ${s.end})\`: ${what}, ${s.end - s.start} byte${s.end - s.start === 1 ? '' : 's'}, ${s.instrs} instruction${s.instrs === 1 ? '' : 's'}. -/
 def ${s.name} : List Nat := ${lit(e.bytes.slice(s.start, s.end))}
 `

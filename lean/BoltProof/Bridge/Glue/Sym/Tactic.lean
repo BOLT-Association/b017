@@ -186,11 +186,11 @@ elab "sym_step" h:ident : tactic => stepWith h (mkIdent (Name.mkSimple "hact"))
 private def runWith (h hact : Ident) (stopAtFlow : Bool := false) : TacticM Nat := do
   let mut n : Nat := 0
   repeat
-    if stopAtFlow then
-      let hDecl ← withMainContext (getLocalDeclFromUserName h.getId)
-      match ← withMainContext (headOp hDecl.type) with
-      | some op => if op == 0x63 || op == 0x64 || op == 0x67 || op == 0x68 then break
-      | none => break
+    -- the end of the literal program (empty, or a chunk constant not yet unfolded) ends the run quietly
+    let hDecl ← withMainContext (getLocalDeclFromUserName h.getId)
+    match ← withMainContext (headOp hDecl.type) with
+    | some op => if stopAtFlow && (op == 0x63 || op == 0x64 || op == 0x67 || op == 0x68) then break
+    | none => break
     let ok ← try stepWith h hact; pure true
       catch ex =>
         logInfo m!"sym_run: stopped after {n}: {ex.toMessageData}"
@@ -331,8 +331,12 @@ private partial def collectIdents (stx : Syntax) : Array Ident :=
 /-- `sym_all h hyps*` (the module header). -/
 elab "sym_all" h:ident hs:(colGt ident)* : tactic => do
   let extras : Array Ident := hs.map fun s => ⟨s.raw⟩
+  -- `hact : C.isActive = true` names the tracker the caller started from; the arm `h` is in now may
+  -- be nested inside it (a second `sym_all` after a block lemma), so the activity hypothesis of the
+  -- current tracker is derived from it, and derived again whenever the walk closes back down to it
+  let baseHact := mkIdent (Name.mkSimple "hact")
   -- the activity hypotheses of the enclosing arms, innermost last; the current one on top
-  let mut hacts : Array Ident := #[mkIdent (Name.mkSimple "hact")]
+  let mut hacts : Array Ident := #[← mkActivity h true (extras.push baseHact)]
   let mut total : Nat := 0
   repeat
     let hact := hacts.back!
@@ -379,9 +383,11 @@ elab "sym_all" h:ident hs:(colGt ident)* : tactic => do
       unless op2 == 0x68 do throwError "sym_all: the else arm stopped at opcode {op2}"
       stepWith h hact
       hacts := hacts.pop
+      if hacts.isEmpty then hacts := #[← mkActivity h true (extras.push baseHact)]
     else if op == 0x68 then
       stepWith h hact
       hacts := hacts.pop
+      if hacts.isEmpty then hacts := #[← mkActivity h true (extras.push baseHact)]
     else
       logInfo m!"sym_all: stopped at opcode {op} after {total} instructions"
       break

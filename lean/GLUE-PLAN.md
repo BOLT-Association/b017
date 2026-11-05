@@ -1,6 +1,6 @@
 # Closing the glue gap: a plan for a symbolic proof that the covenant bytes enforce `Accepts`
 
-Status: **plan, no proof work started.** Written against branch `lean-proof` at `3e4880f` (PR #7) and
+Status: **M1–M3 delivered, M4–M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
 bsv-script-lean v1.2.0 (`6139161c`). Everything marked *(trace)* comes from a symbolic trace of the shipped
 suffix bytes in `BoltProof/Bridge/Generated/Bytes.lean` and is confirmed by execution or by a block lemma
 before it is relied on; everything else was checked against the source.
@@ -359,3 +359,26 @@ grep -oP 'LOCK_SCRIPT_SUFFIX: string = "[^"]{0,220}' src/tokens/templates/Simple
 grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimple.sx.template.ts
 # the fragment offsets quoted in §4.1 (python3 -I; reads the hex in Generated/Bytes.lean and searches each literal)
 ```
+
+## Progress
+
+- **M1** (`Bridge/Generated/Chunks.lean`, `Bridge/Bytes.lean`, `Bridge/Glue/Sections.lean`, `vectors/sections.ts`):
+  as planned, plus a cut at the end of each lock's own `OP_PUSH_TX` block (`EXTRA_CUTS`) so M3 can name that block;
+  the five probe vectors of §8 confirm Finding 1 and refuse `0x27` (§7).
+- **M2** (`Bridge/Glue/Sym/`): as planned, except that the general skip lemma over `balancedB` was replaced by
+  generated per-opcode inactive lemmas (`SkipSteps.lean`) walked by `sym_skip`, and the loop lemmas of
+  `Loops.lean` were not needed: `sym_all` runs the whole `MinSimpleBOLT` suffix (about 860 instructions) in
+  under two minutes per path, so blocks are not cut by hand.
+- **M3** (`Bridge/Glue/MinSimple/`): `minSimple_sound`, `reaches_nftTypeSel` and `reaches_nullTail` are proved
+  (`Sound.lean`). Deviations from §4.3: the theorem starts at the suffix with the six pushed fields on the stack
+  (`Fields.stack`; the lock pushes and the `lockOf` decoder belong to M4), the preimage fields are `take`/`drop`
+  accessors rather than a `Preimage` record, and the lock's `OP_PUSH_TX` block is abstracted to `PushTxReached`
+  (it ran without failing from the preimage on top: `PushTx.lean`, by the library's `run_append`) instead of a
+  `pushTxSig` term, so M4's `PushTxSound` is to be stated about that block run. There are no thirteen block
+  lemmas: eleven whole-suffix path theorems (`Paths/`), one per combination of type, genesis, grandparent and
+  preimage presence, each a `sym_all` run that stops at the block and at the two fragments to record `Reached`,
+  and closes `Enforced` from the facts the run leaves. The `reaches_*` theorems say the fragment literal itself is
+  executed from the stack its `Gadgets/` lemma assumes (depth 23 for the type byte, the concatenated pieces on
+  top for the null tail), so the `_inv` corollaries were not needed. Two more byte-level findings: the covenant
+  never checks the `fd` of the preimage's scriptCode varint (it drops the byte at 104 and reads two length bytes),
+  and a settle at genesis takes the signing key as the new token's issuer push (suffix 559–569), like a commit.

@@ -42,12 +42,12 @@ pushes: `isGen := parent = 0` computed and the grandparent brought to the top. -
 example {env : Env} {k t : Bytes} {r : GOut} {issuer gp parent ty com pkh : Bytes} {S A : List Bytes}
     {C : Cond} {cs : Bytes} {m kk : Nat}
     (he : EnvOK env) (hact : C.isActive = true)
-    (h : run Eval.opExec env (MinSimple.c000_0 ++ k) t
+    (h : run Eval.opExec env (MinSimple.c0 ++ k) t
       (St (issuer :: gp :: parent :: ty :: com :: pkh :: S) A m C kk cs) = r) (hr : r.IsOk) :
     ∃ m' k', run Eval.opExec env k t
       (St (gp :: parent :: issuer :: encode (if decode parent = 0 then 1 else 0) :: ty :: com :: pkh :: S)
         A m' C k' cs) = r := by
-  simp only [MinSimple.c000_0, List.cons_append, List.nil_append] at h
+  simp only [MinSimple.c0, List.cons_append, List.nil_append] at h
   sym_run h
   exact ⟨_, _, h⟩
 
@@ -57,13 +57,13 @@ changes nothing; either way the stack below the condition is untouched. -/
 example {env : Env} {k t : Bytes} {r : GOut} {c hasGp gp parent issuer isGen ty com pkh pre pk : Bytes}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat}
     (he : EnvOK env) (hact : C.isActive = true)
-    (h : run Eval.opExec env (MinSimple.c003_18_if ++ (MinSimple.c004_19 ++ (MinSimple.c005_24_endif ++ k))) t
+    (h : run Eval.opExec env (MinSimple.c18_if ++ (MinSimple.c19 ++ (MinSimple.c24_endif ++ k))) t
       (St (c :: hasGp :: gp :: parent :: issuer :: isGen :: ty :: com :: pkh :: pre :: pk :: S) A m C kk cs) = r)
     (hr : r.IsOk) :
     (castToBool c = true → issuer = pk) ∧
       ∃ m' k', run Eval.opExec env k t
         (St (hasGp :: gp :: parent :: issuer :: isGen :: ty :: com :: pkh :: pre :: pk :: S) A m' C k' cs) = r := by
-  simp only [MinSimple.c003_18_if, MinSimple.c004_19, MinSimple.c005_24_endif, List.cons_append,
+  simp only [MinSimple.c18_if, MinSimple.c19, MinSimple.c24_endif, List.cons_append,
     List.nil_append] at h
   sym_run h
   rcases hc : castToBool c with _ | _
