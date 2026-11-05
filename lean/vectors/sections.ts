@@ -15,6 +15,12 @@ export interface Section { name: string; start: number; end: number; kind: 'run'
 
 export const MAX_RUN = 120
 
+/** Extra cuts per family: the end of the lock's own OP_PUSH_TX block (the byte after its
+ *  `OP_CHECKSIGVERIFY`), so the glue can export that block's run as a prefix of the program. */
+export const EXTRA_CUTS: Record<string, number[]> = {
+  simpleMulti: [423], minSimple: [414], authBolt: [423], serialBolt: [447],
+}
+
 const OP_IF = 0x63, OP_NOTIF = 0x64, OP_ELSE = 0x67, OP_ENDIF = 0x68
 const FLOW: Record<number, string> = { [OP_IF]: 'if', [OP_NOTIF]: 'notif', [OP_ELSE]: 'else', [OP_ENDIF]: 'endif' }
 
@@ -76,10 +82,14 @@ export function instructionStarts(bytes: number[]): number[] {
 }
 
 /** Cut `bytes` into sections (see the header). Throws if a landmark is not where it is said to be. */
-export function cutSections(bytes: number[], landmarks: Landmark[]): Section[] {
+export function cutSections(bytes: number[], landmarks: Landmark[], extraCuts: number[] = []): Section[] {
   const starts = instructionStarts(bytes)
   const isStart = new Set(starts)
   const cuts = new Set<number>([0, bytes.length])
+  for (const c of extraCuts) {
+    if (!isStart.has(c)) throw new Error(`extra cut ${c} is not an instruction start`)
+    cuts.add(c)
+  }
   const label = new Map<number, { name: string; kind: 'flow' | 'landmark'; end: number }>()
 
   // Landmarks first: a flow opcode inside a fragment (the parity check and the NFT type selector carry their
@@ -116,8 +126,7 @@ export function cutSections(bytes: number[], landmarks: Landmark[]): Section[] {
     const l = label.get(start)
     if (l && l.end !== end) throw new Error(`${l.name} at ${start}: a cut falls inside it (${end} < ${l.end})`)
     const instrs = starts.filter((s) => s >= start && s < end).length
-    const idx = String(sections.length).padStart(3, '0')
-    const name = l ? `c${idx}_${start}_${l.name}` : `c${idx}_${start}`
+    const name = l ? `c${start}_${l.name}` : `c${start}`
     sections.push({ name, start, end, kind: l?.kind ?? 'run', instrs })
   }
   // Every landmark occurrence must be one section.
