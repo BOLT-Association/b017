@@ -4,20 +4,29 @@ import BoltProof.Bridge.Glue.Sym.Skip
 import BoltProof.Bridge.Glue.Sym.SkipSteps
 
 /-!
-# The driver: `sym_step` and `sym_run`
+# The drivers: `sym_step`, `sym_run`, `sym_skip`, `sym_all`
 
 `sym_step h` reads the hypothesis `h : run Eval.opExec env (op :: g) t st = r`, looks the head
 opcode up in `stepTable`, and replaces `h` by the inversion lemma's conclusion for `g`: the facts
-the opcode checked become anonymous hypotheses, the new memory counter and opcode count become
-fresh variables (the old ones are cleared), and the stack is normalised (`sym_norm`: pushes read
-off the literal program, `PICK`/`ROLL` depths resolved on the literal stack, small script numbers
-decoded). The lemma's `EnvOK` and activity hypotheses are the ones named `he` and `hact` in the
-context, and the outcome hypothesis is `hr`; a block proof names them so.
+the opcode checked become anonymous hypotheses (the bound facts of pushes, `PICK`, `ROLL` and
+`SPLIT` are dropped), the new memory counter and opcode count become fresh variables (the old
+ones are cleared), and the stack is normalised (`sym_norm`: pushes read off the literal program,
+`PICK`/`ROLL` depths resolved on the literal stack, small script numbers decoded, nested drops
+folded, the tracker algebra applied). The lemma's `EnvOK` hypothesis is the one named `he` in
+the context, the outcome hypothesis `hr`, and the activity hypothesis `hact` (`sym_run h hact'`
+names another).
 
 `sym_run h` repeats `sym_step h` until it stops: at the end of the program, at an opcode outside
-the table, or at a conditional (`OP_IF`/`OP_NOTIF` leave the tracker as `C.opIf b` with `b`
-symbolic; the block proof then cases on `b`, restates `hact` for the branch it takes, and goes
-on, or skips the inactive arm with `inv_skip_balanced`).
+the table, or at a conditional whose branch it cannot enter.
+
+`sym_skip h` walks an inactive arm with the inactive lemmas (`Sym/SkipSteps.lean`,
+`Sym/Skip.lean`), tracking the nesting, and stops at the arm's own `OP_ELSE` or `OP_ENDIF`.
+
+`sym_all h hyps*` runs a whole program: straight-line code with `sym_run`, and at every
+`OP_IF`/`OP_NOTIF` it evaluates the popped condition under the hypotheses named (and `decide`),
+enters the arm it selects with a fresh activity hypothesis, skips the other arm with `sym_skip`,
+and folds the tracker back at the `OP_ENDIF`. It stops at a condition it cannot decide: the block
+proof then cases on it and calls `sym_all` again in each case.
 -/
 
 set_option autoImplicit false
@@ -73,20 +82,27 @@ def stepTable : List (Nat × StepInfo) :=
    (0xac, { lemma_ := ``inv_checksig, facts := 2 }), (0xad, { lemma_ := ``inv_checksigverify, facts := 3 })]
 
 /-- The normalisation after a step: pushes read off the literal program, list indexing on the
-literal stack, small script numbers, the conditional tracker's algebra. -/
+literal stack, small script numbers, nested drops, numeral sums, the conditional tracker's
+algebra, the computed flags. -/
 syntax "sym_norm" " at " ident : tactic
 macro_rules
   | `(tactic| sym_norm at $h:ident) =>
-  `(tactic| simp (config := { failIfUnchanged := false }) only [List.cons_append, List.nil_append, List.take_succ_cons, List.take_zero, List.take_nil,
+  `(tactic| simp (config := { failIfUnchanged := false }) only [List.cons_append, List.nil_append,
+      List.take_succ_cons, List.take_zero, List.take_nil,
       List.drop_succ_cons, List.drop_zero, List.drop_nil, List.drop_one, List.tail_cons,
       List.getElem?_cons_zero, List.getElem?_cons_succ, List.getElem?_nil, Option.getD_some, Option.getD_none,
       List.eraseIdx_cons_zero, List.eraseIdx_cons_succ, List.length_cons, List.length_nil,
-      decode_lit, decode_encode, Int.toNat_natCast, Int.reduceToNat, Nat.cast_ofNat,
+      decode_lit, Nat.reduceLT, decode_encode, Int.toNat_natCast, Int.reduceToNat, Nat.cast_ofNat, List.drop_drop,
+      Nat.reduceAdd,
       opEndif_opIf, opEndif_opElse_opIf, Bool.not_true, Bool.not_false, Bool.false_eq_true, Bool.true_eq_false,
       ↓reduceIte,
-      castToBool_one, castToBool_nil] at $h:ident)
+      castToBool_one, castToBool_nil, ite_one_zero_eq_zero, ite_zero_one_eq_zero, not_not, encode_one, encode_zero,
+      castToBool_encode_ite, decide_eq_true_eq, Bool.decide_and, Bool.decide_or] at $h:ident)
 
-/-- The head opcode of the program in `h : run _ _ (op :: g) _ _ = _`, as a `Nat`. -/
+/-! ## Reading the hypothesis -/
+
+/-- The head opcode of the program in `h : run _ _ (op :: g) _ _ = _`, as a `Nat`; `none` on an
+empty program. -/
 private def headOp (hType : Expr) : MetaM (Option Nat) := do
   let hType ← instantiateMVars hType
   let some (_, lhs, _) := hType.eq? | return none
@@ -101,24 +117,35 @@ private def headOp (hType : Expr) : MetaM (Option Nat) := do
   let op ← whnfD pargs[1]!
   Meta.evalNat op
 
-/-- The `memUsed` and `opCount` fields of the state in `h`, when they are local variables. -/
-private def stateVars (hType : Expr) : MetaM (Array FVarId) := do
+/-- The state record of the run in `h`, as its seven fields. -/
+private def stateFields (hType : Expr) : MetaM (Option (Array Expr)) := do
   let hType ← instantiateMVars hType
-  let some (_, lhs, _) := hType.eq? | return #[]
+  let some (_, lhs, _) := hType.eq? | return none
   let args := lhs.getAppArgs
-  unless args.size == 5 do return #[]
+  unless args.size == 5 do return none
   let st ← whnfR args[4]!
   let stArgs := st.getAppArgs
-  -- `State.mk stack alt memUsed cond opCount nonTopLevelReturn codeSep`
-  unless st.getAppFn.isConstOf ``BsvScript.Machine.State.mk && stArgs.size == 7 do return #[]
+  unless st.getAppFn.isConstOf ``BsvScript.Machine.State.mk && stArgs.size == 7 do return none
+  return some stArgs
+
+/-- The `memUsed` and `opCount` fields of the state in `h`, when they are local variables. -/
+private def stateVars (hType : Expr) : MetaM (Array FVarId) := do
+  let some f ← stateFields hType | return #[]
   let mut out := #[]
   for i in [2, 4] do
-    if let .fvar id := stArgs[i]! then out := out.push id
+    if let .fvar id := f[i]! then out := out.push id
   return out
 
-/-- One inversion step on `h` (the module header). Fails, without changing the goal, when the
-program is empty, the head opcode is not in the table, or the lemma does not apply. -/
-elab "sym_step" h:ident : tactic => withMainContext do
+/-- The tracker (`cond` field) of the state in `h`. -/
+private def stateCond (hType : Expr) : MetaM (Option Expr) := do
+  let some f ← stateFields hType | return none
+  return some f[3]!
+
+/-! ## One step -/
+
+/-- One inversion step on `h` with the activity hypothesis `hact`. Throws when the program is
+empty, the head opcode is not in the table, or the lemma does not apply. -/
+private def stepWith (h hact : Ident) : TacticM Unit := withMainContext do
   let hDecl ← getLocalDeclFromUserName h.getId
   let some op ← headOp hDecl.type | throwError "sym_step: {h} is not a run of a non-empty program"
   let some (_, info) := stepTable.find? (·.1 == op)
@@ -126,15 +153,21 @@ elab "sym_step" h:ident : tactic => withMainContext do
   let oldVars ← stateVars hDecl.type
   let lem := mkIdent info.lemma_
   let he := mkIdent (Name.mkSimple "he")
-  let hact := mkIdent (Name.mkSimple "hact")
   let hr := mkIdent (Name.mkSimple "hr")
   let app ← if info.needsAct then `($lem $he $hact $h $hr) else `($lem $he $h $hr)
   let h' := mkIdent (← mkFreshUserName `h')
   withoutRecover do
     evalTactic (← `(tactic| have $h':ident := $app))
     evalTactic (← `(tactic| clear $h:ident))
+    -- the bound facts of pushes, PICK, ROLL and SPLIT are never needed downstream: cleared
+    let bounds := info.lemma_.toString.startsWith "BoltProof.Glue.inv_push_" ||
+      info.lemma_ == ``inv_pick || info.lemma_ == ``inv_roll || info.lemma_ == ``inv_split
     if info.exists1 then
       evalTactic (← `(tactic| obtain ⟨_, _, _, _, $h:ident⟩ := $h':ident))
+    else if bounds then
+      match info.facts with
+      | 1 => evalTactic (← `(tactic| obtain ⟨-, _, _, $h:ident⟩ := $h':ident))
+      | _ => evalTactic (← `(tactic| obtain ⟨-, -, _, _, $h:ident⟩ := $h':ident))
     else
       match info.facts with
       | 0 => evalTactic (← `(tactic| obtain ⟨_, _, $h:ident⟩ := $h':ident))
@@ -146,18 +179,30 @@ elab "sym_step" h:ident : tactic => withMainContext do
         try evalTactic (← `(tactic| clear $(mkIdent (← v.getUserName)):ident)) catch _ => pure ()
     evalTactic (← `(tactic| sym_norm at $h:ident))
 
-/-- Steps `h` as far as the table and the active branch allow. -/
-elab "sym_run" h:ident : tactic => do
+elab "sym_step" h:ident : tactic => stepWith h (mkIdent (Name.mkSimple "hact"))
+
+/-- Steps `h` as far as the table and the active branch allow; returns the number of steps. With
+`stopAtFlow`, stops before every `OP_IF`/`OP_NOTIF`/`OP_ELSE`/`OP_ENDIF` (for `sym_all`). -/
+private def runWith (h hact : Ident) (stopAtFlow : Bool := false) : TacticM Nat := do
   let mut n : Nat := 0
   repeat
-    let ok ← try
-        evalTactic (← `(tactic| sym_step $h:ident)); pure true
+    if stopAtFlow then
+      let hDecl ← withMainContext (getLocalDeclFromUserName h.getId)
+      match ← withMainContext (headOp hDecl.type) with
+      | some op => if op == 0x63 || op == 0x64 || op == 0x67 || op == 0x68 then break
+      | none => break
+    let ok ← try stepWith h hact; pure true
       catch ex =>
-        logInfo m!"sym_run stopped: {ex.toMessageData}"
+        logInfo m!"sym_run: stopped after {n}: {ex.toMessageData}"
         pure false
     unless ok do break
     n := n + 1
-    if n > 5000 then throwError "sym_run: more than 5000 steps"
+    if n > 10000 then throwError "sym_run: more than 10000 steps"
+  return n
+
+elab "sym_run" h:ident hact:(colGt ident)? : tactic => do
+  let hact := hact.getD (mkIdent (Name.mkSimple "hact"))
+  let n ← runWith h hact
   logInfo m!"sym_run: {n} instructions"
 
 /-! ## Skipping an inactive arm -/
@@ -168,12 +213,11 @@ private inductive SkipAction where
   | stop
   | step (delta : Int)
 
-/-- One inactive step on `h`. The activity hypothesis of the current tracker is derived from the one
-named `hin` in the context and the tracker algebra. -/
-private def skipStep (h : Ident) (depth : Nat) : TacticM SkipAction := withMainContext do
+/-- One inactive step on `h`. The activity hypothesis of the current tracker is derived from `hin`
+(the inactivity of the tracker the arm starts in) and the tracker algebra. -/
+private def skipStep (h hin : Ident) (depth : Nat) : TacticM SkipAction := withMainContext do
   let he := mkIdent (Name.mkSimple "he")
   let hr := mkIdent (Name.mkSimple "hr")
-  let hin := mkIdent (Name.mkSimple "hin")
   let hDecl ← getLocalDeclFromUserName h.getId
   let some op ← headOp hDecl.type | return .stop
   let hinTerm ← `((by simp only [isActive_opIf, isActive_opElse_opIf, Bool.and_false, Bool.and_true,
@@ -209,8 +253,8 @@ private def skipStep (h : Ident) (depth : Nat) : TacticM SkipAction := withMainC
       evalTactic (← `(tactic| clear $h:ident))
       match facts with
       | 0 => evalTactic (← `(tactic| obtain ⟨_, $h:ident⟩ := $h':ident))
-      | 1 => evalTactic (← `(tactic| obtain ⟨_, _, $h:ident⟩ := $h':ident))
-      | _ => evalTactic (← `(tactic| obtain ⟨_, _, _, $h:ident⟩ := $h':ident))
+      | 1 => evalTactic (← `(tactic| obtain ⟨-, _, $h:ident⟩ := $h':ident))
+      | _ => evalTactic (← `(tactic| obtain ⟨-, -, _, $h:ident⟩ := $h':ident))
       withMainContext do
         for v in oldVars do
           try evalTactic (← `(tactic| clear $(mkIdent (← v.getUserName)):ident)) catch _ => pure ()
@@ -220,20 +264,128 @@ private def skipStep (h : Ident) (depth : Nat) : TacticM SkipAction := withMainC
     logInfo m!"sym_skip stopped: {ex.toMessageData}"
     return .stop
 
-/-- `sym_skip h`: `h` is the run of an inactive arm; step it with the inactive lemmas until the
-`OP_ELSE` or `OP_ENDIF` that closes the arm (nested conditionals are walked through). The
-activity hypothesis of the arm's tracker is derived from the one named `hin` in the context
-(`hin : D.isActive = false` for the tracker the arm starts in) and the tracker algebra. -/
-elab "sym_skip" h:ident : tactic => do
+/-- Walks the inactive arm in `h` to its own `OP_ELSE`/`OP_ENDIF`; returns the number of steps. -/
+private def skipWith (h hin : Ident) : TacticM Nat := do
   let mut depth : Nat := 0
   let mut n : Nat := 0
   repeat
-    match ← skipStep h depth with
+    match ← skipStep h hin depth with
     | .stop => break
     | .step d =>
       depth := (depth + d).toNat
       n := n + 1
-      if n > 5000 then throwError "sym_skip: more than 5000 steps"
+      if n > 10000 then throwError "sym_skip: more than 10000 steps"
+  return n
+
+elab "sym_skip" h:ident hin:(colGt ident)? : tactic => do
+  let hin := hin.getD (mkIdent (Name.mkSimple "hin"))
+  let n ← skipWith h hin
   logInfo m!"sym_skip: {n} instructions"
+
+/-! ## The whole program -/
+
+/-- Is the tracker in `h` syntactically `D.opIf true` / `D.opIf false`? -/
+private def condDecided (hType : Expr) : MetaM (Option Bool) := do
+  let some c ← stateCond hType | return none
+  let c ← instantiateMVars c
+  unless c.getAppFn.isConstOf ``BsvScript.Machine.Cond.opIf do return none
+  let args := c.getAppArgs
+  unless args.size == 2 do return none
+  let b ← whnfR args[1]!
+  if b.isConstOf ``Bool.true then return some true
+  if b.isConstOf ``Bool.false then return some false
+  return none
+
+/-- A fresh activity hypothesis for the tracker now in `h`, proved from the tracker algebra, the
+hypotheses named, and `decide`. -/
+private def mkActivity (h : Ident) (active : Bool) (extra : Array Ident) : TacticM Ident := withMainContext do
+  let hDecl ← getLocalDeclFromUserName h.getId
+  let some c ← stateCond hDecl.type | throwError "sym_all: no tracker in {h}"
+  let name ← mkFreshUserName (if active then `hact else `hin)
+  let id := mkIdent name
+  let cStx ← Term.exprToSyntax c
+  let val := if active then mkIdent ``Bool.true else mkIdent ``Bool.false
+  let extras ← extra.mapM fun i => `(Lean.Parser.Tactic.simpLemma| $i:ident)
+  withoutRecover do
+    evalTactic (← `(tactic| have $id:ident : Cond.isActive $cStx = $val := by
+      simp (config := { decide := true }) only [isActive_opIf, isActive_opElse_opIf, Bool.and_true, Bool.and_false,
+        Bool.true_and, Bool.false_and, Bool.not_true, Bool.not_false, $extras,*]))
+  return id
+
+/-- Evaluate the popped condition in `h`'s tracker under the hypotheses named. -/
+private def decideCond (h : Ident) (extra : Array Ident) : TacticM Unit := withMainContext do
+  let extras ← extra.mapM fun i => `(Lean.Parser.Tactic.simpLemma| $i:ident)
+  evalTactic (← `(tactic| simp (config := { decide := true, failIfUnchanged := false }) only
+    [castToBool_single, castToBool_one, castToBool_nil, castToBool_encode_ite, encode_zero, encode_one, bne_iff_ne, ne_eq, decide_eq_true_eq, decide_true, decide_false, Bool.and_true, Bool.and_false,
+     Bool.true_and, Bool.false_and, Bool.or_true, Bool.or_false, Bool.true_or, Bool.false_or, Bool.not_true,
+     Bool.not_false, ↓reduceIte, not_not, not_false_eq_true, not_true_eq_false, and_true, and_false, true_and,
+     false_and, or_true, or_false, true_or, false_or, $extras,*] at $h:ident))
+
+/-- Every identifier inside a piece of syntax. -/
+private partial def collectIdents (stx : Syntax) : Array Ident :=
+  match stx with
+  | .ident .. => #[⟨stx⟩]
+  | .node _ _ args => args.foldl (fun acc a => acc ++ collectIdents a) #[]
+  | _ => #[]
+
+/-- `sym_all h hyps*` (the module header). -/
+elab "sym_all" h:ident hs:(colGt ident)* : tactic => do
+  let extras : Array Ident := hs.map fun s => ⟨s.raw⟩
+  -- the activity hypotheses of the enclosing arms, innermost last; the current one on top
+  let mut hacts : Array Ident := #[mkIdent (Name.mkSimple "hact")]
+  let mut total : Nat := 0
+  repeat
+    let hact := hacts.back!
+    total := total + (← runWith h hact true)
+    let hDecl ← withMainContext (getLocalDeclFromUserName h.getId)
+    let some op ← withMainContext (headOp hDecl.type) | break
+    if op == 0x63 || op == 0x64 then
+      -- enter the conditional: evaluate what the hypotheses decide on the stack (an `OP_IFDUP`'s copy,
+      -- a flag), pop the condition, decide it
+      decideCond h extras
+      stepWith h hact
+      decideCond h extras
+      let hType := (← withMainContext (getLocalDeclFromUserName h.getId)).type
+      match ← withMainContext (condDecided hType) with
+      | some true =>
+        let hactNew ← mkActivity h true (extras.push hact)
+        hacts := hacts.push hactNew
+      | some false =>
+        let hinNew ← mkActivity h false (extras.push hact)
+        total := total + (← skipWith h hinNew)
+        -- at the arm's OP_ELSE (then the else arm is active) or OP_ENDIF (then nothing was taken)
+        let hDecl2 ← withMainContext (getLocalDeclFromUserName h.getId)
+        let some op2 ← withMainContext (headOp hDecl2.type)
+          | throwError "sym_all: the skipped arm has no end: {hDecl2.type}"
+        if op2 == 0x67 then
+          stepWith h hact
+          let hactNew ← mkActivity h true (extras.push hact)
+          hacts := hacts.push hactNew
+        else if op2 == 0x68 then
+          stepWith h hact
+        else throwError "sym_all: the skipped arm stopped at opcode {op2}"
+      | none =>
+        let some c ← withMainContext (stateCond hType) | throwError "sym_all: no tracker"
+        logInfo m!"sym_all: undecided condition after {total} instructions: {c}"
+        break
+    else if op == 0x67 then
+      -- the end of an active arm: flip, skip the other arm, close
+      stepWith h hact
+      let hinNew ← mkActivity h false (extras.push hact)
+      total := total + (← skipWith h hinNew)
+      let hDecl2 ← withMainContext (getLocalDeclFromUserName h.getId)
+      let some op2 ← withMainContext (headOp hDecl2.type)
+        | throwError "sym_all: the else arm has no end: {hDecl2.type}"
+      unless op2 == 0x68 do throwError "sym_all: the else arm stopped at opcode {op2}"
+      stepWith h hact
+      hacts := hacts.pop
+    else if op == 0x68 then
+      stepWith h hact
+      hacts := hacts.pop
+    else
+      logInfo m!"sym_all: stopped at opcode {op} after {total} instructions"
+      break
+    total := total + 1
+  logInfo m!"sym_all: {total} instructions"
 
 end BoltProof.Glue
