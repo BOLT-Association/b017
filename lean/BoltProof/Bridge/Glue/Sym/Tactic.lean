@@ -92,8 +92,9 @@ macro_rules
       List.drop_succ_cons, List.drop_zero, List.drop_nil, List.drop_one, List.tail_cons,
       List.getElem?_cons_zero, List.getElem?_cons_succ, List.getElem?_nil, Option.getD_some, Option.getD_none,
       List.eraseIdx_cons_zero, List.eraseIdx_cons_succ, List.length_cons, List.length_nil,
-      decode_lit, Nat.reduceLT, decode_encode, Int.toNat_natCast, Int.reduceToNat, Nat.cast_ofNat, List.drop_drop,
-      Nat.reduceAdd,
+      decode_lit, decode_nil, Nat.reduceLT, decode_encode, Int.toNat_natCast, Int.reduceToNat, Nat.cast_ofNat, List.drop_drop,
+      Nat.reduceAdd, Int.reduceAdd, Int.reduceSub, Int.reduceMul, Int.reduceTMod, Int.reduceLT, Int.reduceLE,
+      Int.reduceEq,
       opEndif_opIf, opEndif_opElse_opIf, Bool.not_true, Bool.not_false, Bool.false_eq_true, Bool.true_eq_false,
       ↓reduceIte,
       castToBool_one, castToBool_nil, ite_one_zero_eq_zero, ite_zero_one_eq_zero, not_not, encode_one, encode_zero,
@@ -316,7 +317,7 @@ private def mkActivity (h : Ident) (active : Bool) (extra : Array Ident) : Tacti
 private def decideCond (h : Ident) (extra : Array Ident) : TacticM Unit := withMainContext do
   let extras ← extra.mapM fun i => `(Lean.Parser.Tactic.simpLemma| $i:ident)
   evalTactic (← `(tactic| simp (config := { decide := true, failIfUnchanged := false }) only
-    [castToBool_single, castToBool_one, castToBool_nil, castToBool_encode_ite, encode_zero, encode_one, bne_iff_ne, ne_eq, decide_eq_true_eq, decide_true, decide_false, Bool.and_true, Bool.and_false,
+    [castToBool_single, castToBool_one, castToBool_nil, castToBool_encode_ite, encode_zero, encode_one, decode_nil, bne_iff_ne, ne_eq, decide_eq_true_eq, decide_true, decide_false, Int.reduceTMod, Int.reduceAdd, Int.reduceSub, Int.reduceEq, Int.reduceLT, Int.reduceLE, Bool.and_true, Bool.and_false,
      Bool.true_and, Bool.false_and, Bool.or_true, Bool.or_false, Bool.true_or, Bool.false_or, Bool.not_true,
      Bool.not_false, ↓reduceIte, not_not, not_false_eq_true, not_true_eq_false, and_true, and_false, true_and,
      false_and, or_true, or_false, true_or, false_or, $extras,*] at $h:ident))

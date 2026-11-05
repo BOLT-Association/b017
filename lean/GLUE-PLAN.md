@@ -1,6 +1,6 @@
 # Closing the glue gap: a plan for a symbolic proof that the covenant bytes enforce `Accepts`
 
-Status: **M1–M4 delivered, M5–M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
+Status: **M1–M4 delivered, M5 in progress (the five fungible fragments are reached), M6–M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
 bsv-script-lean v1.2.0 (`6139161c`). Everything marked *(trace)* comes from a symbolic trace of the shipped
 suffix bytes in `BoltProof/Bridge/Generated/Bytes.lean` and is confirmed by execution or by a block lemma
 before it is relied on; everything else was checked against the source.
@@ -404,3 +404,25 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   expects, and `minSimple_refines` applies to the first commit, the second settle (with its rebuild) and the melt,
   every decidable hypothesis checked on the vector's data, so `Accepts` follows for them from `Residual` alone.
   Open from M4: Option A (a lossless `TxDesc`), for the run-level composition.
+- **M5, first step** (`Bridge/Glue/SimpleMulti/`): `Spec.lean` (the eleven lock fields in push order, `balance`,
+  `balanceCommit`, `pkh`, `com`, `com2`, `ogp`, `ty`, `outIdx`, `parent`, `gp`, `issuer`, and the fifteen unlocking
+  arguments above the 150 ancestor pieces), `PushTx.lean`, and `Reaches.lean`: `prologue` (the issuer guard
+  `parent = 0 ∨ gp = 0`, by cases) and `reaches_parityCheck`, `reaches_boundCheck_610`, `reaches_boundCheck_621`,
+  `reaches_mergeGuard`, `reaches_splitGuard`, `reaches_mergeSettle`, `reaches_splitSettle`: the run reaches each
+  fragment with the stack its `Gadgets/` lemma assumes (the type bytes at depths 26 and 37; the balance at 39 and
+  the bound at 4; `nextBalanceCommit` at 45; the balance at 45, the other balance at 51 and the bound at 10; the
+  balance at 47 and the carried balance at 46), each a prefix run of at most 400 instructions. The driver now
+  evaluates integer literals (`Int.reduceTMod`, …) and the empty push. Findings: the fungible parse accepts every
+  varint width of the scriptCode (`ff`/`fe`/`fd`/one byte), so the symbolic run takes the `fd` byte as a hypothesis;
+  the issuer guard reads pushes 8 and 9 (`parent`, `gp`), as §3 says. Next: the full paths (the two pad-to-16
+  loops and the sixty width-dependent optional pushes of the rebuilds need block lemmas or width hypotheses,
+  §4.7), `simpleMulti_sound`, and the refinement.
+- **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
+  no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
+  properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time
+  carries the security. They are carried as `HonestOutputs`/`HonestMelt` today only because `Accepts` lists them.
+  The fix is in Layer 1: drop `l2_melt`, weaken `l2_outs` to "the expected outputs come first", restrict `version`
+  to non-melts, and define `Spend.produced` and the per-spend token lists from `expectedOuts` rather than from
+  every token-shaped output of the transaction; Theorems 3 and 4 and `RunLemmas.lean` sum over `s.tx.tokens` and
+  move with it. Scheduled as its own step after the fungible paths, so that the refinements carry only the
+  cryptographic assumptions and the lineage link.

@@ -15,7 +15,11 @@ import BoltProof.Bridge.Glue.Refine.Serial
 import BoltProof.Bridge.Glue.Refine.Facts
 import BoltProof.Bridge.Glue.Refine.Weld
 import BoltProof.Bridge.Glue.Refine.MinSimple
+import BoltProof.Bridge.Glue.Refine.EndToEnd
 import BoltProof.Bridge.Glue.Regress
+import BoltProof.Bridge.Glue.SimpleMulti.Spec
+import BoltProof.Bridge.Glue.SimpleMulti.PushTx
+import BoltProof.Bridge.Glue.SimpleMulti.Reaches
 
 /-!
 # BoltProof.Bridge.Glue
@@ -34,6 +38,9 @@ rules; the few evaluator-trusted identities live in `BoltProof.Bridge` (`Bridge/
   run of the lock, `Serial.lean` round-trips the node's serialisation, `Weld.lean` and `Facts.lean`
   turn the facts the run leaves into the model's clauses, and `MinSimple.lean` proves
   `minSimple_refines`: the bytes accept only what `Accepts` admits, under the residual assumptions
-  it states. `Regress.lean` (namespace `BoltProof.Bridge.Glue`, `native_decide`) reads the real
+  it states; `EndToEnd.lean` composes it with Layer 1's per-spend theorems. `Regress.lean` (namespace `BoltProof.Bridge.Glue`, `native_decide`) reads the real
   `MinSimpleBOLT` vectors through the abstraction and applies the theorem to them.
+* `SimpleMulti/`: the fungible family (M5): `Spec.lean` names its eleven fields and the unlocking
+  arguments, `PushTx.lean` abstracts its `OP_PUSH_TX` block, and `Reaches.lean` proves that the
+  run reaches each of the five proved fragments with the stack its lemma assumes.
 -/
