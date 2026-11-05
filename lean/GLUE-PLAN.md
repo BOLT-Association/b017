@@ -417,6 +417,23 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   the issuer guard reads pushes 8 and 9 (`parent`, `gp`), as §3 says. Next: the full paths (the two pad-to-16
   loops and the sixty width-dependent optional pushes of the rebuilds need block lemmas or width hypotheses,
   §4.7), `simpleMulti_sound`, and the refinement.
+- **M5, second step** (the fungible rebuild's blocks): three pieces of the `SimpleMultiBOLT` suffix branch on the
+  ancestor's data rather than on the arguments, so no path hypothesis decides them: the pad-to-16 loop after a
+  balance sum or difference (`SIZE 16 LESSTHAN IF 00 CAT ENDIF` sixteen times, suffix 797 and 950), the
+  width-dependent optional push of an ancestor piece inside the rebuilds (`SWAP SIZE ROT EQUAL IF SIZE SWAP CAT
+  ELSE DROP 00 ENDIF CAT`, fifty times), and the balance anchor on the ancestor's type (2660 and 3835). The
+  exporter now cuts every occurrence of such a literal as its own chunk (`sections.ts`, the `auto` landmarks, with
+  the occurrence count checked), `SimpleMulti/Blocks.lean` reads each chunk as one step whose result is a function
+  of the stack (`padN 16`; `optPush w p`, the piece push-encoded when its size is `w`, else `OP_0`; the predicate
+  `AnchorOK`, the three arms' balance relations) together with a skip lemma for the chunk inside an inactive arm,
+  and the drivers gained the hooks `sym_block`/`sym_skipblock` (`Sym/Tactic.lean`): at a folded chunk, `sym_all`
+  and `sym_skip` try the rules registered by `macro_rules` next to the block lemmas, so a path proof keeps these
+  chunks folded and never cases on the ancestor's shape. The hooks fire only when the program is syntactically a
+  constant appended to a tail: unifying a block lemma's `c ++ k` against a bare variable makes the unifier unfold
+  `List.append` and does not return. The 150 ancestor pieces are now explicit in the fungible `Args` (`Pieces75`
+  twice, `psA` above `psB`), so the rebuilds' `PICK`s resolve on the literal stack; `Reaches.lean` is regenerated
+  for the new chunk set (the pad loop inside the skipped merge-settle arm of `reaches_splitSettle` is stepped over
+  by its skip lemma).
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,

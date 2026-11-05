@@ -311,261 +311,16 @@ def c779 : List Nat := [
 def c781_mergeSettle : List Nat := [
     0x01, 0x2f, 0x79, 0x01, 0x2f, 0x79, 0x76, 0x00, 0xa2, 0x69, 0x93, 0x76, 0x5e, 0x79, 0xa1, 0x69]
 
-/-- `[797, 800)`: straight-line run, 3 bytes, 3 instructions. -/
-def c797 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[800, 801)`: flow opcode, 1 byte, 1 instruction. -/
-def c800_if : List Nat := [
-    0x63]
-
-/-- `[801, 804)`: straight-line run, 3 bytes, 2 instructions. -/
-def c801 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[804, 805)`: flow opcode, 1 byte, 1 instruction. -/
-def c804_endif : List Nat := [
-    0x68]
-
-/-- `[805, 808)`: straight-line run, 3 bytes, 3 instructions. -/
-def c805 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[808, 809)`: flow opcode, 1 byte, 1 instruction. -/
-def c808_if : List Nat := [
-    0x63]
-
-/-- `[809, 812)`: straight-line run, 3 bytes, 2 instructions. -/
-def c809 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[812, 813)`: flow opcode, 1 byte, 1 instruction. -/
-def c812_endif : List Nat := [
-    0x68]
-
-/-- `[813, 816)`: straight-line run, 3 bytes, 3 instructions. -/
-def c813 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[816, 817)`: flow opcode, 1 byte, 1 instruction. -/
-def c816_if : List Nat := [
-    0x63]
-
-/-- `[817, 820)`: straight-line run, 3 bytes, 2 instructions. -/
-def c817 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[820, 821)`: flow opcode, 1 byte, 1 instruction. -/
-def c820_endif : List Nat := [
-    0x68]
-
-/-- `[821, 824)`: straight-line run, 3 bytes, 3 instructions. -/
-def c821 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[824, 825)`: flow opcode, 1 byte, 1 instruction. -/
-def c824_if : List Nat := [
-    0x63]
-
-/-- `[825, 828)`: straight-line run, 3 bytes, 2 instructions. -/
-def c825 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[828, 829)`: flow opcode, 1 byte, 1 instruction. -/
-def c828_endif : List Nat := [
-    0x68]
-
-/-- `[829, 832)`: straight-line run, 3 bytes, 3 instructions. -/
-def c829 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[832, 833)`: flow opcode, 1 byte, 1 instruction. -/
-def c832_if : List Nat := [
-    0x63]
-
-/-- `[833, 836)`: straight-line run, 3 bytes, 2 instructions. -/
-def c833 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[836, 837)`: flow opcode, 1 byte, 1 instruction. -/
-def c836_endif : List Nat := [
-    0x68]
-
-/-- `[837, 840)`: straight-line run, 3 bytes, 3 instructions. -/
-def c837 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[840, 841)`: flow opcode, 1 byte, 1 instruction. -/
-def c840_if : List Nat := [
-    0x63]
-
-/-- `[841, 844)`: straight-line run, 3 bytes, 2 instructions. -/
-def c841 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[844, 845)`: flow opcode, 1 byte, 1 instruction. -/
-def c844_endif : List Nat := [
-    0x68]
-
-/-- `[845, 848)`: straight-line run, 3 bytes, 3 instructions. -/
-def c845 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[848, 849)`: flow opcode, 1 byte, 1 instruction. -/
-def c848_if : List Nat := [
-    0x63]
-
-/-- `[849, 852)`: straight-line run, 3 bytes, 2 instructions. -/
-def c849 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[852, 853)`: flow opcode, 1 byte, 1 instruction. -/
-def c852_endif : List Nat := [
-    0x68]
-
-/-- `[853, 856)`: straight-line run, 3 bytes, 3 instructions. -/
-def c853 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[856, 857)`: flow opcode, 1 byte, 1 instruction. -/
-def c856_if : List Nat := [
-    0x63]
-
-/-- `[857, 860)`: straight-line run, 3 bytes, 2 instructions. -/
-def c857 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[860, 861)`: flow opcode, 1 byte, 1 instruction. -/
-def c860_endif : List Nat := [
-    0x68]
-
-/-- `[861, 864)`: straight-line run, 3 bytes, 3 instructions. -/
-def c861 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[864, 865)`: flow opcode, 1 byte, 1 instruction. -/
-def c864_if : List Nat := [
-    0x63]
-
-/-- `[865, 868)`: straight-line run, 3 bytes, 2 instructions. -/
-def c865 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[868, 869)`: flow opcode, 1 byte, 1 instruction. -/
-def c868_endif : List Nat := [
-    0x68]
-
-/-- `[869, 872)`: straight-line run, 3 bytes, 3 instructions. -/
-def c869 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[872, 873)`: flow opcode, 1 byte, 1 instruction. -/
-def c872_if : List Nat := [
-    0x63]
-
-/-- `[873, 876)`: straight-line run, 3 bytes, 2 instructions. -/
-def c873 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[876, 877)`: flow opcode, 1 byte, 1 instruction. -/
-def c876_endif : List Nat := [
-    0x68]
-
-/-- `[877, 880)`: straight-line run, 3 bytes, 3 instructions. -/
-def c877 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[880, 881)`: flow opcode, 1 byte, 1 instruction. -/
-def c880_if : List Nat := [
-    0x63]
-
-/-- `[881, 884)`: straight-line run, 3 bytes, 2 instructions. -/
-def c881 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[884, 885)`: flow opcode, 1 byte, 1 instruction. -/
-def c884_endif : List Nat := [
-    0x68]
-
-/-- `[885, 888)`: straight-line run, 3 bytes, 3 instructions. -/
-def c885 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[888, 889)`: flow opcode, 1 byte, 1 instruction. -/
-def c888_if : List Nat := [
-    0x63]
-
-/-- `[889, 892)`: straight-line run, 3 bytes, 2 instructions. -/
-def c889 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[892, 893)`: flow opcode, 1 byte, 1 instruction. -/
-def c892_endif : List Nat := [
-    0x68]
-
-/-- `[893, 896)`: straight-line run, 3 bytes, 3 instructions. -/
-def c893 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[896, 897)`: flow opcode, 1 byte, 1 instruction. -/
-def c896_if : List Nat := [
-    0x63]
-
-/-- `[897, 900)`: straight-line run, 3 bytes, 2 instructions. -/
-def c897 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[900, 901)`: flow opcode, 1 byte, 1 instruction. -/
-def c900_endif : List Nat := [
-    0x68]
-
-/-- `[901, 904)`: straight-line run, 3 bytes, 3 instructions. -/
-def c901 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[904, 905)`: flow opcode, 1 byte, 1 instruction. -/
-def c904_if : List Nat := [
-    0x63]
-
-/-- `[905, 908)`: straight-line run, 3 bytes, 2 instructions. -/
-def c905 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[908, 909)`: flow opcode, 1 byte, 1 instruction. -/
-def c908_endif : List Nat := [
-    0x68]
-
-/-- `[909, 912)`: straight-line run, 3 bytes, 3 instructions. -/
-def c909 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[912, 913)`: flow opcode, 1 byte, 1 instruction. -/
-def c912_if : List Nat := [
-    0x63]
-
-/-- `[913, 916)`: straight-line run, 3 bytes, 2 instructions. -/
-def c913 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[916, 917)`: flow opcode, 1 byte, 1 instruction. -/
-def c916_endif : List Nat := [
-    0x68]
-
-/-- `[917, 920)`: straight-line run, 3 bytes, 3 instructions. -/
-def c917 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[920, 921)`: flow opcode, 1 byte, 1 instruction. -/
-def c920_if : List Nat := [
-    0x63]
-
-/-- `[921, 924)`: straight-line run, 3 bytes, 2 instructions. -/
-def c921 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[924, 925)`: flow opcode, 1 byte, 1 instruction. -/
-def c924_endif : List Nat := [
-    0x68]
+/-- `[797, 925)`: the `pad16` fragment, 128 bytes, 112 instructions. -/
+def c797_pad16 : List Nat := [
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68]
 
 /-- `[925, 929)`: straight-line run, 4 bytes, 4 instructions. -/
 def c925 : List Nat := [
@@ -591,261 +346,16 @@ def c933 : List Nat := [
 def c935_splitSettle : List Nat := [
     0x01, 0x2f, 0x79, 0x01, 0x2f, 0x79, 0x76, 0x00, 0xa2, 0x69, 0x94, 0x76, 0x00, 0xa2, 0x69]
 
-/-- `[950, 953)`: straight-line run, 3 bytes, 3 instructions. -/
-def c950 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[953, 954)`: flow opcode, 1 byte, 1 instruction. -/
-def c953_if : List Nat := [
-    0x63]
-
-/-- `[954, 957)`: straight-line run, 3 bytes, 2 instructions. -/
-def c954 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[957, 958)`: flow opcode, 1 byte, 1 instruction. -/
-def c957_endif : List Nat := [
-    0x68]
-
-/-- `[958, 961)`: straight-line run, 3 bytes, 3 instructions. -/
-def c958 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[961, 962)`: flow opcode, 1 byte, 1 instruction. -/
-def c961_if : List Nat := [
-    0x63]
-
-/-- `[962, 965)`: straight-line run, 3 bytes, 2 instructions. -/
-def c962 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[965, 966)`: flow opcode, 1 byte, 1 instruction. -/
-def c965_endif : List Nat := [
-    0x68]
-
-/-- `[966, 969)`: straight-line run, 3 bytes, 3 instructions. -/
-def c966 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[969, 970)`: flow opcode, 1 byte, 1 instruction. -/
-def c969_if : List Nat := [
-    0x63]
-
-/-- `[970, 973)`: straight-line run, 3 bytes, 2 instructions. -/
-def c970 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[973, 974)`: flow opcode, 1 byte, 1 instruction. -/
-def c973_endif : List Nat := [
-    0x68]
-
-/-- `[974, 977)`: straight-line run, 3 bytes, 3 instructions. -/
-def c974 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[977, 978)`: flow opcode, 1 byte, 1 instruction. -/
-def c977_if : List Nat := [
-    0x63]
-
-/-- `[978, 981)`: straight-line run, 3 bytes, 2 instructions. -/
-def c978 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[981, 982)`: flow opcode, 1 byte, 1 instruction. -/
-def c981_endif : List Nat := [
-    0x68]
-
-/-- `[982, 985)`: straight-line run, 3 bytes, 3 instructions. -/
-def c982 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[985, 986)`: flow opcode, 1 byte, 1 instruction. -/
-def c985_if : List Nat := [
-    0x63]
-
-/-- `[986, 989)`: straight-line run, 3 bytes, 2 instructions. -/
-def c986 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[989, 990)`: flow opcode, 1 byte, 1 instruction. -/
-def c989_endif : List Nat := [
-    0x68]
-
-/-- `[990, 993)`: straight-line run, 3 bytes, 3 instructions. -/
-def c990 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[993, 994)`: flow opcode, 1 byte, 1 instruction. -/
-def c993_if : List Nat := [
-    0x63]
-
-/-- `[994, 997)`: straight-line run, 3 bytes, 2 instructions. -/
-def c994 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[997, 998)`: flow opcode, 1 byte, 1 instruction. -/
-def c997_endif : List Nat := [
-    0x68]
-
-/-- `[998, 1001)`: straight-line run, 3 bytes, 3 instructions. -/
-def c998 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1001, 1002)`: flow opcode, 1 byte, 1 instruction. -/
-def c1001_if : List Nat := [
-    0x63]
-
-/-- `[1002, 1005)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1002 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1005, 1006)`: flow opcode, 1 byte, 1 instruction. -/
-def c1005_endif : List Nat := [
-    0x68]
-
-/-- `[1006, 1009)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1006 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1009, 1010)`: flow opcode, 1 byte, 1 instruction. -/
-def c1009_if : List Nat := [
-    0x63]
-
-/-- `[1010, 1013)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1010 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1013, 1014)`: flow opcode, 1 byte, 1 instruction. -/
-def c1013_endif : List Nat := [
-    0x68]
-
-/-- `[1014, 1017)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1014 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1017, 1018)`: flow opcode, 1 byte, 1 instruction. -/
-def c1017_if : List Nat := [
-    0x63]
-
-/-- `[1018, 1021)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1018 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1021, 1022)`: flow opcode, 1 byte, 1 instruction. -/
-def c1021_endif : List Nat := [
-    0x68]
-
-/-- `[1022, 1025)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1022 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1025, 1026)`: flow opcode, 1 byte, 1 instruction. -/
-def c1025_if : List Nat := [
-    0x63]
-
-/-- `[1026, 1029)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1026 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1029, 1030)`: flow opcode, 1 byte, 1 instruction. -/
-def c1029_endif : List Nat := [
-    0x68]
-
-/-- `[1030, 1033)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1030 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1033, 1034)`: flow opcode, 1 byte, 1 instruction. -/
-def c1033_if : List Nat := [
-    0x63]
-
-/-- `[1034, 1037)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1034 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1037, 1038)`: flow opcode, 1 byte, 1 instruction. -/
-def c1037_endif : List Nat := [
-    0x68]
-
-/-- `[1038, 1041)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1038 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1041, 1042)`: flow opcode, 1 byte, 1 instruction. -/
-def c1041_if : List Nat := [
-    0x63]
-
-/-- `[1042, 1045)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1042 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1045, 1046)`: flow opcode, 1 byte, 1 instruction. -/
-def c1045_endif : List Nat := [
-    0x68]
-
-/-- `[1046, 1049)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1046 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1049, 1050)`: flow opcode, 1 byte, 1 instruction. -/
-def c1049_if : List Nat := [
-    0x63]
-
-/-- `[1050, 1053)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1050 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1053, 1054)`: flow opcode, 1 byte, 1 instruction. -/
-def c1053_endif : List Nat := [
-    0x68]
-
-/-- `[1054, 1057)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1054 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1057, 1058)`: flow opcode, 1 byte, 1 instruction. -/
-def c1057_if : List Nat := [
-    0x63]
-
-/-- `[1058, 1061)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1058 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1061, 1062)`: flow opcode, 1 byte, 1 instruction. -/
-def c1061_endif : List Nat := [
-    0x68]
-
-/-- `[1062, 1065)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1062 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1065, 1066)`: flow opcode, 1 byte, 1 instruction. -/
-def c1065_if : List Nat := [
-    0x63]
-
-/-- `[1066, 1069)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1066 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1069, 1070)`: flow opcode, 1 byte, 1 instruction. -/
-def c1069_endif : List Nat := [
-    0x68]
-
-/-- `[1070, 1073)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1070 : List Nat := [
-    0x82, 0x60, 0x9f]
-
-/-- `[1073, 1074)`: flow opcode, 1 byte, 1 instruction. -/
-def c1073_if : List Nat := [
-    0x63]
-
-/-- `[1074, 1077)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1074 : List Nat := [
-    0x01, 0x00, 0x7e]
-
-/-- `[1077, 1078)`: flow opcode, 1 byte, 1 instruction. -/
-def c1077_endif : List Nat := [
-    0x68]
+/-- `[950, 1078)`: the `pad16` fragment, 128 bytes, 112 instructions. -/
+def c950_pad16 : List Nat := [
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68,
+    0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68, 0x82, 0x60, 0x9f, 0x63, 0x01, 0x00, 0x7e, 0x68]
 
 /-- `[1078, 1082)`: straight-line run, 4 bytes, 4 instructions. -/
 def c1078 : List Nat := [
@@ -1245,624 +755,239 @@ def c1442 : List Nat := [
 def c1443_endif : List Nat := [
     0x68]
 
-/-- `[1444, 1469)`: straight-line run, 25 bytes, 19 instructions. -/
+/-- `[1444, 1465)`: straight-line run, 21 bytes, 15 instructions. -/
 def c1444 : List Nat := [
     0x52, 0x7a, 0x7c, 0x7e, 0x02, 0xd5, 0x00, 0x79, 0x7e, 0x00, 0x02, 0x96, 0x00, 0x80, 0x76, 0x6b,
-    0x02, 0xd5, 0x00, 0x79, 0x54, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1469, 1470)`: flow opcode, 1 byte, 1 instruction. -/
-def c1469_if : List Nat := [
-    0x63]
-
-/-- `[1470, 1473)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1470 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1473, 1474)`: flow opcode, 1 byte, 1 instruction. -/
-def c1473_else : List Nat := [
-    0x67]
-
-/-- `[1474, 1477)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1474 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1477, 1478)`: flow opcode, 1 byte, 1 instruction. -/
-def c1477_endif : List Nat := [
-    0x68]
-
-/-- `[1478, 1488)`: straight-line run, 10 bytes, 8 instructions. -/
-def c1478 : List Nat := [
-    0x7e, 0x02, 0xd4, 0x00, 0x79, 0x54, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1488, 1489)`: flow opcode, 1 byte, 1 instruction. -/
-def c1488_if : List Nat := [
-    0x63]
-
-/-- `[1489, 1492)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1489 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1492, 1493)`: flow opcode, 1 byte, 1 instruction. -/
-def c1492_else : List Nat := [
-    0x67]
-
-/-- `[1493, 1496)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1493 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1496, 1497)`: flow opcode, 1 byte, 1 instruction. -/
-def c1496_endif : List Nat := [
-    0x68]
-
-/-- `[1497, 1508)`: straight-line run, 11 bytes, 8 instructions. -/
-def c1497 : List Nat := [
-    0x7e, 0x02, 0xd3, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1508, 1509)`: flow opcode, 1 byte, 1 instruction. -/
-def c1508_if : List Nat := [
-    0x63]
-
-/-- `[1509, 1512)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1509 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1512, 1513)`: flow opcode, 1 byte, 1 instruction. -/
-def c1512_else : List Nat := [
-    0x67]
-
-/-- `[1513, 1516)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1513 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1516, 1517)`: flow opcode, 1 byte, 1 instruction. -/
-def c1516_endif : List Nat := [
-    0x68]
-
-/-- `[1517, 1528)`: straight-line run, 11 bytes, 8 instructions. -/
-def c1517 : List Nat := [
-    0x7e, 0x02, 0xd2, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1528, 1529)`: flow opcode, 1 byte, 1 instruction. -/
-def c1528_if : List Nat := [
-    0x63]
-
-/-- `[1529, 1532)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1529 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1532, 1533)`: flow opcode, 1 byte, 1 instruction. -/
-def c1532_else : List Nat := [
-    0x67]
-
-/-- `[1533, 1536)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1533 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1536, 1537)`: flow opcode, 1 byte, 1 instruction. -/
-def c1536_endif : List Nat := [
-    0x68]
-
-/-- `[1537, 1548)`: straight-line run, 11 bytes, 8 instructions. -/
-def c1537 : List Nat := [
-    0x7e, 0x02, 0xd1, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1548, 1549)`: flow opcode, 1 byte, 1 instruction. -/
-def c1548_if : List Nat := [
-    0x63]
-
-/-- `[1549, 1552)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1549 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1552, 1553)`: flow opcode, 1 byte, 1 instruction. -/
-def c1552_else : List Nat := [
-    0x67]
-
-/-- `[1553, 1556)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1553 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1556, 1557)`: flow opcode, 1 byte, 1 instruction. -/
-def c1556_endif : List Nat := [
-    0x68]
-
-/-- `[1557, 1586)`: straight-line run, 29 bytes, 20 instructions. -/
-def c1557 : List Nat := [
-    0x7e, 0x02, 0xd0, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xcf, 0x00, 0x79, 0x01, 0x22,
-    0x7c, 0x7e, 0x7e, 0x02, 0xce, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1586, 1587)`: flow opcode, 1 byte, 1 instruction. -/
-def c1586_if : List Nat := [
-    0x63]
-
-/-- `[1587, 1590)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1587 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1590, 1591)`: flow opcode, 1 byte, 1 instruction. -/
-def c1590_else : List Nat := [
-    0x67]
-
-/-- `[1591, 1594)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1591 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1594, 1595)`: flow opcode, 1 byte, 1 instruction. -/
-def c1594_endif : List Nat := [
-    0x68]
-
-/-- `[1595, 1606)`: straight-line run, 11 bytes, 8 instructions. -/
-def c1595 : List Nat := [
-    0x7e, 0x02, 0xcd, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1606, 1607)`: flow opcode, 1 byte, 1 instruction. -/
-def c1606_if : List Nat := [
-    0x63]
-
-/-- `[1607, 1610)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1607 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1610, 1611)`: flow opcode, 1 byte, 1 instruction. -/
-def c1610_else : List Nat := [
-    0x67]
-
-/-- `[1611, 1614)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1611 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1614, 1615)`: flow opcode, 1 byte, 1 instruction. -/
-def c1614_endif : List Nat := [
-    0x68]
-
-/-- `[1615, 1625)`: straight-line run, 10 bytes, 8 instructions. -/
-def c1615 : List Nat := [
-    0x7e, 0x02, 0xcc, 0x00, 0x79, 0x60, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1625, 1626)`: flow opcode, 1 byte, 1 instruction. -/
-def c1625_if : List Nat := [
-    0x63]
-
-/-- `[1626, 1629)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1626 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1629, 1630)`: flow opcode, 1 byte, 1 instruction. -/
-def c1629_else : List Nat := [
-    0x67]
-
-/-- `[1630, 1633)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1630 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1633, 1634)`: flow opcode, 1 byte, 1 instruction. -/
-def c1633_endif : List Nat := [
-    0x68]
-
-/-- `[1634, 1644)`: straight-line run, 10 bytes, 8 instructions. -/
-def c1634 : List Nat := [
-    0x7e, 0x02, 0xcb, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1644, 1645)`: flow opcode, 1 byte, 1 instruction. -/
-def c1644_if : List Nat := [
-    0x63]
-
-/-- `[1645, 1648)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1645 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1648, 1649)`: flow opcode, 1 byte, 1 instruction. -/
-def c1648_else : List Nat := [
-    0x67]
-
-/-- `[1649, 1652)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1649 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1652, 1653)`: flow opcode, 1 byte, 1 instruction. -/
-def c1652_endif : List Nat := [
-    0x68]
-
-/-- `[1653, 1663)`: straight-line run, 10 bytes, 8 instructions. -/
-def c1653 : List Nat := [
-    0x7e, 0x02, 0xca, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1663, 1664)`: flow opcode, 1 byte, 1 instruction. -/
-def c1663_if : List Nat := [
-    0x63]
-
-/-- `[1664, 1667)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1664 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1667, 1668)`: flow opcode, 1 byte, 1 instruction. -/
-def c1667_else : List Nat := [
-    0x67]
-
-/-- `[1668, 1671)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1668 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1671, 1672)`: flow opcode, 1 byte, 1 instruction. -/
-def c1671_endif : List Nat := [
-    0x68]
-
-/-- `[1672, 1696)`: straight-line run, 24 bytes, 18 instructions. -/
-def c1672 : List Nat := [
-    0x7e, 0x02, 0xc9, 0x00, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x02, 0xc8,
-    0x00, 0x79, 0x01, 0x21, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1696, 1697)`: flow opcode, 1 byte, 1 instruction. -/
-def c1696_if : List Nat := [
-    0x63]
-
-/-- `[1697, 1700)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1697 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1700, 1701)`: flow opcode, 1 byte, 1 instruction. -/
-def c1700_else : List Nat := [
-    0x67]
-
-/-- `[1701, 1704)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1701 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1704, 1705)`: flow opcode, 1 byte, 1 instruction. -/
-def c1704_endif : List Nat := [
-    0x68]
-
-/-- `[1705, 1799)`: straight-line run, 94 bytes, 67 instructions. -/
-def c1705 : List Nat := [
-    0x7e, 0x02, 0xc7, 0x00, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80,
-    0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x02, 0xc7, 0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x02,
-    0xc7, 0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x02, 0xc6, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e,
-    0x7e, 0x02, 0xc5, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x02, 0xc4, 0x00, 0x79, 0x01, 0x14,
-    0x7c, 0x7e, 0x7e, 0x02, 0xc3, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xc2, 0x00, 0x79,
-    0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x02, 0xc1, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1799, 1800)`: flow opcode, 1 byte, 1 instruction. -/
-def c1799_if : List Nat := [
-    0x63]
-
-/-- `[1800, 1803)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1800 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1803, 1804)`: flow opcode, 1 byte, 1 instruction. -/
-def c1803_else : List Nat := [
-    0x67]
-
-/-- `[1804, 1807)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1804 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1807, 1808)`: flow opcode, 1 byte, 1 instruction. -/
-def c1807_endif : List Nat := [
-    0x68]
-
-/-- `[1808, 1961)`: straight-line run, 153 bytes, 94 instructions. -/
-def c1808 : List Nat := [
-    0x7e, 0x02, 0xc0, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xbf, 0x00, 0x79, 0x01, 0x24,
-    0x7c, 0x7e, 0x7e, 0x01, 0x15, 0x79, 0x7e, 0x01, 0x14, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52,
-    0x80, 0x02, 0x03, 0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80,
-    0x02, 0x03, 0xfd, 0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e,
-    0x7e, 0x7e, 0x02, 0xbc, 0x00, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e,
-    0x1e, 0x55, 0x79, 0x55, 0x7a, 0x55, 0x7a, 0x55, 0x79, 0x55, 0x79, 0x7e, 0x7e, 0x7e, 0x7e, 0x54,
-    0x7a, 0x52, 0x7a, 0x54, 0x7a, 0x54, 0x7a, 0x7e, 0x7e, 0x7e, 0x7c, 0x73, 0x63, 0x01, 0x41, 0x01,
-    0x13, 0x79, 0x01, 0x29, 0x7f, 0x77, 0x02, 0x7d, 0x01, 0x7f, 0x75, 0x7e, 0x03, 0xab, 0xad, 0x68,
-    0x7e, 0x76, 0x6b, 0x7e, 0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e,
-    0x7c, 0x7e, 0x7e, 0x02, 0xba, 0x00, 0x79, 0x7e, 0x7c]
+    0x02, 0xd5, 0x00, 0x79, 0x54]
+
+/-- `[1465, 1479)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1465_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1479, 1484)`: straight-line run, 5 bytes, 3 instructions. -/
+def c1479 : List Nat := [
+    0x02, 0xd4, 0x00, 0x79, 0x54]
+
+/-- `[1484, 1498)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1484_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1498, 1504)`: straight-line run, 6 bytes, 3 instructions. -/
+def c1498 : List Nat := [
+    0x02, 0xd3, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[1504, 1518)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1504_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1518, 1524)`: straight-line run, 6 bytes, 3 instructions. -/
+def c1518 : List Nat := [
+    0x02, 0xd2, 0x00, 0x79, 0x01, 0x24]
+
+/-- `[1524, 1538)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1524_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1538, 1544)`: straight-line run, 6 bytes, 3 instructions. -/
+def c1538 : List Nat := [
+    0x02, 0xd1, 0x00, 0x79, 0x01, 0x24]
+
+/-- `[1544, 1558)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1544_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1558, 1582)`: straight-line run, 24 bytes, 15 instructions. -/
+def c1558 : List Nat := [
+    0x02, 0xd0, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xcf, 0x00, 0x79, 0x01, 0x22, 0x7c,
+    0x7e, 0x7e, 0x02, 0xce, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[1582, 1596)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1582_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1596, 1602)`: straight-line run, 6 bytes, 3 instructions. -/
+def c1596 : List Nat := [
+    0x02, 0xcd, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[1602, 1616)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1602_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1616, 1621)`: straight-line run, 5 bytes, 3 instructions. -/
+def c1616 : List Nat := [
+    0x02, 0xcc, 0x00, 0x79, 0x60]
+
+/-- `[1621, 1635)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1621_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1635, 1640)`: straight-line run, 5 bytes, 3 instructions. -/
+def c1635 : List Nat := [
+    0x02, 0xcb, 0x00, 0x79, 0x51]
+
+/-- `[1640, 1654)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1640_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1654, 1659)`: straight-line run, 5 bytes, 3 instructions. -/
+def c1654 : List Nat := [
+    0x02, 0xca, 0x00, 0x79, 0x51]
+
+/-- `[1659, 1673)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1659_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1673, 1692)`: straight-line run, 19 bytes, 13 instructions. -/
+def c1673 : List Nat := [
+    0x02, 0xc9, 0x00, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x02, 0xc8, 0x00,
+    0x79, 0x01, 0x21]
+
+/-- `[1692, 1706)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1692_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1706, 1795)`: straight-line run, 89 bytes, 62 instructions. -/
+def c1706 : List Nat := [
+    0x02, 0xc7, 0x00, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80, 0x82,
+    0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x02, 0xc7, 0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x02, 0xc7,
+    0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x02, 0xc6, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e,
+    0x02, 0xc5, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x02, 0xc4, 0x00, 0x79, 0x01, 0x14, 0x7c,
+    0x7e, 0x7e, 0x02, 0xc3, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xc2, 0x00, 0x79, 0x01,
+    0x01, 0x7c, 0x7e, 0x7e, 0x02, 0xc1, 0x00, 0x79, 0x51]
+
+/-- `[1795, 1809)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1795_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1809, 1961)`: straight-line run, 152 bytes, 93 instructions. -/
+def c1809 : List Nat := [
+    0x02, 0xc0, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xbf, 0x00, 0x79, 0x01, 0x24, 0x7c,
+    0x7e, 0x7e, 0x01, 0x15, 0x79, 0x7e, 0x01, 0x14, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52, 0x80,
+    0x02, 0x03, 0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80, 0x02,
+    0x03, 0xfd, 0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e, 0x7e,
+    0x7e, 0x02, 0xbc, 0x00, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e, 0x1e,
+    0x55, 0x79, 0x55, 0x7a, 0x55, 0x7a, 0x55, 0x79, 0x55, 0x79, 0x7e, 0x7e, 0x7e, 0x7e, 0x54, 0x7a,
+    0x52, 0x7a, 0x54, 0x7a, 0x54, 0x7a, 0x7e, 0x7e, 0x7e, 0x7c, 0x73, 0x63, 0x01, 0x41, 0x01, 0x13,
+    0x79, 0x01, 0x29, 0x7f, 0x77, 0x02, 0x7d, 0x01, 0x7f, 0x75, 0x7e, 0x03, 0xab, 0xad, 0x68, 0x7e,
+    0x76, 0x6b, 0x7e, 0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c,
+    0x7e, 0x7e, 0x02, 0xba, 0x00, 0x79, 0x7e, 0x7c]
 
 /-- `[1961, 1962)`: flow opcode, 1 byte, 1 instruction. -/
 def c1961_if : List Nat := [
     0x63]
 
-/-- `[1962, 1982)`: straight-line run, 20 bytes, 16 instructions. -/
+/-- `[1962, 1978)`: straight-line run, 16 bytes, 12 instructions. -/
 def c1962 : List Nat := [
-    0x02, 0xb8, 0x00, 0x79, 0x7e, 0x6c, 0x6c, 0x76, 0x6b, 0x7c, 0x6b, 0x02, 0xb8, 0x00, 0x79, 0x54,
-    0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[1982, 1983)`: flow opcode, 1 byte, 1 instruction. -/
-def c1982_if : List Nat := [
-    0x63]
-
-/-- `[1983, 1986)`: straight-line run, 3 bytes, 3 instructions. -/
-def c1983 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[1986, 1987)`: flow opcode, 1 byte, 1 instruction. -/
-def c1986_else : List Nat := [
-    0x67]
-
-/-- `[1987, 1990)`: straight-line run, 3 bytes, 2 instructions. -/
-def c1987 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[1990, 1991)`: flow opcode, 1 byte, 1 instruction. -/
-def c1990_endif : List Nat := [
-    0x68]
-
-/-- `[1991, 2001)`: straight-line run, 10 bytes, 8 instructions. -/
-def c1991 : List Nat := [
-    0x7e, 0x02, 0xb7, 0x00, 0x79, 0x54, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2001, 2002)`: flow opcode, 1 byte, 1 instruction. -/
-def c2001_if : List Nat := [
-    0x63]
-
-/-- `[2002, 2005)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2002 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2005, 2006)`: flow opcode, 1 byte, 1 instruction. -/
-def c2005_else : List Nat := [
-    0x67]
-
-/-- `[2006, 2009)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2006 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2009, 2010)`: flow opcode, 1 byte, 1 instruction. -/
-def c2009_endif : List Nat := [
-    0x68]
-
-/-- `[2010, 2021)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2010 : List Nat := [
-    0x7e, 0x02, 0xb6, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2021, 2022)`: flow opcode, 1 byte, 1 instruction. -/
-def c2021_if : List Nat := [
-    0x63]
-
-/-- `[2022, 2025)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2022 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2025, 2026)`: flow opcode, 1 byte, 1 instruction. -/
-def c2025_else : List Nat := [
-    0x67]
-
-/-- `[2026, 2029)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2026 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2029, 2030)`: flow opcode, 1 byte, 1 instruction. -/
-def c2029_endif : List Nat := [
-    0x68]
-
-/-- `[2030, 2041)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2030 : List Nat := [
-    0x7e, 0x02, 0xb5, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2041, 2042)`: flow opcode, 1 byte, 1 instruction. -/
-def c2041_if : List Nat := [
-    0x63]
-
-/-- `[2042, 2045)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2042 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2045, 2046)`: flow opcode, 1 byte, 1 instruction. -/
-def c2045_else : List Nat := [
-    0x67]
-
-/-- `[2046, 2049)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2046 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2049, 2050)`: flow opcode, 1 byte, 1 instruction. -/
-def c2049_endif : List Nat := [
-    0x68]
-
-/-- `[2050, 2061)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2050 : List Nat := [
-    0x7e, 0x02, 0xb4, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2061, 2062)`: flow opcode, 1 byte, 1 instruction. -/
-def c2061_if : List Nat := [
-    0x63]
-
-/-- `[2062, 2065)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2062 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2065, 2066)`: flow opcode, 1 byte, 1 instruction. -/
-def c2065_else : List Nat := [
-    0x67]
-
-/-- `[2066, 2069)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2066 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2069, 2070)`: flow opcode, 1 byte, 1 instruction. -/
-def c2069_endif : List Nat := [
-    0x68]
-
-/-- `[2070, 2099)`: straight-line run, 29 bytes, 20 instructions. -/
-def c2070 : List Nat := [
-    0x7e, 0x02, 0xb3, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xb2, 0x00, 0x79, 0x01, 0x22,
-    0x7c, 0x7e, 0x7e, 0x02, 0xb1, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2099, 2100)`: flow opcode, 1 byte, 1 instruction. -/
-def c2099_if : List Nat := [
-    0x63]
-
-/-- `[2100, 2103)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2100 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2103, 2104)`: flow opcode, 1 byte, 1 instruction. -/
-def c2103_else : List Nat := [
-    0x67]
-
-/-- `[2104, 2107)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2104 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2107, 2108)`: flow opcode, 1 byte, 1 instruction. -/
-def c2107_endif : List Nat := [
-    0x68]
-
-/-- `[2108, 2119)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2108 : List Nat := [
-    0x7e, 0x02, 0xb0, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2119, 2120)`: flow opcode, 1 byte, 1 instruction. -/
-def c2119_if : List Nat := [
-    0x63]
-
-/-- `[2120, 2123)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2120 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2123, 2124)`: flow opcode, 1 byte, 1 instruction. -/
-def c2123_else : List Nat := [
-    0x67]
-
-/-- `[2124, 2127)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2124 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2127, 2128)`: flow opcode, 1 byte, 1 instruction. -/
-def c2127_endif : List Nat := [
-    0x68]
-
-/-- `[2128, 2138)`: straight-line run, 10 bytes, 8 instructions. -/
-def c2128 : List Nat := [
-    0x7e, 0x02, 0xaf, 0x00, 0x79, 0x60, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2138, 2139)`: flow opcode, 1 byte, 1 instruction. -/
-def c2138_if : List Nat := [
-    0x63]
-
-/-- `[2139, 2142)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2139 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2142, 2143)`: flow opcode, 1 byte, 1 instruction. -/
-def c2142_else : List Nat := [
-    0x67]
-
-/-- `[2143, 2146)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2143 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2146, 2147)`: flow opcode, 1 byte, 1 instruction. -/
-def c2146_endif : List Nat := [
-    0x68]
-
-/-- `[2147, 2157)`: straight-line run, 10 bytes, 8 instructions. -/
-def c2147 : List Nat := [
-    0x7e, 0x02, 0xae, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2157, 2158)`: flow opcode, 1 byte, 1 instruction. -/
-def c2157_if : List Nat := [
-    0x63]
-
-/-- `[2158, 2161)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2158 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2161, 2162)`: flow opcode, 1 byte, 1 instruction. -/
-def c2161_else : List Nat := [
-    0x67]
-
-/-- `[2162, 2165)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2162 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2165, 2166)`: flow opcode, 1 byte, 1 instruction. -/
-def c2165_endif : List Nat := [
-    0x68]
-
-/-- `[2166, 2176)`: straight-line run, 10 bytes, 8 instructions. -/
-def c2166 : List Nat := [
-    0x7e, 0x02, 0xad, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2176, 2177)`: flow opcode, 1 byte, 1 instruction. -/
-def c2176_if : List Nat := [
-    0x63]
-
-/-- `[2177, 2180)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2177 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2180, 2181)`: flow opcode, 1 byte, 1 instruction. -/
-def c2180_else : List Nat := [
-    0x67]
-
-/-- `[2181, 2184)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2181 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2184, 2185)`: flow opcode, 1 byte, 1 instruction. -/
-def c2184_endif : List Nat := [
-    0x68]
-
-/-- `[2185, 2209)`: straight-line run, 24 bytes, 18 instructions. -/
-def c2185 : List Nat := [
-    0x7e, 0x02, 0xac, 0x00, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x02, 0xab,
-    0x00, 0x79, 0x01, 0x21, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2209, 2210)`: flow opcode, 1 byte, 1 instruction. -/
-def c2209_if : List Nat := [
-    0x63]
-
-/-- `[2210, 2213)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2210 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2213, 2214)`: flow opcode, 1 byte, 1 instruction. -/
-def c2213_else : List Nat := [
-    0x67]
-
-/-- `[2214, 2217)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2214 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2217, 2218)`: flow opcode, 1 byte, 1 instruction. -/
-def c2217_endif : List Nat := [
-    0x68]
-
-/-- `[2218, 2312)`: straight-line run, 94 bytes, 67 instructions. -/
-def c2218 : List Nat := [
-    0x7e, 0x02, 0xaa, 0x00, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80,
-    0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x02, 0xaa, 0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x02,
-    0xaa, 0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x02, 0xa9, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e,
-    0x7e, 0x02, 0xa8, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x02, 0xa7, 0x00, 0x79, 0x01, 0x14,
-    0x7c, 0x7e, 0x7e, 0x02, 0xa6, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xa5, 0x00, 0x79,
-    0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x02, 0xa4, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2312, 2313)`: flow opcode, 1 byte, 1 instruction. -/
-def c2312_if : List Nat := [
-    0x63]
-
-/-- `[2313, 2316)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2313 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2316, 2317)`: flow opcode, 1 byte, 1 instruction. -/
-def c2316_else : List Nat := [
-    0x67]
-
-/-- `[2317, 2320)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2317 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2320, 2321)`: flow opcode, 1 byte, 1 instruction. -/
-def c2320_endif : List Nat := [
-    0x68]
-
-/-- `[2321, 2425)`: straight-line run, 104 bytes, 82 instructions. -/
-def c2321 : List Nat := [
-    0x7e, 0x02, 0xa3, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xa2, 0x00, 0x79, 0x01, 0x24,
-    0x7c, 0x7e, 0x7e, 0x01, 0x14, 0x79, 0x7e, 0x01, 0x13, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52,
-    0x80, 0x02, 0x03, 0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80,
-    0x02, 0x03, 0xfd, 0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e,
-    0x7e, 0x7e, 0x02, 0x9f, 0x00, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e,
-    0x6c, 0x76, 0x6b, 0x7e, 0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e,
-    0x7c, 0x7e, 0x7e, 0x02, 0x9d, 0x00, 0x79, 0x7e]
+    0x02, 0xb8, 0x00, 0x79, 0x7e, 0x6c, 0x6c, 0x76, 0x6b, 0x7c, 0x6b, 0x02, 0xb8, 0x00, 0x79, 0x54]
+
+/-- `[1978, 1992)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1978_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[1992, 1997)`: straight-line run, 5 bytes, 3 instructions. -/
+def c1992 : List Nat := [
+    0x02, 0xb7, 0x00, 0x79, 0x54]
+
+/-- `[1997, 2011)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c1997_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2011, 2017)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2011 : List Nat := [
+    0x02, 0xb6, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[2017, 2031)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2017_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2031, 2037)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2031 : List Nat := [
+    0x02, 0xb5, 0x00, 0x79, 0x01, 0x24]
+
+/-- `[2037, 2051)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2037_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2051, 2057)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2051 : List Nat := [
+    0x02, 0xb4, 0x00, 0x79, 0x01, 0x24]
+
+/-- `[2057, 2071)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2057_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2071, 2095)`: straight-line run, 24 bytes, 15 instructions. -/
+def c2071 : List Nat := [
+    0x02, 0xb3, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xb2, 0x00, 0x79, 0x01, 0x22, 0x7c,
+    0x7e, 0x7e, 0x02, 0xb1, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[2095, 2109)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2095_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2109, 2115)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2109 : List Nat := [
+    0x02, 0xb0, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[2115, 2129)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2115_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2129, 2134)`: straight-line run, 5 bytes, 3 instructions. -/
+def c2129 : List Nat := [
+    0x02, 0xaf, 0x00, 0x79, 0x60]
+
+/-- `[2134, 2148)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2134_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2148, 2153)`: straight-line run, 5 bytes, 3 instructions. -/
+def c2148 : List Nat := [
+    0x02, 0xae, 0x00, 0x79, 0x51]
+
+/-- `[2153, 2167)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2153_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2167, 2172)`: straight-line run, 5 bytes, 3 instructions. -/
+def c2167 : List Nat := [
+    0x02, 0xad, 0x00, 0x79, 0x51]
+
+/-- `[2172, 2186)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2172_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2186, 2205)`: straight-line run, 19 bytes, 13 instructions. -/
+def c2186 : List Nat := [
+    0x02, 0xac, 0x00, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x02, 0xab, 0x00,
+    0x79, 0x01, 0x21]
+
+/-- `[2205, 2219)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2205_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2219, 2308)`: straight-line run, 89 bytes, 62 instructions. -/
+def c2219 : List Nat := [
+    0x02, 0xaa, 0x00, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80, 0x82,
+    0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x02, 0xaa, 0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x02, 0xaa,
+    0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x02, 0xa9, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e,
+    0x02, 0xa8, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x02, 0xa7, 0x00, 0x79, 0x01, 0x14, 0x7c,
+    0x7e, 0x7e, 0x02, 0xa6, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xa5, 0x00, 0x79, 0x01,
+    0x01, 0x7c, 0x7e, 0x7e, 0x02, 0xa4, 0x00, 0x79, 0x51]
+
+/-- `[2308, 2322)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2308_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2322, 2425)`: straight-line run, 103 bytes, 81 instructions. -/
+def c2322 : List Nat := [
+    0x02, 0xa3, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0xa2, 0x00, 0x79, 0x01, 0x24, 0x7c,
+    0x7e, 0x7e, 0x01, 0x14, 0x79, 0x7e, 0x01, 0x13, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52, 0x80,
+    0x02, 0x03, 0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80, 0x02,
+    0x03, 0xfd, 0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e, 0x7e,
+    0x7e, 0x02, 0x9f, 0x00, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e, 0x6c,
+    0x76, 0x6b, 0x7e, 0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c,
+    0x7e, 0x7e, 0x02, 0x9d, 0x00, 0x79, 0x7e]
 
 /-- `[2425, 2426)`: flow opcode, 1 byte, 1 instruction. -/
 def c2425_endif : List Nat := [
@@ -1893,40 +1018,23 @@ def c2453 : List Nat := [
 def c2454_endif : List Nat := [
     0x68]
 
-/-- `[2455, 2538)`: straight-line run, 83 bytes, 59 instructions. -/
+/-- `[2455, 2534)`: straight-line run, 79 bytes, 55 instructions. -/
 def c2455 : List Nat := [
     0x52, 0x7a, 0x7c, 0x7e, 0x01, 0x21, 0x79, 0x7e, 0x53, 0x79, 0x7e, 0x02, 0x9a, 0x00, 0x79, 0x01,
     0x10, 0x7c, 0x7e, 0x7e, 0x02, 0x99, 0x00, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x02, 0x98, 0x00,
     0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x02, 0x97, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x02,
     0x96, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x02, 0x95, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e,
-    0x7e, 0x02, 0x94, 0x00, 0x79, 0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x02, 0x93, 0x00, 0x79, 0x51, 0x7c,
-    0x82, 0x7b, 0x87]
+    0x7e, 0x02, 0x94, 0x00, 0x79, 0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x02, 0x93, 0x00, 0x79, 0x51]
 
-/-- `[2538, 2539)`: flow opcode, 1 byte, 1 instruction. -/
-def c2538_if : List Nat := [
-    0x63]
+/-- `[2534, 2548)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2534_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
 
-/-- `[2539, 2542)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2539 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2542, 2543)`: flow opcode, 1 byte, 1 instruction. -/
-def c2542_else : List Nat := [
-    0x67]
-
-/-- `[2543, 2546)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2543 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2546, 2547)`: flow opcode, 1 byte, 1 instruction. -/
-def c2546_endif : List Nat := [
-    0x68]
-
-/-- `[2547, 2591)`: straight-line run, 44 bytes, 31 instructions. -/
-def c2547 : List Nat := [
-    0x7e, 0x02, 0x92, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0x91, 0x00, 0x79, 0x01, 0x24,
-    0x7c, 0x7e, 0x7e, 0x01, 0x12, 0x79, 0x7e, 0x01, 0x11, 0x79, 0x7e, 0x01, 0x21, 0x79, 0x7e, 0x5f,
-    0x79, 0x7e, 0x02, 0x90, 0x00, 0x79, 0x7e, 0x02, 0x88, 0xac, 0x7e, 0x7c]
+/-- `[2548, 2591)`: straight-line run, 43 bytes, 30 instructions. -/
+def c2548 : List Nat := [
+    0x02, 0x92, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0x91, 0x00, 0x79, 0x01, 0x24, 0x7c,
+    0x7e, 0x7e, 0x01, 0x12, 0x79, 0x7e, 0x01, 0x11, 0x79, 0x7e, 0x01, 0x21, 0x79, 0x7e, 0x5f, 0x79,
+    0x7e, 0x02, 0x90, 0x00, 0x79, 0x7e, 0x02, 0x88, 0xac, 0x7e, 0x7c]
 
 /-- `[2591, 2592)`: flow opcode, 1 byte, 1 instruction. -/
 def c2591_if : List Nat := [
@@ -1947,64 +1055,11 @@ def c2609 : List Nat := [
     0x81, 0x02, 0x9a, 0x00, 0x79, 0x81, 0x02, 0x9a, 0x00, 0x79, 0x81, 0x02, 0x96, 0x00, 0x79, 0x76,
     0x01, 0x25, 0x87]
 
-/-- `[2660, 2661)`: flow opcode, 1 byte, 1 instruction. -/
-def c2660_if : List Nat := [
-    0x63]
-
-/-- `[2661, 2670)`: straight-line run, 9 bytes, 8 instructions. -/
-def c2661 : List Nat := [
-    0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x93, 0x88]
-
-/-- `[2670, 2671)`: flow opcode, 1 byte, 1 instruction. -/
-def c2670_else : List Nat := [
-    0x67]
-
-/-- `[2671, 2675)`: straight-line run, 4 bytes, 3 instructions. -/
-def c2671 : List Nat := [
-    0x76, 0x01, 0x23, 0x87]
-
-/-- `[2675, 2676)`: flow opcode, 1 byte, 1 instruction. -/
-def c2675_if : List Nat := [
-    0x63]
-
-/-- `[2676, 2683)`: straight-line run, 7 bytes, 6 instructions. -/
-def c2676 : List Nat := [
-    0x75, 0x01, 0x42, 0x79, 0x81, 0x51, 0x87]
-
-/-- `[2683, 2684)`: flow opcode, 1 byte, 1 instruction. -/
-def c2683_if : List Nat := [
-    0x63]
-
-/-- `[2684, 2686)`: straight-line run, 2 bytes, 2 instructions. -/
-def c2684 : List Nat := [
-    0x94, 0x88]
-
-/-- `[2686, 2687)`: flow opcode, 1 byte, 1 instruction. -/
-def c2686_else : List Nat := [
-    0x67]
-
-/-- `[2687, 2696)`: straight-line run, 9 bytes, 8 instructions. -/
-def c2687 : List Nat := [
-    0x01, 0x42, 0x79, 0x81, 0x52, 0x88, 0x77, 0x87, 0x69]
-
-/-- `[2696, 2697)`: flow opcode, 1 byte, 1 instruction. -/
-def c2696_endif : List Nat := [
-    0x68]
-
-/-- `[2697, 2698)`: flow opcode, 1 byte, 1 instruction. -/
-def c2697_else : List Nat := [
-    0x67]
-
-/-- `[2698, 2707)`: straight-line run, 9 bytes, 8 instructions. -/
-def c2698 : List Nat := [
-    0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x75, 0x88]
-
-/-- `[2707, 2708)`: flow opcode, 1 byte, 1 instruction. -/
-def c2707_endif : List Nat := [
-    0x68]
-
-/-- `[2708, 2709)`: flow opcode, 1 byte, 1 instruction. -/
-def c2708_endif : List Nat := [
+/-- `[2660, 2709)`: the `anchor` fragment, 49 bytes, 44 instructions. -/
+def c2660_anchor : List Nat := [
+    0x63, 0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x93, 0x88, 0x67, 0x76, 0x01, 0x23, 0x87, 0x63,
+    0x75, 0x01, 0x42, 0x79, 0x81, 0x51, 0x87, 0x63, 0x94, 0x88, 0x67, 0x01, 0x42, 0x79, 0x81, 0x52,
+    0x88, 0x77, 0x87, 0x69, 0x68, 0x67, 0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x75, 0x88, 0x68,
     0x68]
 
 /-- `[2709, 2715)`: straight-line run, 6 bytes, 5 instructions. -/
@@ -2039,621 +1094,234 @@ def c2731 : List Nat := [
 def c2732_endif : List Nat := [
     0x68]
 
-/-- `[2733, 2757)`: straight-line run, 24 bytes, 20 instructions. -/
+/-- `[2733, 2753)`: straight-line run, 20 bytes, 16 instructions. -/
 def c2733 : List Nat := [
     0x52, 0x7a, 0x7c, 0x7e, 0x02, 0x8b, 0x00, 0x79, 0x7e, 0x6c, 0x6c, 0x76, 0x6b, 0x7c, 0x6b, 0x02,
-    0x8b, 0x00, 0x79, 0x54, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2757, 2758)`: flow opcode, 1 byte, 1 instruction. -/
-def c2757_if : List Nat := [
-    0x63]
-
-/-- `[2758, 2761)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2758 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2761, 2762)`: flow opcode, 1 byte, 1 instruction. -/
-def c2761_else : List Nat := [
-    0x67]
-
-/-- `[2762, 2765)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2762 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2765, 2766)`: flow opcode, 1 byte, 1 instruction. -/
-def c2765_endif : List Nat := [
-    0x68]
-
-/-- `[2766, 2776)`: straight-line run, 10 bytes, 8 instructions. -/
-def c2766 : List Nat := [
-    0x7e, 0x02, 0x8a, 0x00, 0x79, 0x54, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2776, 2777)`: flow opcode, 1 byte, 1 instruction. -/
-def c2776_if : List Nat := [
-    0x63]
-
-/-- `[2777, 2780)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2777 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2780, 2781)`: flow opcode, 1 byte, 1 instruction. -/
-def c2780_else : List Nat := [
-    0x67]
-
-/-- `[2781, 2784)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2781 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2784, 2785)`: flow opcode, 1 byte, 1 instruction. -/
-def c2784_endif : List Nat := [
-    0x68]
-
-/-- `[2785, 2796)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2785 : List Nat := [
-    0x7e, 0x02, 0x89, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2796, 2797)`: flow opcode, 1 byte, 1 instruction. -/
-def c2796_if : List Nat := [
-    0x63]
-
-/-- `[2797, 2800)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2797 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2800, 2801)`: flow opcode, 1 byte, 1 instruction. -/
-def c2800_else : List Nat := [
-    0x67]
-
-/-- `[2801, 2804)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2801 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2804, 2805)`: flow opcode, 1 byte, 1 instruction. -/
-def c2804_endif : List Nat := [
-    0x68]
-
-/-- `[2805, 2816)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2805 : List Nat := [
-    0x7e, 0x02, 0x88, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2816, 2817)`: flow opcode, 1 byte, 1 instruction. -/
-def c2816_if : List Nat := [
-    0x63]
-
-/-- `[2817, 2820)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2817 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2820, 2821)`: flow opcode, 1 byte, 1 instruction. -/
-def c2820_else : List Nat := [
-    0x67]
-
-/-- `[2821, 2824)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2821 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2824, 2825)`: flow opcode, 1 byte, 1 instruction. -/
-def c2824_endif : List Nat := [
-    0x68]
-
-/-- `[2825, 2836)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2825 : List Nat := [
-    0x7e, 0x02, 0x87, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2836, 2837)`: flow opcode, 1 byte, 1 instruction. -/
-def c2836_if : List Nat := [
-    0x63]
-
-/-- `[2837, 2840)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2837 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2840, 2841)`: flow opcode, 1 byte, 1 instruction. -/
-def c2840_else : List Nat := [
-    0x67]
-
-/-- `[2841, 2844)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2841 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2844, 2845)`: flow opcode, 1 byte, 1 instruction. -/
-def c2844_endif : List Nat := [
-    0x68]
-
-/-- `[2845, 2874)`: straight-line run, 29 bytes, 20 instructions. -/
-def c2845 : List Nat := [
-    0x7e, 0x02, 0x86, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0x85, 0x00, 0x79, 0x01, 0x22,
-    0x7c, 0x7e, 0x7e, 0x02, 0x84, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2874, 2875)`: flow opcode, 1 byte, 1 instruction. -/
-def c2874_if : List Nat := [
-    0x63]
-
-/-- `[2875, 2878)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2875 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2878, 2879)`: flow opcode, 1 byte, 1 instruction. -/
-def c2878_else : List Nat := [
-    0x67]
-
-/-- `[2879, 2882)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2879 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2882, 2883)`: flow opcode, 1 byte, 1 instruction. -/
-def c2882_endif : List Nat := [
-    0x68]
-
-/-- `[2883, 2894)`: straight-line run, 11 bytes, 8 instructions. -/
-def c2883 : List Nat := [
-    0x7e, 0x02, 0x83, 0x00, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2894, 2895)`: flow opcode, 1 byte, 1 instruction. -/
-def c2894_if : List Nat := [
-    0x63]
-
-/-- `[2895, 2898)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2895 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2898, 2899)`: flow opcode, 1 byte, 1 instruction. -/
-def c2898_else : List Nat := [
-    0x67]
-
-/-- `[2899, 2902)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2899 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2902, 2903)`: flow opcode, 1 byte, 1 instruction. -/
-def c2902_endif : List Nat := [
-    0x68]
-
-/-- `[2903, 2913)`: straight-line run, 10 bytes, 8 instructions. -/
-def c2903 : List Nat := [
-    0x7e, 0x02, 0x82, 0x00, 0x79, 0x60, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2913, 2914)`: flow opcode, 1 byte, 1 instruction. -/
-def c2913_if : List Nat := [
-    0x63]
-
-/-- `[2914, 2917)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2914 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2917, 2918)`: flow opcode, 1 byte, 1 instruction. -/
-def c2917_else : List Nat := [
-    0x67]
-
-/-- `[2918, 2921)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2918 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2921, 2922)`: flow opcode, 1 byte, 1 instruction. -/
-def c2921_endif : List Nat := [
-    0x68]
-
-/-- `[2922, 2932)`: straight-line run, 10 bytes, 8 instructions. -/
-def c2922 : List Nat := [
-    0x7e, 0x02, 0x81, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2932, 2933)`: flow opcode, 1 byte, 1 instruction. -/
-def c2932_if : List Nat := [
-    0x63]
-
-/-- `[2933, 2936)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2933 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2936, 2937)`: flow opcode, 1 byte, 1 instruction. -/
-def c2936_else : List Nat := [
-    0x67]
-
-/-- `[2937, 2940)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2937 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2940, 2941)`: flow opcode, 1 byte, 1 instruction. -/
-def c2940_endif : List Nat := [
-    0x68]
-
-/-- `[2941, 2951)`: straight-line run, 10 bytes, 8 instructions. -/
-def c2941 : List Nat := [
-    0x7e, 0x02, 0x80, 0x00, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2951, 2952)`: flow opcode, 1 byte, 1 instruction. -/
-def c2951_if : List Nat := [
-    0x63]
-
-/-- `[2952, 2955)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2952 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2955, 2956)`: flow opcode, 1 byte, 1 instruction. -/
-def c2955_else : List Nat := [
-    0x67]
-
-/-- `[2956, 2959)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2956 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2959, 2960)`: flow opcode, 1 byte, 1 instruction. -/
-def c2959_endif : List Nat := [
-    0x68]
-
-/-- `[2960, 2982)`: straight-line run, 22 bytes, 18 instructions. -/
-def c2960 : List Nat := [
-    0x7e, 0x01, 0x7f, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x01, 0x7e, 0x79,
-    0x01, 0x21, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[2982, 2983)`: flow opcode, 1 byte, 1 instruction. -/
-def c2982_if : List Nat := [
-    0x63]
-
-/-- `[2983, 2986)`: straight-line run, 3 bytes, 3 instructions. -/
-def c2983 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[2986, 2987)`: flow opcode, 1 byte, 1 instruction. -/
-def c2986_else : List Nat := [
-    0x67]
-
-/-- `[2987, 2990)`: straight-line run, 3 bytes, 2 instructions. -/
-def c2987 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[2990, 2991)`: flow opcode, 1 byte, 1 instruction. -/
-def c2990_endif : List Nat := [
-    0x68]
-
-/-- `[2991, 3076)`: straight-line run, 85 bytes, 67 instructions. -/
-def c2991 : List Nat := [
-    0x7e, 0x01, 0x7d, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80, 0x82,
-    0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x01, 0x7d, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x01, 0x7d, 0x79,
-    0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x01, 0x7c, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x7b, 0x79,
-    0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x7a, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x79, 0x79,
-    0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x78, 0x79, 0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x01, 0x77, 0x79,
-    0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3076, 3077)`: flow opcode, 1 byte, 1 instruction. -/
-def c3076_if : List Nat := [
-    0x63]
-
-/-- `[3077, 3080)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3077 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3080, 3081)`: flow opcode, 1 byte, 1 instruction. -/
-def c3080_else : List Nat := [
-    0x67]
-
-/-- `[3081, 3084)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3081 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3084, 3085)`: flow opcode, 1 byte, 1 instruction. -/
-def c3084_endif : List Nat := [
-    0x68]
-
-/-- `[3085, 3186)`: straight-line run, 101 bytes, 83 instructions. -/
-def c3085 : List Nat := [
-    0x7e, 0x01, 0x76, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x75, 0x79, 0x01, 0x24, 0x7c, 0x7e,
-    0x7e, 0x01, 0x16, 0x79, 0x7e, 0x01, 0x15, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52, 0x80, 0x02,
-    0x03, 0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80, 0x02, 0x03,
-    0xfd, 0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e, 0x7e, 0x7e,
-    0x01, 0x72, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e, 0x6c, 0x76, 0x6b,
-    0x7e, 0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x7e,
-    0x01, 0x70, 0x79, 0x7e, 0x7c]
+    0x8b, 0x00, 0x79, 0x54]
+
+/-- `[2753, 2767)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2753_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2767, 2772)`: straight-line run, 5 bytes, 3 instructions. -/
+def c2767 : List Nat := [
+    0x02, 0x8a, 0x00, 0x79, 0x54]
+
+/-- `[2772, 2786)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2772_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2786, 2792)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2786 : List Nat := [
+    0x02, 0x89, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[2792, 2806)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2792_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2806, 2812)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2806 : List Nat := [
+    0x02, 0x88, 0x00, 0x79, 0x01, 0x24]
+
+/-- `[2812, 2826)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2812_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2826, 2832)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2826 : List Nat := [
+    0x02, 0x87, 0x00, 0x79, 0x01, 0x24]
+
+/-- `[2832, 2846)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2832_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2846, 2870)`: straight-line run, 24 bytes, 15 instructions. -/
+def c2846 : List Nat := [
+    0x02, 0x86, 0x00, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x02, 0x85, 0x00, 0x79, 0x01, 0x22, 0x7c,
+    0x7e, 0x7e, 0x02, 0x84, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[2870, 2884)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2870_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2884, 2890)`: straight-line run, 6 bytes, 3 instructions. -/
+def c2884 : List Nat := [
+    0x02, 0x83, 0x00, 0x79, 0x01, 0x14]
+
+/-- `[2890, 2904)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2890_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2904, 2909)`: straight-line run, 5 bytes, 3 instructions. -/
+def c2904 : List Nat := [
+    0x02, 0x82, 0x00, 0x79, 0x60]
+
+/-- `[2909, 2923)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2909_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2923, 2928)`: straight-line run, 5 bytes, 3 instructions. -/
+def c2923 : List Nat := [
+    0x02, 0x81, 0x00, 0x79, 0x51]
+
+/-- `[2928, 2942)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2928_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2942, 2947)`: straight-line run, 5 bytes, 3 instructions. -/
+def c2942 : List Nat := [
+    0x02, 0x80, 0x00, 0x79, 0x51]
+
+/-- `[2947, 2961)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2947_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2961, 2978)`: straight-line run, 17 bytes, 13 instructions. -/
+def c2961 : List Nat := [
+    0x01, 0x7f, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x01, 0x7e, 0x79, 0x01,
+    0x21]
+
+/-- `[2978, 2992)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c2978_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[2992, 3072)`: straight-line run, 80 bytes, 62 instructions. -/
+def c2992 : List Nat := [
+    0x01, 0x7d, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80, 0x82, 0x8c,
+    0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x01, 0x7d, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x01, 0x7d, 0x79, 0x01,
+    0x10, 0x7c, 0x7e, 0x7e, 0x01, 0x7c, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x7b, 0x79, 0x01,
+    0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x7a, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x79, 0x79, 0x01,
+    0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x78, 0x79, 0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x01, 0x77, 0x79, 0x51]
+
+/-- `[3072, 3086)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3072_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3086, 3186)`: straight-line run, 100 bytes, 82 instructions. -/
+def c3086 : List Nat := [
+    0x01, 0x76, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x75, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e,
+    0x01, 0x16, 0x79, 0x7e, 0x01, 0x15, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52, 0x80, 0x02, 0x03,
+    0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80, 0x02, 0x03, 0xfd,
+    0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e, 0x7e, 0x7e, 0x01,
+    0x72, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e, 0x6c, 0x76, 0x6b, 0x7e,
+    0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x7e, 0x01,
+    0x70, 0x79, 0x7e, 0x7c]
 
 /-- `[3186, 3187)`: flow opcode, 1 byte, 1 instruction. -/
 def c3186_if : List Nat := [
     0x63]
 
-/-- `[3187, 3205)`: straight-line run, 18 bytes, 16 instructions. -/
+/-- `[3187, 3201)`: straight-line run, 14 bytes, 12 instructions. -/
 def c3187 : List Nat := [
-    0x01, 0x6e, 0x79, 0x7e, 0x6c, 0x6c, 0x76, 0x6b, 0x7c, 0x6b, 0x01, 0x6e, 0x79, 0x54, 0x7c, 0x82,
-    0x7b, 0x87]
-
-/-- `[3205, 3206)`: flow opcode, 1 byte, 1 instruction. -/
-def c3205_if : List Nat := [
-    0x63]
-
-/-- `[3206, 3209)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3206 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3209, 3210)`: flow opcode, 1 byte, 1 instruction. -/
-def c3209_else : List Nat := [
-    0x67]
-
-/-- `[3210, 3213)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3210 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3213, 3214)`: flow opcode, 1 byte, 1 instruction. -/
-def c3213_endif : List Nat := [
-    0x68]
-
-/-- `[3214, 3223)`: straight-line run, 9 bytes, 8 instructions. -/
-def c3214 : List Nat := [
-    0x7e, 0x01, 0x6d, 0x79, 0x54, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3223, 3224)`: flow opcode, 1 byte, 1 instruction. -/
-def c3223_if : List Nat := [
-    0x63]
-
-/-- `[3224, 3227)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3224 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3227, 3228)`: flow opcode, 1 byte, 1 instruction. -/
-def c3227_else : List Nat := [
-    0x67]
-
-/-- `[3228, 3231)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3228 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3231, 3232)`: flow opcode, 1 byte, 1 instruction. -/
-def c3231_endif : List Nat := [
-    0x68]
-
-/-- `[3232, 3242)`: straight-line run, 10 bytes, 8 instructions. -/
-def c3232 : List Nat := [
-    0x7e, 0x01, 0x6c, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3242, 3243)`: flow opcode, 1 byte, 1 instruction. -/
-def c3242_if : List Nat := [
-    0x63]
-
-/-- `[3243, 3246)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3243 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3246, 3247)`: flow opcode, 1 byte, 1 instruction. -/
-def c3246_else : List Nat := [
-    0x67]
-
-/-- `[3247, 3250)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3247 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3250, 3251)`: flow opcode, 1 byte, 1 instruction. -/
-def c3250_endif : List Nat := [
-    0x68]
-
-/-- `[3251, 3261)`: straight-line run, 10 bytes, 8 instructions. -/
-def c3251 : List Nat := [
-    0x7e, 0x01, 0x6b, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3261, 3262)`: flow opcode, 1 byte, 1 instruction. -/
-def c3261_if : List Nat := [
-    0x63]
-
-/-- `[3262, 3265)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3262 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3265, 3266)`: flow opcode, 1 byte, 1 instruction. -/
-def c3265_else : List Nat := [
-    0x67]
-
-/-- `[3266, 3269)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3266 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3269, 3270)`: flow opcode, 1 byte, 1 instruction. -/
-def c3269_endif : List Nat := [
-    0x68]
-
-/-- `[3270, 3280)`: straight-line run, 10 bytes, 8 instructions. -/
-def c3270 : List Nat := [
-    0x7e, 0x01, 0x6a, 0x79, 0x01, 0x24, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3280, 3281)`: flow opcode, 1 byte, 1 instruction. -/
-def c3280_if : List Nat := [
-    0x63]
-
-/-- `[3281, 3284)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3281 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3284, 3285)`: flow opcode, 1 byte, 1 instruction. -/
-def c3284_else : List Nat := [
-    0x67]
-
-/-- `[3285, 3288)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3285 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3288, 3289)`: flow opcode, 1 byte, 1 instruction. -/
-def c3288_endif : List Nat := [
-    0x68]
-
-/-- `[3289, 3315)`: straight-line run, 26 bytes, 20 instructions. -/
-def c3289 : List Nat := [
-    0x7e, 0x01, 0x69, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x68, 0x79, 0x01, 0x22, 0x7c, 0x7e,
-    0x7e, 0x01, 0x67, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3315, 3316)`: flow opcode, 1 byte, 1 instruction. -/
-def c3315_if : List Nat := [
-    0x63]
-
-/-- `[3316, 3319)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3316 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3319, 3320)`: flow opcode, 1 byte, 1 instruction. -/
-def c3319_else : List Nat := [
-    0x67]
-
-/-- `[3320, 3323)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3320 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3323, 3324)`: flow opcode, 1 byte, 1 instruction. -/
-def c3323_endif : List Nat := [
-    0x68]
-
-/-- `[3324, 3334)`: straight-line run, 10 bytes, 8 instructions. -/
-def c3324 : List Nat := [
-    0x7e, 0x01, 0x66, 0x79, 0x01, 0x14, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3334, 3335)`: flow opcode, 1 byte, 1 instruction. -/
-def c3334_if : List Nat := [
-    0x63]
-
-/-- `[3335, 3338)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3335 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3338, 3339)`: flow opcode, 1 byte, 1 instruction. -/
-def c3338_else : List Nat := [
-    0x67]
-
-/-- `[3339, 3342)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3339 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3342, 3343)`: flow opcode, 1 byte, 1 instruction. -/
-def c3342_endif : List Nat := [
-    0x68]
-
-/-- `[3343, 3352)`: straight-line run, 9 bytes, 8 instructions. -/
-def c3343 : List Nat := [
-    0x7e, 0x01, 0x65, 0x79, 0x60, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3352, 3353)`: flow opcode, 1 byte, 1 instruction. -/
-def c3352_if : List Nat := [
-    0x63]
-
-/-- `[3353, 3356)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3353 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3356, 3357)`: flow opcode, 1 byte, 1 instruction. -/
-def c3356_else : List Nat := [
-    0x67]
-
-/-- `[3357, 3360)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3357 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3360, 3361)`: flow opcode, 1 byte, 1 instruction. -/
-def c3360_endif : List Nat := [
-    0x68]
-
-/-- `[3361, 3370)`: straight-line run, 9 bytes, 8 instructions. -/
-def c3361 : List Nat := [
-    0x7e, 0x01, 0x64, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3370, 3371)`: flow opcode, 1 byte, 1 instruction. -/
-def c3370_if : List Nat := [
-    0x63]
-
-/-- `[3371, 3374)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3371 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3374, 3375)`: flow opcode, 1 byte, 1 instruction. -/
-def c3374_else : List Nat := [
-    0x67]
-
-/-- `[3375, 3378)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3375 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3378, 3379)`: flow opcode, 1 byte, 1 instruction. -/
-def c3378_endif : List Nat := [
-    0x68]
-
-/-- `[3379, 3388)`: straight-line run, 9 bytes, 8 instructions. -/
-def c3379 : List Nat := [
-    0x7e, 0x01, 0x63, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3388, 3389)`: flow opcode, 1 byte, 1 instruction. -/
-def c3388_if : List Nat := [
-    0x63]
-
-/-- `[3389, 3392)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3389 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3392, 3393)`: flow opcode, 1 byte, 1 instruction. -/
-def c3392_else : List Nat := [
-    0x67]
-
-/-- `[3393, 3396)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3393 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3396, 3397)`: flow opcode, 1 byte, 1 instruction. -/
-def c3396_endif : List Nat := [
-    0x68]
-
-/-- `[3397, 3419)`: straight-line run, 22 bytes, 18 instructions. -/
-def c3397 : List Nat := [
-    0x7e, 0x01, 0x62, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x01, 0x61, 0x79,
-    0x01, 0x21, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3419, 3420)`: flow opcode, 1 byte, 1 instruction. -/
-def c3419_if : List Nat := [
-    0x63]
-
-/-- `[3420, 3423)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3420 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3423, 3424)`: flow opcode, 1 byte, 1 instruction. -/
-def c3423_else : List Nat := [
-    0x67]
-
-/-- `[3424, 3427)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3424 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3427, 3428)`: flow opcode, 1 byte, 1 instruction. -/
-def c3427_endif : List Nat := [
-    0x68]
-
-/-- `[3428, 3513)`: straight-line run, 85 bytes, 67 instructions. -/
-def c3428 : List Nat := [
-    0x7e, 0x01, 0x60, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80, 0x82,
-    0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x01, 0x60, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x01, 0x60, 0x79,
-    0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x01, 0x5f, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x5e, 0x79,
-    0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x5d, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x5c, 0x79,
-    0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x5b, 0x79, 0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x01, 0x5a, 0x79,
-    0x51, 0x7c, 0x82, 0x7b, 0x87]
-
-/-- `[3513, 3514)`: flow opcode, 1 byte, 1 instruction. -/
-def c3513_if : List Nat := [
-    0x63]
-
-/-- `[3514, 3517)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3514 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3517, 3518)`: flow opcode, 1 byte, 1 instruction. -/
-def c3517_else : List Nat := [
-    0x67]
-
-/-- `[3518, 3521)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3518 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3521, 3522)`: flow opcode, 1 byte, 1 instruction. -/
-def c3521_endif : List Nat := [
-    0x68]
-
-/-- `[3522, 3622)`: straight-line run, 100 bytes, 82 instructions. -/
-def c3522 : List Nat := [
-    0x7e, 0x01, 0x59, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x58, 0x79, 0x01, 0x24, 0x7c, 0x7e,
-    0x7e, 0x01, 0x15, 0x79, 0x7e, 0x01, 0x14, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52, 0x80, 0x02,
-    0x03, 0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80, 0x02, 0x03,
-    0xfd, 0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e, 0x7e, 0x7e,
-    0x01, 0x55, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e, 0x6c, 0x76, 0x6b,
-    0x7e, 0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x7e,
-    0x01, 0x53, 0x79, 0x7e]
+    0x01, 0x6e, 0x79, 0x7e, 0x6c, 0x6c, 0x76, 0x6b, 0x7c, 0x6b, 0x01, 0x6e, 0x79, 0x54]
+
+/-- `[3201, 3215)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3201_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3215, 3219)`: straight-line run, 4 bytes, 3 instructions. -/
+def c3215 : List Nat := [
+    0x01, 0x6d, 0x79, 0x54]
+
+/-- `[3219, 3233)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3219_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3233, 3238)`: straight-line run, 5 bytes, 3 instructions. -/
+def c3233 : List Nat := [
+    0x01, 0x6c, 0x79, 0x01, 0x14]
+
+/-- `[3238, 3252)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3238_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3252, 3257)`: straight-line run, 5 bytes, 3 instructions. -/
+def c3252 : List Nat := [
+    0x01, 0x6b, 0x79, 0x01, 0x24]
+
+/-- `[3257, 3271)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3257_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3271, 3276)`: straight-line run, 5 bytes, 3 instructions. -/
+def c3271 : List Nat := [
+    0x01, 0x6a, 0x79, 0x01, 0x24]
+
+/-- `[3276, 3290)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3276_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3290, 3311)`: straight-line run, 21 bytes, 15 instructions. -/
+def c3290 : List Nat := [
+    0x01, 0x69, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x68, 0x79, 0x01, 0x22, 0x7c, 0x7e, 0x7e,
+    0x01, 0x67, 0x79, 0x01, 0x14]
+
+/-- `[3311, 3325)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3311_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3325, 3330)`: straight-line run, 5 bytes, 3 instructions. -/
+def c3325 : List Nat := [
+    0x01, 0x66, 0x79, 0x01, 0x14]
+
+/-- `[3330, 3344)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3330_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3344, 3348)`: straight-line run, 4 bytes, 3 instructions. -/
+def c3344 : List Nat := [
+    0x01, 0x65, 0x79, 0x60]
+
+/-- `[3348, 3362)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3348_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3362, 3366)`: straight-line run, 4 bytes, 3 instructions. -/
+def c3362 : List Nat := [
+    0x01, 0x64, 0x79, 0x51]
+
+/-- `[3366, 3380)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3366_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3380, 3384)`: straight-line run, 4 bytes, 3 instructions. -/
+def c3380 : List Nat := [
+    0x01, 0x63, 0x79, 0x51]
+
+/-- `[3384, 3398)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3384_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3398, 3415)`: straight-line run, 17 bytes, 13 instructions. -/
+def c3398 : List Nat := [
+    0x01, 0x62, 0x79, 0x82, 0x76, 0x01, 0x4b, 0xa1, 0x69, 0x7c, 0x7e, 0x7e, 0x01, 0x61, 0x79, 0x01,
+    0x21]
+
+/-- `[3415, 3429)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3415_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3429, 3509)`: straight-line run, 80 bytes, 62 instructions. -/
+def c3429 : List Nat := [
+    0x01, 0x60, 0x79, 0x82, 0x76, 0x01, 0x68, 0x88, 0x01, 0x4c, 0x7c, 0x51, 0x8b, 0x80, 0x82, 0x8c,
+    0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x01, 0x60, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x01, 0x60, 0x79, 0x01,
+    0x10, 0x7c, 0x7e, 0x7e, 0x01, 0x5f, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x5e, 0x79, 0x01,
+    0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x5d, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x5c, 0x79, 0x01,
+    0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x5b, 0x79, 0x01, 0x01, 0x7c, 0x7e, 0x7e, 0x01, 0x5a, 0x79, 0x51]
+
+/-- `[3509, 3523)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3509_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
+
+/-- `[3523, 3622)`: straight-line run, 99 bytes, 81 instructions. -/
+def c3523 : List Nat := [
+    0x01, 0x59, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x58, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e,
+    0x01, 0x15, 0x79, 0x7e, 0x01, 0x14, 0x79, 0x7e, 0x76, 0x82, 0x52, 0x93, 0x52, 0x80, 0x02, 0x03,
+    0xfd, 0x7c, 0x7e, 0x77, 0x03, 0x02, 0xad, 0x68, 0x7e, 0x7c, 0x82, 0x52, 0x80, 0x02, 0x03, 0xfd,
+    0x7c, 0x7e, 0x6b, 0x82, 0x52, 0x80, 0x01, 0x4d, 0x7c, 0x7e, 0x7c, 0x7e, 0x7e, 0x7e, 0x7e, 0x01,
+    0x55, 0x79, 0x82, 0x76, 0x01, 0x34, 0x88, 0x7c, 0x7e, 0x7e, 0x6c, 0x7e, 0x6c, 0x76, 0x6b, 0x7e,
+    0x82, 0x01, 0xfd, 0x7c, 0x52, 0x8b, 0x80, 0x82, 0x8c, 0x7f, 0x75, 0x7e, 0x7c, 0x7e, 0x7e, 0x01,
+    0x53, 0x79, 0x7e]
 
 /-- `[3622, 3623)`: flow opcode, 1 byte, 1 instruction. -/
 def c3622_endif : List Nat := [
@@ -2684,39 +1352,23 @@ def c3646 : List Nat := [
 def c3647_endif : List Nat := [
     0x68]
 
-/-- `[3648, 3723)`: straight-line run, 75 bytes, 59 instructions. -/
+/-- `[3648, 3719)`: straight-line run, 71 bytes, 55 instructions. -/
 def c3648 : List Nat := [
     0x52, 0x7a, 0x7c, 0x7e, 0x01, 0x22, 0x79, 0x7e, 0x54, 0x79, 0x7e, 0x01, 0x50, 0x79, 0x01, 0x10,
     0x7c, 0x7e, 0x7e, 0x01, 0x4f, 0x79, 0x01, 0x10, 0x7c, 0x7e, 0x7e, 0x01, 0x4e, 0x79, 0x01, 0x14,
     0x7c, 0x7e, 0x7e, 0x01, 0x4d, 0x79, 0x01, 0x14, 0x7c, 0x7e, 0x7e, 0x01, 0x4c, 0x79, 0x01, 0x14,
     0x7c, 0x7e, 0x7e, 0x01, 0x4b, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x4a, 0x79, 0x01, 0x01,
-    0x7c, 0x7e, 0x7e, 0x01, 0x49, 0x79, 0x51, 0x7c, 0x82, 0x7b, 0x87]
+    0x7c, 0x7e, 0x7e, 0x01, 0x49, 0x79, 0x51]
 
-/-- `[3723, 3724)`: flow opcode, 1 byte, 1 instruction. -/
-def c3723_if : List Nat := [
-    0x63]
+/-- `[3719, 3733)`: the `optTail` fragment, 14 bytes, 13 instructions. -/
+def c3719_optTail : List Nat := [
+    0x7c, 0x82, 0x7b, 0x87, 0x63, 0x82, 0x7c, 0x7e, 0x67, 0x75, 0x01, 0x00, 0x68, 0x7e]
 
-/-- `[3724, 3727)`: straight-line run, 3 bytes, 3 instructions. -/
-def c3724 : List Nat := [
-    0x82, 0x7c, 0x7e]
-
-/-- `[3727, 3728)`: flow opcode, 1 byte, 1 instruction. -/
-def c3727_else : List Nat := [
-    0x67]
-
-/-- `[3728, 3731)`: straight-line run, 3 bytes, 2 instructions. -/
-def c3728 : List Nat := [
-    0x75, 0x01, 0x00]
-
-/-- `[3731, 3732)`: flow opcode, 1 byte, 1 instruction. -/
-def c3731_endif : List Nat := [
-    0x68]
-
-/-- `[3732, 3773)`: straight-line run, 41 bytes, 31 instructions. -/
-def c3732 : List Nat := [
-    0x7e, 0x01, 0x48, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x47, 0x79, 0x01, 0x24, 0x7c, 0x7e,
-    0x7e, 0x01, 0x13, 0x79, 0x7e, 0x01, 0x12, 0x79, 0x7e, 0x01, 0x22, 0x79, 0x7e, 0x60, 0x79, 0x7e,
-    0x01, 0x46, 0x79, 0x7e, 0x02, 0x88, 0xac, 0x7e, 0x7c]
+/-- `[3733, 3773)`: straight-line run, 40 bytes, 30 instructions. -/
+def c3733 : List Nat := [
+    0x01, 0x48, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e, 0x01, 0x47, 0x79, 0x01, 0x24, 0x7c, 0x7e, 0x7e,
+    0x01, 0x13, 0x79, 0x7e, 0x01, 0x12, 0x79, 0x7e, 0x01, 0x22, 0x79, 0x7e, 0x60, 0x79, 0x7e, 0x01,
+    0x46, 0x79, 0x7e, 0x02, 0x88, 0xac, 0x7e, 0x7c]
 
 /-- `[3773, 3774)`: flow opcode, 1 byte, 1 instruction. -/
 def c3773_if : List Nat := [
@@ -2736,64 +1388,11 @@ def c3790 : List Nat := [
     0xaa, 0x76, 0x01, 0x2d, 0x79, 0x01, 0x20, 0x7f, 0x75, 0x88, 0x01, 0x30, 0x79, 0x81, 0x01, 0x50,
     0x79, 0x81, 0x01, 0x50, 0x79, 0x81, 0x01, 0x4c, 0x79, 0x76, 0x01, 0x25, 0x87]
 
-/-- `[3835, 3836)`: flow opcode, 1 byte, 1 instruction. -/
-def c3835_if : List Nat := [
-    0x63]
-
-/-- `[3836, 3845)`: straight-line run, 9 bytes, 8 instructions. -/
-def c3836 : List Nat := [
-    0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x93, 0x88]
-
-/-- `[3845, 3846)`: flow opcode, 1 byte, 1 instruction. -/
-def c3845_else : List Nat := [
-    0x67]
-
-/-- `[3846, 3850)`: straight-line run, 4 bytes, 3 instructions. -/
-def c3846 : List Nat := [
-    0x76, 0x01, 0x23, 0x87]
-
-/-- `[3850, 3851)`: flow opcode, 1 byte, 1 instruction. -/
-def c3850_if : List Nat := [
-    0x63]
-
-/-- `[3851, 3858)`: straight-line run, 7 bytes, 6 instructions. -/
-def c3851 : List Nat := [
-    0x75, 0x01, 0x42, 0x79, 0x81, 0x51, 0x87]
-
-/-- `[3858, 3859)`: flow opcode, 1 byte, 1 instruction. -/
-def c3858_if : List Nat := [
-    0x63]
-
-/-- `[3859, 3861)`: straight-line run, 2 bytes, 2 instructions. -/
-def c3859 : List Nat := [
-    0x94, 0x88]
-
-/-- `[3861, 3862)`: flow opcode, 1 byte, 1 instruction. -/
-def c3861_else : List Nat := [
-    0x67]
-
-/-- `[3862, 3871)`: straight-line run, 9 bytes, 8 instructions. -/
-def c3862 : List Nat := [
-    0x01, 0x42, 0x79, 0x81, 0x52, 0x88, 0x77, 0x87, 0x69]
-
-/-- `[3871, 3872)`: flow opcode, 1 byte, 1 instruction. -/
-def c3871_endif : List Nat := [
-    0x68]
-
-/-- `[3872, 3873)`: flow opcode, 1 byte, 1 instruction. -/
-def c3872_else : List Nat := [
-    0x67]
-
-/-- `[3873, 3882)`: straight-line run, 9 bytes, 8 instructions. -/
-def c3873 : List Nat := [
-    0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x75, 0x88]
-
-/-- `[3882, 3883)`: flow opcode, 1 byte, 1 instruction. -/
-def c3882_endif : List Nat := [
-    0x68]
-
-/-- `[3883, 3884)`: flow opcode, 1 byte, 1 instruction. -/
-def c3883_endif : List Nat := [
+/-- `[3835, 3884)`: the `anchor` fragment, 49 bytes, 44 instructions. -/
+def c3835_anchor : List Nat := [
+    0x63, 0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x93, 0x88, 0x67, 0x76, 0x01, 0x23, 0x87, 0x63,
+    0x75, 0x01, 0x42, 0x79, 0x81, 0x51, 0x87, 0x63, 0x94, 0x88, 0x67, 0x01, 0x42, 0x79, 0x81, 0x52,
+    0x88, 0x77, 0x87, 0x69, 0x68, 0x67, 0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x75, 0x88, 0x68,
     0x68]
 
 /-- `[3884, 3892)`: straight-line run, 8 bytes, 6 instructions. -/
@@ -2917,9 +1516,9 @@ def c4696_endif : List Nat := [
 def c4697 : List Nat := [
     0x79, 0x88, 0xac]
 
-/-- `SimpleMultiBOLT`: the shipped suffix as the right-nested concatenation of its 686 chunks (4700 bytes). -/
+/-- `SimpleMultiBOLT`: the shipped suffix as the right-nested concatenation of its 332 chunks (4700 bytes). -/
 def suffix : List Nat :=
-  c0 ++ (c10_if ++ (c11 ++ (c27_else ++ (c28 ++ (c29_endif ++ (c30 ++ (c37_if ++ (c38 ++ (c159 ++ (c280 ++ (c423 ++ (c441_if ++ (c442 ++ (c446_else ++ (c447 ++ (c451_if ++ (c452 ++ (c456_else ++ (c457 ++ (c461_if ++ (c462 ++ (c466_else ++ (c467 ++ (c470_endif ++ (c471_endif ++ (c472_endif ++ (c473 ++ (c528_parityCheck ++ (c557 ++ (c610_boundCheck27 ++ (c621_boundCheck2d ++ (c632 ++ (c671_if ++ (c672_mergeGuard ++ (c683_endif ++ (c684 ++ (c686_if ++ (c687_splitGuard ++ (c697_endif ++ (c698 ++ (c700_notif ++ (c701 ++ (c718_if ++ (c719 ++ (c729_else ++ (c730 ++ (c731_endif ++ (c732_else ++ (c733 ++ (c735_endif ++ (c736 ++ (c741_if ++ (c742 ++ (c748_else ++ (c749 ++ (c754_if ++ (c755 ++ (c771_if ++ (c772 ++ (c773_endif ++ (c774 ++ (c775_else ++ (c776 ++ (c778_if ++ (c779 ++ (c781_mergeSettle ++ (c797 ++ (c800_if ++ (c801 ++ (c804_endif ++ (c805 ++ (c808_if ++ (c809 ++ (c812_endif ++ (c813 ++ (c816_if ++ (c817 ++ (c820_endif ++ (c821 ++ (c824_if ++ (c825 ++ (c828_endif ++ (c829 ++ (c832_if ++ (c833 ++ (c836_endif ++ (c837 ++ (c840_if ++ (c841 ++ (c844_endif ++ (c845 ++ (c848_if ++ (c849 ++ (c852_endif ++ (c853 ++ (c856_if ++ (c857 ++ (c860_endif ++ (c861 ++ (c864_if ++ (c865 ++ (c868_endif ++ (c869 ++ (c872_if ++ (c873 ++ (c876_endif ++ (c877 ++ (c880_if ++ (c881 ++ (c884_endif ++ (c885 ++ (c888_if ++ (c889 ++ (c892_endif ++ (c893 ++ (c896_if ++ (c897 ++ (c900_endif ++ (c901 ++ (c904_if ++ (c905 ++ (c908_endif ++ (c909 ++ (c912_if ++ (c913 ++ (c916_endif ++ (c917 ++ (c920_if ++ (c921 ++ (c924_endif ++ (c925 ++ (c929_else ++ (c930 ++ (c932_if ++ (c933 ++ (c935_splitSettle ++ (c950 ++ (c953_if ++ (c954 ++ (c957_endif ++ (c958 ++ (c961_if ++ (c962 ++ (c965_endif ++ (c966 ++ (c969_if ++ (c970 ++ (c973_endif ++ (c974 ++ (c977_if ++ (c978 ++ (c981_endif ++ (c982 ++ (c985_if ++ (c986 ++ (c989_endif ++ (c990 ++ (c993_if ++ (c994 ++ (c997_endif ++ (c998 ++ (c1001_if ++ (c1002 ++ (c1005_endif ++ (c1006 ++ (c1009_if ++ (c1010 ++ (c1013_endif ++ (c1014 ++ (c1017_if ++ (c1018 ++ (c1021_endif ++ (c1022 ++ (c1025_if ++ (c1026 ++ (c1029_endif ++ (c1030 ++ (c1033_if ++ (c1034 ++ (c1037_endif ++ (c1038 ++ (c1041_if ++ (c1042 ++ (c1045_endif ++ (c1046 ++ (c1049_if ++ (c1050 ++ (c1053_endif ++ (c1054 ++ (c1057_if ++ (c1058 ++ (c1061_endif ++ (c1062 ++ (c1065_if ++ (c1066 ++ (c1069_endif ++ (c1070 ++ (c1073_if ++ (c1074 ++ (c1077_endif ++ (c1078 ++ (c1082_endif ++ (c1083_endif ++ (c1084_endif ++ (c1085_endif ++ (c1086 ++ (c1088_if ++ (c1089 ++ (c1102_else ++ (c1103 ++ (c1111_if ++ (c1112 ++ (c1120_else ++ (c1121 ++ (c1123_if ++ (c1124 ++ (c1141_else ++ (c1142 ++ (c1144_if ++ (c1145 ++ (c1149_notif ++ (c1150 ++ (c1153_else ++ (c1154 ++ (c1160_endif ++ (c1161 ++ (c1171_endif ++ (c1172_endif ++ (c1173_endif ++ (c1174_endif ++ (c1175 ++ (c1190_if ++ (c1191 ++ (c1194_else ++ (c1195 ++ (c1197_if ++ (c1198 ++ (c1202_notif ++ (c1203 ++ (c1210_else ++ (c1211 ++ (c1215_endif ++ (c1216_endif ++ (c1217_endif ++ (c1218 ++ (c1232_if ++ (c1233 ++ (c1251_else ++ (c1252 ++ (c1256_notif ++ (c1257 ++ (c1260_else ++ (c1261 ++ (c1264_endif ++ (c1265 ++ (c1277_endif ++ (c1278 ++ (c1299_if ++ (c1300 ++ (c1308_notif ++ (c1309 ++ (c1311_else ++ (c1312 ++ (c1314_endif ++ (c1315 ++ (c1336_notif ++ (c1337 ++ (c1340_else ++ (c1341 ++ (c1344_endif ++ (c1345 ++ (c1378_if ++ (c1379 ++ (c1380_endif ++ (c1381 ++ (c1382_endif ++ (c1383 ++ (c1387_notif ++ (c1388 ++ (c1389_else ++ (c1390 ++ (c1391_endif ++ (c1392 ++ (c1406_if ++ (c1407 ++ (c1414_if ++ (c1415 ++ (c1416_endif ++ (c1417 ++ (c1418_endif ++ (c1419 ++ (c1425_if ++ (c1426 ++ (c1439_if ++ (c1440 ++ (c1441_else ++ (c1442 ++ (c1443_endif ++ (c1444 ++ (c1469_if ++ (c1470 ++ (c1473_else ++ (c1474 ++ (c1477_endif ++ (c1478 ++ (c1488_if ++ (c1489 ++ (c1492_else ++ (c1493 ++ (c1496_endif ++ (c1497 ++ (c1508_if ++ (c1509 ++ (c1512_else ++ (c1513 ++ (c1516_endif ++ (c1517 ++ (c1528_if ++ (c1529 ++ (c1532_else ++ (c1533 ++ (c1536_endif ++ (c1537 ++ (c1548_if ++ (c1549 ++ (c1552_else ++ (c1553 ++ (c1556_endif ++ (c1557 ++ (c1586_if ++ (c1587 ++ (c1590_else ++ (c1591 ++ (c1594_endif ++ (c1595 ++ (c1606_if ++ (c1607 ++ (c1610_else ++ (c1611 ++ (c1614_endif ++ (c1615 ++ (c1625_if ++ (c1626 ++ (c1629_else ++ (c1630 ++ (c1633_endif ++ (c1634 ++ (c1644_if ++ (c1645 ++ (c1648_else ++ (c1649 ++ (c1652_endif ++ (c1653 ++ (c1663_if ++ (c1664 ++ (c1667_else ++ (c1668 ++ (c1671_endif ++ (c1672 ++ (c1696_if ++ (c1697 ++ (c1700_else ++ (c1701 ++ (c1704_endif ++ (c1705 ++ (c1799_if ++ (c1800 ++ (c1803_else ++ (c1804 ++ (c1807_endif ++ (c1808 ++ (c1961_if ++ (c1962 ++ (c1982_if ++ (c1983 ++ (c1986_else ++ (c1987 ++ (c1990_endif ++ (c1991 ++ (c2001_if ++ (c2002 ++ (c2005_else ++ (c2006 ++ (c2009_endif ++ (c2010 ++ (c2021_if ++ (c2022 ++ (c2025_else ++ (c2026 ++ (c2029_endif ++ (c2030 ++ (c2041_if ++ (c2042 ++ (c2045_else ++ (c2046 ++ (c2049_endif ++ (c2050 ++ (c2061_if ++ (c2062 ++ (c2065_else ++ (c2066 ++ (c2069_endif ++ (c2070 ++ (c2099_if ++ (c2100 ++ (c2103_else ++ (c2104 ++ (c2107_endif ++ (c2108 ++ (c2119_if ++ (c2120 ++ (c2123_else ++ (c2124 ++ (c2127_endif ++ (c2128 ++ (c2138_if ++ (c2139 ++ (c2142_else ++ (c2143 ++ (c2146_endif ++ (c2147 ++ (c2157_if ++ (c2158 ++ (c2161_else ++ (c2162 ++ (c2165_endif ++ (c2166 ++ (c2176_if ++ (c2177 ++ (c2180_else ++ (c2181 ++ (c2184_endif ++ (c2185 ++ (c2209_if ++ (c2210 ++ (c2213_else ++ (c2214 ++ (c2217_endif ++ (c2218 ++ (c2312_if ++ (c2313 ++ (c2316_else ++ (c2317 ++ (c2320_endif ++ (c2321 ++ (c2425_endif ++ (c2426 ++ (c2450_if ++ (c2451 ++ (c2452_else ++ (c2453 ++ (c2454_endif ++ (c2455 ++ (c2538_if ++ (c2539 ++ (c2542_else ++ (c2543 ++ (c2546_endif ++ (c2547 ++ (c2591_if ++ (c2592 ++ (c2608_endif ++ (c2609 ++ (c2660_if ++ (c2661 ++ (c2670_else ++ (c2671 ++ (c2675_if ++ (c2676 ++ (c2683_if ++ (c2684 ++ (c2686_else ++ (c2687 ++ (c2696_endif ++ (c2697_else ++ (c2698 ++ (c2707_endif ++ (c2708_endif ++ (c2709 ++ (c2715_if ++ (c2716 ++ (c2728_if ++ (c2729 ++ (c2730_else ++ (c2731 ++ (c2732_endif ++ (c2733 ++ (c2757_if ++ (c2758 ++ (c2761_else ++ (c2762 ++ (c2765_endif ++ (c2766 ++ (c2776_if ++ (c2777 ++ (c2780_else ++ (c2781 ++ (c2784_endif ++ (c2785 ++ (c2796_if ++ (c2797 ++ (c2800_else ++ (c2801 ++ (c2804_endif ++ (c2805 ++ (c2816_if ++ (c2817 ++ (c2820_else ++ (c2821 ++ (c2824_endif ++ (c2825 ++ (c2836_if ++ (c2837 ++ (c2840_else ++ (c2841 ++ (c2844_endif ++ (c2845 ++ (c2874_if ++ (c2875 ++ (c2878_else ++ (c2879 ++ (c2882_endif ++ (c2883 ++ (c2894_if ++ (c2895 ++ (c2898_else ++ (c2899 ++ (c2902_endif ++ (c2903 ++ (c2913_if ++ (c2914 ++ (c2917_else ++ (c2918 ++ (c2921_endif ++ (c2922 ++ (c2932_if ++ (c2933 ++ (c2936_else ++ (c2937 ++ (c2940_endif ++ (c2941 ++ (c2951_if ++ (c2952 ++ (c2955_else ++ (c2956 ++ (c2959_endif ++ (c2960 ++ (c2982_if ++ (c2983 ++ (c2986_else ++ (c2987 ++ (c2990_endif ++ (c2991 ++ (c3076_if ++ (c3077 ++ (c3080_else ++ (c3081 ++ (c3084_endif ++ (c3085 ++ (c3186_if ++ (c3187 ++ (c3205_if ++ (c3206 ++ (c3209_else ++ (c3210 ++ (c3213_endif ++ (c3214 ++ (c3223_if ++ (c3224 ++ (c3227_else ++ (c3228 ++ (c3231_endif ++ (c3232 ++ (c3242_if ++ (c3243 ++ (c3246_else ++ (c3247 ++ (c3250_endif ++ (c3251 ++ (c3261_if ++ (c3262 ++ (c3265_else ++ (c3266 ++ (c3269_endif ++ (c3270 ++ (c3280_if ++ (c3281 ++ (c3284_else ++ (c3285 ++ (c3288_endif ++ (c3289 ++ (c3315_if ++ (c3316 ++ (c3319_else ++ (c3320 ++ (c3323_endif ++ (c3324 ++ (c3334_if ++ (c3335 ++ (c3338_else ++ (c3339 ++ (c3342_endif ++ (c3343 ++ (c3352_if ++ (c3353 ++ (c3356_else ++ (c3357 ++ (c3360_endif ++ (c3361 ++ (c3370_if ++ (c3371 ++ (c3374_else ++ (c3375 ++ (c3378_endif ++ (c3379 ++ (c3388_if ++ (c3389 ++ (c3392_else ++ (c3393 ++ (c3396_endif ++ (c3397 ++ (c3419_if ++ (c3420 ++ (c3423_else ++ (c3424 ++ (c3427_endif ++ (c3428 ++ (c3513_if ++ (c3514 ++ (c3517_else ++ (c3518 ++ (c3521_endif ++ (c3522 ++ (c3622_endif ++ (c3623 ++ (c3643_if ++ (c3644 ++ (c3645_else ++ (c3646 ++ (c3647_endif ++ (c3648 ++ (c3723_if ++ (c3724 ++ (c3727_else ++ (c3728 ++ (c3731_endif ++ (c3732 ++ (c3773_if ++ (c3774 ++ (c3789_endif ++ (c3790 ++ (c3835_if ++ (c3836 ++ (c3845_else ++ (c3846 ++ (c3850_if ++ (c3851 ++ (c3858_if ++ (c3859 ++ (c3861_else ++ (c3862 ++ (c3871_endif ++ (c3872_else ++ (c3873 ++ (c3882_endif ++ (c3883_endif ++ (c3884 ++ (c3892_if ++ (c3893 ++ (c3894_endif ++ (c3895 ++ (c3896_endif ++ (c3897 ++ (c3898_else ++ (c3899 ++ (c4139 ++ (c4379 ++ (c4559 ++ (c4648_nullTail ++ (c4652_endif ++ (c4653 ++ (c4680_else ++ (c4681 ++ (c4696_endif ++ (c4697)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  c0 ++ (c10_if ++ (c11 ++ (c27_else ++ (c28 ++ (c29_endif ++ (c30 ++ (c37_if ++ (c38 ++ (c159 ++ (c280 ++ (c423 ++ (c441_if ++ (c442 ++ (c446_else ++ (c447 ++ (c451_if ++ (c452 ++ (c456_else ++ (c457 ++ (c461_if ++ (c462 ++ (c466_else ++ (c467 ++ (c470_endif ++ (c471_endif ++ (c472_endif ++ (c473 ++ (c528_parityCheck ++ (c557 ++ (c610_boundCheck27 ++ (c621_boundCheck2d ++ (c632 ++ (c671_if ++ (c672_mergeGuard ++ (c683_endif ++ (c684 ++ (c686_if ++ (c687_splitGuard ++ (c697_endif ++ (c698 ++ (c700_notif ++ (c701 ++ (c718_if ++ (c719 ++ (c729_else ++ (c730 ++ (c731_endif ++ (c732_else ++ (c733 ++ (c735_endif ++ (c736 ++ (c741_if ++ (c742 ++ (c748_else ++ (c749 ++ (c754_if ++ (c755 ++ (c771_if ++ (c772 ++ (c773_endif ++ (c774 ++ (c775_else ++ (c776 ++ (c778_if ++ (c779 ++ (c781_mergeSettle ++ (c797_pad16 ++ (c925 ++ (c929_else ++ (c930 ++ (c932_if ++ (c933 ++ (c935_splitSettle ++ (c950_pad16 ++ (c1078 ++ (c1082_endif ++ (c1083_endif ++ (c1084_endif ++ (c1085_endif ++ (c1086 ++ (c1088_if ++ (c1089 ++ (c1102_else ++ (c1103 ++ (c1111_if ++ (c1112 ++ (c1120_else ++ (c1121 ++ (c1123_if ++ (c1124 ++ (c1141_else ++ (c1142 ++ (c1144_if ++ (c1145 ++ (c1149_notif ++ (c1150 ++ (c1153_else ++ (c1154 ++ (c1160_endif ++ (c1161 ++ (c1171_endif ++ (c1172_endif ++ (c1173_endif ++ (c1174_endif ++ (c1175 ++ (c1190_if ++ (c1191 ++ (c1194_else ++ (c1195 ++ (c1197_if ++ (c1198 ++ (c1202_notif ++ (c1203 ++ (c1210_else ++ (c1211 ++ (c1215_endif ++ (c1216_endif ++ (c1217_endif ++ (c1218 ++ (c1232_if ++ (c1233 ++ (c1251_else ++ (c1252 ++ (c1256_notif ++ (c1257 ++ (c1260_else ++ (c1261 ++ (c1264_endif ++ (c1265 ++ (c1277_endif ++ (c1278 ++ (c1299_if ++ (c1300 ++ (c1308_notif ++ (c1309 ++ (c1311_else ++ (c1312 ++ (c1314_endif ++ (c1315 ++ (c1336_notif ++ (c1337 ++ (c1340_else ++ (c1341 ++ (c1344_endif ++ (c1345 ++ (c1378_if ++ (c1379 ++ (c1380_endif ++ (c1381 ++ (c1382_endif ++ (c1383 ++ (c1387_notif ++ (c1388 ++ (c1389_else ++ (c1390 ++ (c1391_endif ++ (c1392 ++ (c1406_if ++ (c1407 ++ (c1414_if ++ (c1415 ++ (c1416_endif ++ (c1417 ++ (c1418_endif ++ (c1419 ++ (c1425_if ++ (c1426 ++ (c1439_if ++ (c1440 ++ (c1441_else ++ (c1442 ++ (c1443_endif ++ (c1444 ++ (c1465_optTail ++ (c1479 ++ (c1484_optTail ++ (c1498 ++ (c1504_optTail ++ (c1518 ++ (c1524_optTail ++ (c1538 ++ (c1544_optTail ++ (c1558 ++ (c1582_optTail ++ (c1596 ++ (c1602_optTail ++ (c1616 ++ (c1621_optTail ++ (c1635 ++ (c1640_optTail ++ (c1654 ++ (c1659_optTail ++ (c1673 ++ (c1692_optTail ++ (c1706 ++ (c1795_optTail ++ (c1809 ++ (c1961_if ++ (c1962 ++ (c1978_optTail ++ (c1992 ++ (c1997_optTail ++ (c2011 ++ (c2017_optTail ++ (c2031 ++ (c2037_optTail ++ (c2051 ++ (c2057_optTail ++ (c2071 ++ (c2095_optTail ++ (c2109 ++ (c2115_optTail ++ (c2129 ++ (c2134_optTail ++ (c2148 ++ (c2153_optTail ++ (c2167 ++ (c2172_optTail ++ (c2186 ++ (c2205_optTail ++ (c2219 ++ (c2308_optTail ++ (c2322 ++ (c2425_endif ++ (c2426 ++ (c2450_if ++ (c2451 ++ (c2452_else ++ (c2453 ++ (c2454_endif ++ (c2455 ++ (c2534_optTail ++ (c2548 ++ (c2591_if ++ (c2592 ++ (c2608_endif ++ (c2609 ++ (c2660_anchor ++ (c2709 ++ (c2715_if ++ (c2716 ++ (c2728_if ++ (c2729 ++ (c2730_else ++ (c2731 ++ (c2732_endif ++ (c2733 ++ (c2753_optTail ++ (c2767 ++ (c2772_optTail ++ (c2786 ++ (c2792_optTail ++ (c2806 ++ (c2812_optTail ++ (c2826 ++ (c2832_optTail ++ (c2846 ++ (c2870_optTail ++ (c2884 ++ (c2890_optTail ++ (c2904 ++ (c2909_optTail ++ (c2923 ++ (c2928_optTail ++ (c2942 ++ (c2947_optTail ++ (c2961 ++ (c2978_optTail ++ (c2992 ++ (c3072_optTail ++ (c3086 ++ (c3186_if ++ (c3187 ++ (c3201_optTail ++ (c3215 ++ (c3219_optTail ++ (c3233 ++ (c3238_optTail ++ (c3252 ++ (c3257_optTail ++ (c3271 ++ (c3276_optTail ++ (c3290 ++ (c3311_optTail ++ (c3325 ++ (c3330_optTail ++ (c3344 ++ (c3348_optTail ++ (c3362 ++ (c3366_optTail ++ (c3380 ++ (c3384_optTail ++ (c3398 ++ (c3415_optTail ++ (c3429 ++ (c3509_optTail ++ (c3523 ++ (c3622_endif ++ (c3623 ++ (c3643_if ++ (c3644 ++ (c3645_else ++ (c3646 ++ (c3647_endif ++ (c3648 ++ (c3719_optTail ++ (c3733 ++ (c3773_if ++ (c3774 ++ (c3789_endif ++ (c3790 ++ (c3835_anchor ++ (c3884 ++ (c3892_if ++ (c3893 ++ (c3894_endif ++ (c3895 ++ (c3896_endif ++ (c3897 ++ (c3898_else ++ (c3899 ++ (c4139 ++ (c4379 ++ (c4559 ++ (c4648_nullTail ++ (c4652_endif ++ (c4653 ++ (c4680_else ++ (c4681 ++ (c4696_endif ++ (c4697)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 /-- The byte offset of every chunk, in order. -/
 def offsets : List (String × Nat) := [
@@ -2990,140 +1589,14 @@ def offsets : List (String × Nat) := [
   ("c778_if", 778),
   ("c779", 779),
   ("c781_mergeSettle", 781),
-  ("c797", 797),
-  ("c800_if", 800),
-  ("c801", 801),
-  ("c804_endif", 804),
-  ("c805", 805),
-  ("c808_if", 808),
-  ("c809", 809),
-  ("c812_endif", 812),
-  ("c813", 813),
-  ("c816_if", 816),
-  ("c817", 817),
-  ("c820_endif", 820),
-  ("c821", 821),
-  ("c824_if", 824),
-  ("c825", 825),
-  ("c828_endif", 828),
-  ("c829", 829),
-  ("c832_if", 832),
-  ("c833", 833),
-  ("c836_endif", 836),
-  ("c837", 837),
-  ("c840_if", 840),
-  ("c841", 841),
-  ("c844_endif", 844),
-  ("c845", 845),
-  ("c848_if", 848),
-  ("c849", 849),
-  ("c852_endif", 852),
-  ("c853", 853),
-  ("c856_if", 856),
-  ("c857", 857),
-  ("c860_endif", 860),
-  ("c861", 861),
-  ("c864_if", 864),
-  ("c865", 865),
-  ("c868_endif", 868),
-  ("c869", 869),
-  ("c872_if", 872),
-  ("c873", 873),
-  ("c876_endif", 876),
-  ("c877", 877),
-  ("c880_if", 880),
-  ("c881", 881),
-  ("c884_endif", 884),
-  ("c885", 885),
-  ("c888_if", 888),
-  ("c889", 889),
-  ("c892_endif", 892),
-  ("c893", 893),
-  ("c896_if", 896),
-  ("c897", 897),
-  ("c900_endif", 900),
-  ("c901", 901),
-  ("c904_if", 904),
-  ("c905", 905),
-  ("c908_endif", 908),
-  ("c909", 909),
-  ("c912_if", 912),
-  ("c913", 913),
-  ("c916_endif", 916),
-  ("c917", 917),
-  ("c920_if", 920),
-  ("c921", 921),
-  ("c924_endif", 924),
+  ("c797_pad16", 797),
   ("c925", 925),
   ("c929_else", 929),
   ("c930", 930),
   ("c932_if", 932),
   ("c933", 933),
   ("c935_splitSettle", 935),
-  ("c950", 950),
-  ("c953_if", 953),
-  ("c954", 954),
-  ("c957_endif", 957),
-  ("c958", 958),
-  ("c961_if", 961),
-  ("c962", 962),
-  ("c965_endif", 965),
-  ("c966", 966),
-  ("c969_if", 969),
-  ("c970", 970),
-  ("c973_endif", 973),
-  ("c974", 974),
-  ("c977_if", 977),
-  ("c978", 978),
-  ("c981_endif", 981),
-  ("c982", 982),
-  ("c985_if", 985),
-  ("c986", 986),
-  ("c989_endif", 989),
-  ("c990", 990),
-  ("c993_if", 993),
-  ("c994", 994),
-  ("c997_endif", 997),
-  ("c998", 998),
-  ("c1001_if", 1001),
-  ("c1002", 1002),
-  ("c1005_endif", 1005),
-  ("c1006", 1006),
-  ("c1009_if", 1009),
-  ("c1010", 1010),
-  ("c1013_endif", 1013),
-  ("c1014", 1014),
-  ("c1017_if", 1017),
-  ("c1018", 1018),
-  ("c1021_endif", 1021),
-  ("c1022", 1022),
-  ("c1025_if", 1025),
-  ("c1026", 1026),
-  ("c1029_endif", 1029),
-  ("c1030", 1030),
-  ("c1033_if", 1033),
-  ("c1034", 1034),
-  ("c1037_endif", 1037),
-  ("c1038", 1038),
-  ("c1041_if", 1041),
-  ("c1042", 1042),
-  ("c1045_endif", 1045),
-  ("c1046", 1046),
-  ("c1049_if", 1049),
-  ("c1050", 1050),
-  ("c1053_endif", 1053),
-  ("c1054", 1054),
-  ("c1057_if", 1057),
-  ("c1058", 1058),
-  ("c1061_endif", 1061),
-  ("c1062", 1062),
-  ("c1065_if", 1065),
-  ("c1066", 1066),
-  ("c1069_endif", 1069),
-  ("c1070", 1070),
-  ("c1073_if", 1073),
-  ("c1074", 1074),
-  ("c1077_endif", 1077),
+  ("c950_pad16", 950),
   ("c1078", 1078),
   ("c1082_endif", 1082),
   ("c1083_endif", 1083),
@@ -3223,152 +1696,56 @@ def offsets : List (String × Nat) := [
   ("c1442", 1442),
   ("c1443_endif", 1443),
   ("c1444", 1444),
-  ("c1469_if", 1469),
-  ("c1470", 1470),
-  ("c1473_else", 1473),
-  ("c1474", 1474),
-  ("c1477_endif", 1477),
-  ("c1478", 1478),
-  ("c1488_if", 1488),
-  ("c1489", 1489),
-  ("c1492_else", 1492),
-  ("c1493", 1493),
-  ("c1496_endif", 1496),
-  ("c1497", 1497),
-  ("c1508_if", 1508),
-  ("c1509", 1509),
-  ("c1512_else", 1512),
-  ("c1513", 1513),
-  ("c1516_endif", 1516),
-  ("c1517", 1517),
-  ("c1528_if", 1528),
-  ("c1529", 1529),
-  ("c1532_else", 1532),
-  ("c1533", 1533),
-  ("c1536_endif", 1536),
-  ("c1537", 1537),
-  ("c1548_if", 1548),
-  ("c1549", 1549),
-  ("c1552_else", 1552),
-  ("c1553", 1553),
-  ("c1556_endif", 1556),
-  ("c1557", 1557),
-  ("c1586_if", 1586),
-  ("c1587", 1587),
-  ("c1590_else", 1590),
-  ("c1591", 1591),
-  ("c1594_endif", 1594),
-  ("c1595", 1595),
-  ("c1606_if", 1606),
-  ("c1607", 1607),
-  ("c1610_else", 1610),
-  ("c1611", 1611),
-  ("c1614_endif", 1614),
-  ("c1615", 1615),
-  ("c1625_if", 1625),
-  ("c1626", 1626),
-  ("c1629_else", 1629),
-  ("c1630", 1630),
-  ("c1633_endif", 1633),
-  ("c1634", 1634),
-  ("c1644_if", 1644),
-  ("c1645", 1645),
-  ("c1648_else", 1648),
-  ("c1649", 1649),
-  ("c1652_endif", 1652),
-  ("c1653", 1653),
-  ("c1663_if", 1663),
-  ("c1664", 1664),
-  ("c1667_else", 1667),
-  ("c1668", 1668),
-  ("c1671_endif", 1671),
-  ("c1672", 1672),
-  ("c1696_if", 1696),
-  ("c1697", 1697),
-  ("c1700_else", 1700),
-  ("c1701", 1701),
-  ("c1704_endif", 1704),
-  ("c1705", 1705),
-  ("c1799_if", 1799),
-  ("c1800", 1800),
-  ("c1803_else", 1803),
-  ("c1804", 1804),
-  ("c1807_endif", 1807),
-  ("c1808", 1808),
+  ("c1465_optTail", 1465),
+  ("c1479", 1479),
+  ("c1484_optTail", 1484),
+  ("c1498", 1498),
+  ("c1504_optTail", 1504),
+  ("c1518", 1518),
+  ("c1524_optTail", 1524),
+  ("c1538", 1538),
+  ("c1544_optTail", 1544),
+  ("c1558", 1558),
+  ("c1582_optTail", 1582),
+  ("c1596", 1596),
+  ("c1602_optTail", 1602),
+  ("c1616", 1616),
+  ("c1621_optTail", 1621),
+  ("c1635", 1635),
+  ("c1640_optTail", 1640),
+  ("c1654", 1654),
+  ("c1659_optTail", 1659),
+  ("c1673", 1673),
+  ("c1692_optTail", 1692),
+  ("c1706", 1706),
+  ("c1795_optTail", 1795),
+  ("c1809", 1809),
   ("c1961_if", 1961),
   ("c1962", 1962),
-  ("c1982_if", 1982),
-  ("c1983", 1983),
-  ("c1986_else", 1986),
-  ("c1987", 1987),
-  ("c1990_endif", 1990),
-  ("c1991", 1991),
-  ("c2001_if", 2001),
-  ("c2002", 2002),
-  ("c2005_else", 2005),
-  ("c2006", 2006),
-  ("c2009_endif", 2009),
-  ("c2010", 2010),
-  ("c2021_if", 2021),
-  ("c2022", 2022),
-  ("c2025_else", 2025),
-  ("c2026", 2026),
-  ("c2029_endif", 2029),
-  ("c2030", 2030),
-  ("c2041_if", 2041),
-  ("c2042", 2042),
-  ("c2045_else", 2045),
-  ("c2046", 2046),
-  ("c2049_endif", 2049),
-  ("c2050", 2050),
-  ("c2061_if", 2061),
-  ("c2062", 2062),
-  ("c2065_else", 2065),
-  ("c2066", 2066),
-  ("c2069_endif", 2069),
-  ("c2070", 2070),
-  ("c2099_if", 2099),
-  ("c2100", 2100),
-  ("c2103_else", 2103),
-  ("c2104", 2104),
-  ("c2107_endif", 2107),
-  ("c2108", 2108),
-  ("c2119_if", 2119),
-  ("c2120", 2120),
-  ("c2123_else", 2123),
-  ("c2124", 2124),
-  ("c2127_endif", 2127),
-  ("c2128", 2128),
-  ("c2138_if", 2138),
-  ("c2139", 2139),
-  ("c2142_else", 2142),
-  ("c2143", 2143),
-  ("c2146_endif", 2146),
-  ("c2147", 2147),
-  ("c2157_if", 2157),
-  ("c2158", 2158),
-  ("c2161_else", 2161),
-  ("c2162", 2162),
-  ("c2165_endif", 2165),
-  ("c2166", 2166),
-  ("c2176_if", 2176),
-  ("c2177", 2177),
-  ("c2180_else", 2180),
-  ("c2181", 2181),
-  ("c2184_endif", 2184),
-  ("c2185", 2185),
-  ("c2209_if", 2209),
-  ("c2210", 2210),
-  ("c2213_else", 2213),
-  ("c2214", 2214),
-  ("c2217_endif", 2217),
-  ("c2218", 2218),
-  ("c2312_if", 2312),
-  ("c2313", 2313),
-  ("c2316_else", 2316),
-  ("c2317", 2317),
-  ("c2320_endif", 2320),
-  ("c2321", 2321),
+  ("c1978_optTail", 1978),
+  ("c1992", 1992),
+  ("c1997_optTail", 1997),
+  ("c2011", 2011),
+  ("c2017_optTail", 2017),
+  ("c2031", 2031),
+  ("c2037_optTail", 2037),
+  ("c2051", 2051),
+  ("c2057_optTail", 2057),
+  ("c2071", 2071),
+  ("c2095_optTail", 2095),
+  ("c2109", 2109),
+  ("c2115_optTail", 2115),
+  ("c2129", 2129),
+  ("c2134_optTail", 2134),
+  ("c2148", 2148),
+  ("c2153_optTail", 2153),
+  ("c2167", 2167),
+  ("c2172_optTail", 2172),
+  ("c2186", 2186),
+  ("c2205_optTail", 2205),
+  ("c2219", 2219),
+  ("c2308_optTail", 2308),
+  ("c2322", 2322),
   ("c2425_endif", 2425),
   ("c2426", 2426),
   ("c2450_if", 2450),
@@ -3377,31 +1754,13 @@ def offsets : List (String × Nat) := [
   ("c2453", 2453),
   ("c2454_endif", 2454),
   ("c2455", 2455),
-  ("c2538_if", 2538),
-  ("c2539", 2539),
-  ("c2542_else", 2542),
-  ("c2543", 2543),
-  ("c2546_endif", 2546),
-  ("c2547", 2547),
+  ("c2534_optTail", 2534),
+  ("c2548", 2548),
   ("c2591_if", 2591),
   ("c2592", 2592),
   ("c2608_endif", 2608),
   ("c2609", 2609),
-  ("c2660_if", 2660),
-  ("c2661", 2661),
-  ("c2670_else", 2670),
-  ("c2671", 2671),
-  ("c2675_if", 2675),
-  ("c2676", 2676),
-  ("c2683_if", 2683),
-  ("c2684", 2684),
-  ("c2686_else", 2686),
-  ("c2687", 2687),
-  ("c2696_endif", 2696),
-  ("c2697_else", 2697),
-  ("c2698", 2698),
-  ("c2707_endif", 2707),
-  ("c2708_endif", 2708),
+  ("c2660_anchor", 2660),
   ("c2709", 2709),
   ("c2715_if", 2715),
   ("c2716", 2716),
@@ -3411,152 +1770,56 @@ def offsets : List (String × Nat) := [
   ("c2731", 2731),
   ("c2732_endif", 2732),
   ("c2733", 2733),
-  ("c2757_if", 2757),
-  ("c2758", 2758),
-  ("c2761_else", 2761),
-  ("c2762", 2762),
-  ("c2765_endif", 2765),
-  ("c2766", 2766),
-  ("c2776_if", 2776),
-  ("c2777", 2777),
-  ("c2780_else", 2780),
-  ("c2781", 2781),
-  ("c2784_endif", 2784),
-  ("c2785", 2785),
-  ("c2796_if", 2796),
-  ("c2797", 2797),
-  ("c2800_else", 2800),
-  ("c2801", 2801),
-  ("c2804_endif", 2804),
-  ("c2805", 2805),
-  ("c2816_if", 2816),
-  ("c2817", 2817),
-  ("c2820_else", 2820),
-  ("c2821", 2821),
-  ("c2824_endif", 2824),
-  ("c2825", 2825),
-  ("c2836_if", 2836),
-  ("c2837", 2837),
-  ("c2840_else", 2840),
-  ("c2841", 2841),
-  ("c2844_endif", 2844),
-  ("c2845", 2845),
-  ("c2874_if", 2874),
-  ("c2875", 2875),
-  ("c2878_else", 2878),
-  ("c2879", 2879),
-  ("c2882_endif", 2882),
-  ("c2883", 2883),
-  ("c2894_if", 2894),
-  ("c2895", 2895),
-  ("c2898_else", 2898),
-  ("c2899", 2899),
-  ("c2902_endif", 2902),
-  ("c2903", 2903),
-  ("c2913_if", 2913),
-  ("c2914", 2914),
-  ("c2917_else", 2917),
-  ("c2918", 2918),
-  ("c2921_endif", 2921),
-  ("c2922", 2922),
-  ("c2932_if", 2932),
-  ("c2933", 2933),
-  ("c2936_else", 2936),
-  ("c2937", 2937),
-  ("c2940_endif", 2940),
-  ("c2941", 2941),
-  ("c2951_if", 2951),
-  ("c2952", 2952),
-  ("c2955_else", 2955),
-  ("c2956", 2956),
-  ("c2959_endif", 2959),
-  ("c2960", 2960),
-  ("c2982_if", 2982),
-  ("c2983", 2983),
-  ("c2986_else", 2986),
-  ("c2987", 2987),
-  ("c2990_endif", 2990),
-  ("c2991", 2991),
-  ("c3076_if", 3076),
-  ("c3077", 3077),
-  ("c3080_else", 3080),
-  ("c3081", 3081),
-  ("c3084_endif", 3084),
-  ("c3085", 3085),
+  ("c2753_optTail", 2753),
+  ("c2767", 2767),
+  ("c2772_optTail", 2772),
+  ("c2786", 2786),
+  ("c2792_optTail", 2792),
+  ("c2806", 2806),
+  ("c2812_optTail", 2812),
+  ("c2826", 2826),
+  ("c2832_optTail", 2832),
+  ("c2846", 2846),
+  ("c2870_optTail", 2870),
+  ("c2884", 2884),
+  ("c2890_optTail", 2890),
+  ("c2904", 2904),
+  ("c2909_optTail", 2909),
+  ("c2923", 2923),
+  ("c2928_optTail", 2928),
+  ("c2942", 2942),
+  ("c2947_optTail", 2947),
+  ("c2961", 2961),
+  ("c2978_optTail", 2978),
+  ("c2992", 2992),
+  ("c3072_optTail", 3072),
+  ("c3086", 3086),
   ("c3186_if", 3186),
   ("c3187", 3187),
-  ("c3205_if", 3205),
-  ("c3206", 3206),
-  ("c3209_else", 3209),
-  ("c3210", 3210),
-  ("c3213_endif", 3213),
-  ("c3214", 3214),
-  ("c3223_if", 3223),
-  ("c3224", 3224),
-  ("c3227_else", 3227),
-  ("c3228", 3228),
-  ("c3231_endif", 3231),
-  ("c3232", 3232),
-  ("c3242_if", 3242),
-  ("c3243", 3243),
-  ("c3246_else", 3246),
-  ("c3247", 3247),
-  ("c3250_endif", 3250),
-  ("c3251", 3251),
-  ("c3261_if", 3261),
-  ("c3262", 3262),
-  ("c3265_else", 3265),
-  ("c3266", 3266),
-  ("c3269_endif", 3269),
-  ("c3270", 3270),
-  ("c3280_if", 3280),
-  ("c3281", 3281),
-  ("c3284_else", 3284),
-  ("c3285", 3285),
-  ("c3288_endif", 3288),
-  ("c3289", 3289),
-  ("c3315_if", 3315),
-  ("c3316", 3316),
-  ("c3319_else", 3319),
-  ("c3320", 3320),
-  ("c3323_endif", 3323),
-  ("c3324", 3324),
-  ("c3334_if", 3334),
-  ("c3335", 3335),
-  ("c3338_else", 3338),
-  ("c3339", 3339),
-  ("c3342_endif", 3342),
-  ("c3343", 3343),
-  ("c3352_if", 3352),
-  ("c3353", 3353),
-  ("c3356_else", 3356),
-  ("c3357", 3357),
-  ("c3360_endif", 3360),
-  ("c3361", 3361),
-  ("c3370_if", 3370),
-  ("c3371", 3371),
-  ("c3374_else", 3374),
-  ("c3375", 3375),
-  ("c3378_endif", 3378),
-  ("c3379", 3379),
-  ("c3388_if", 3388),
-  ("c3389", 3389),
-  ("c3392_else", 3392),
-  ("c3393", 3393),
-  ("c3396_endif", 3396),
-  ("c3397", 3397),
-  ("c3419_if", 3419),
-  ("c3420", 3420),
-  ("c3423_else", 3423),
-  ("c3424", 3424),
-  ("c3427_endif", 3427),
-  ("c3428", 3428),
-  ("c3513_if", 3513),
-  ("c3514", 3514),
-  ("c3517_else", 3517),
-  ("c3518", 3518),
-  ("c3521_endif", 3521),
-  ("c3522", 3522),
+  ("c3201_optTail", 3201),
+  ("c3215", 3215),
+  ("c3219_optTail", 3219),
+  ("c3233", 3233),
+  ("c3238_optTail", 3238),
+  ("c3252", 3252),
+  ("c3257_optTail", 3257),
+  ("c3271", 3271),
+  ("c3276_optTail", 3276),
+  ("c3290", 3290),
+  ("c3311_optTail", 3311),
+  ("c3325", 3325),
+  ("c3330_optTail", 3330),
+  ("c3344", 3344),
+  ("c3348_optTail", 3348),
+  ("c3362", 3362),
+  ("c3366_optTail", 3366),
+  ("c3380", 3380),
+  ("c3384_optTail", 3384),
+  ("c3398", 3398),
+  ("c3415_optTail", 3415),
+  ("c3429", 3429),
+  ("c3509_optTail", 3509),
+  ("c3523", 3523),
   ("c3622_endif", 3622),
   ("c3623", 3623),
   ("c3643_if", 3643),
@@ -3565,31 +1828,13 @@ def offsets : List (String × Nat) := [
   ("c3646", 3646),
   ("c3647_endif", 3647),
   ("c3648", 3648),
-  ("c3723_if", 3723),
-  ("c3724", 3724),
-  ("c3727_else", 3727),
-  ("c3728", 3728),
-  ("c3731_endif", 3731),
-  ("c3732", 3732),
+  ("c3719_optTail", 3719),
+  ("c3733", 3733),
   ("c3773_if", 3773),
   ("c3774", 3774),
   ("c3789_endif", 3789),
   ("c3790", 3790),
-  ("c3835_if", 3835),
-  ("c3836", 3836),
-  ("c3845_else", 3845),
-  ("c3846", 3846),
-  ("c3850_if", 3850),
-  ("c3851", 3851),
-  ("c3858_if", 3858),
-  ("c3859", 3859),
-  ("c3861_else", 3861),
-  ("c3862", 3862),
-  ("c3871_endif", 3871),
-  ("c3872_else", 3872),
-  ("c3873", 3873),
-  ("c3882_endif", 3882),
-  ("c3883_endif", 3883),
+  ("c3835_anchor", 3835),
   ("c3884", 3884),
   ("c3892_if", 3892),
   ("c3893", 3893),

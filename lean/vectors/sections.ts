@@ -10,7 +10,9 @@
 // `native_decide` theorem per family ties the hex string to that concatenation, and the offset theorems of
 // Bridge/Glue/Sections.lean are then `decide` on list literals.
 
-export interface Landmark { name: string; hex: string; at: number[] }
+/** A fragment literal and where it sits. With `auto`, `at` is left empty and every occurrence of the literal at an
+ *  instruction start is a landmark; `auto` is the number of occurrences there must be. */
+export interface Landmark { name: string; hex: string; at: number[]; auto?: number }
 export interface Section { name: string; start: number; end: number; kind: 'run' | 'flow' | 'landmark'; instrs: number }
 
 export const MAX_RUN = 120
@@ -35,6 +37,13 @@ const mergeSettle = '012f79012f797600a26993765e79a169'
 const splitSettle = '012f79012f797600a269947600a269'
 const nftFlag = '768192'
 const nftTypeSel = (d: string) => `01${d}796302010067020121687e`
+// The fungible rebuild's blocks whose conditionals turn on the ancestor's data rather than on the arguments
+// (lean/BoltProof/Bridge/Glue/SimpleMulti/Blocks.lean): the pad-to-16 loop (`SIZE 16 LESSTHAN IF 00 CAT ENDIF`
+// sixteen times), the width-dependent optional push after a `<w>` (`SWAP SIZE ROT EQUAL IF SIZE SWAP CAT ELSE DROP 00
+// ENDIF CAT`), and the balance anchor on the ancestor's type.
+const pad16 = '82609f6301007e68'.repeat(16)
+const optTail = '7c827b876382' + '7c7e6775010068' + '7e'
+const anchor = '63014379815188759388677601238763750142798151876394886701427981528877876968670143798151887575886868'
 
 export const LANDMARKS: Record<string, Landmark[]> = {
   simpleMulti: [
@@ -45,6 +54,9 @@ export const LANDMARKS: Record<string, Landmark[]> = {
     { name: 'splitGuard', hex: splitGuard, at: [687] },
     { name: 'mergeSettle', hex: mergeSettle, at: [781] },
     { name: 'splitSettle', hex: splitSettle, at: [935] },
+    { name: 'pad16', hex: pad16, at: [], auto: 2 },
+    { name: 'optTail', hex: optTail, at: [], auto: 50 },
+    { name: 'anchor', hex: anchor, at: [], auto: 2 },
     { name: 'nullTail', hex: nullTail, at: [4648] },
   ],
   minSimple: [
@@ -85,6 +97,13 @@ export function instructionStarts(bytes: number[]): number[] {
 export function cutSections(bytes: number[], landmarks: Landmark[], extraCuts: number[] = []): Section[] {
   const starts = instructionStarts(bytes)
   const isStart = new Set(starts)
+  landmarks = landmarks.map((lm) => {
+    if (lm.auto === undefined) return lm
+    const lit = fromHex(lm.hex)
+    const at = starts.filter((s) => lit.every((b, j) => bytes[s + j] === b))
+    if (at.length !== lm.auto) throw new Error(`${lm.name}: ${at.length} occurrences, ${lm.auto} expected`)
+    return { ...lm, at }
+  })
   const cuts = new Set<number>([0, bytes.length])
   for (const c of extraCuts) {
     if (!isStart.has(c)) throw new Error(`extra cut ${c} is not an instruction start`)
