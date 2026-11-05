@@ -48,18 +48,26 @@ of the block lemmas and is delivered first (M3, §8).
    runs on `grandparentOutpoint`, so it computes `gp ≠ 0`, not `txoType ≠ 0`. From the ASM: entry stack (top
    first) is `issuer, gp, parent, txoType, commitment, pkh, …`; `2 PICK BIN2NUM NOT` = `parent = 0`; `SWAP 2SWAP`
    leaves `gp` on top; then `DUP BIN2NUM 0NOTEQUAL`. The selector `0x17 PICK` at 534/543 (`0x18` at 589) picks
-   the **raw** `txoType` byte (`[0x00]` or `[0x21]`, *trace*), so the hypotheses `s.getD n [] = [1]` / `= []` of
+   the **raw** `txoType` byte (`[0x00]` (settle) or `[0x21]` (commit), *trace*), so the hypotheses `s.getD n [] = [1]` / `= []` of
    `nftTypeSel_run_commit` / `nftTypeSel_run_settle` (`NftType.lean`) never hold on the real stack. The lemmas are
    true as stated; the glue needs a selector lemma on `castToBool`, and relies on MINIMALIF being off
    (`requireMinimal = false`, the block path).
 3. **SimpleMultiBOLT does have an `is2ndTx`-style issuer guard.** The suffix opens with
    `2 PICK BIN2NUM NOT, 2 PICK BIN2NUM NOT, BOOLOR, TUCK, IF 13 PICK EQUALVERIFY, 15 PICK DUP 25 EQUAL NOT VERIFY,
    27 EQUAL NOT VERIFY, ELSE DROP ENDIF` (offsets 0–29), i.e.
-   `parent = 0 ∨ gp = 0 → issuerPubKey = pubKey ∧ nextTxoType ∉ {0x25, 0x27}`. This contradicts the README's
+   `parent = 0 ∨ gp = 0 → issuerPubKey = pubKey ∧ nextTxoType ∉ {0x25, 0x27}`, i.e. the next type may be neither
+   `0x25` (merge-commit) nor `0x27` (undefined). This contradicts the README's
    `is2ndTx` observation ("the fungible family, which lacks it") and `docs/formal-proof.md`'s 2026-09-02
    correction. The model's `issuerMustSign .fungible = isGenesis` is weaker, so `l5_issuer` is still derivable;
-   only the prose is wrong. Open: whether `nextTxoType = 0x27` is accepted off-genesis (if so, `commit_mode` is a
-   model/bytes mismatch to record).
+   only the prose is wrong. `0x27` (undefined) is not a protocol type: the fungible type set is `0x20`
+   (transfer-settle, also genesis), `0x21` (transfer-commit), `0x22` (split-settle), `0x23` (split-commit), `0x24`
+   (merge-settle) and `0x25` (merge-commit) (`docs/unforgeability.md`, `docs/formal-proof.md` §7). A probe on the
+   SDK Spend engine (mint → transfer → commit with `nextTxoType = 0x27` (undefined) and the output type patched to
+   match) is refused off-genesis with `SCRIPT_ERR_EQUALVERIFY`, as is every byte other than `0x21`
+   (transfer-commit) in the transfer shape, so the covenant derives the written type from its mode flags rather
+   than copying the byte, and `commit_mode` is not a mismatch. At genesis `0x25` (merge-commit) and `0x27`
+   (undefined) fail on the guard's `OP_VERIFY`; `0x29` (undefined) fails later. Why the guard names `0x27`
+   (undefined) specifically is not answerable from this repository (the sx source is not vendored).
 4. **Vector attribution.** `smb_wrong_key_commit#0` is rejected by the prologue issuer guard (offset 13), not the
    final `hash160` check at 4698 (comment in `lean/vectors/export.test.ts`); `smb_extra_output_settle#0` is
    rejected by the *unlocking* script's own OP_PUSH_TX, not by the covenant (*trace*). Pinned codes are unchanged.
@@ -118,7 +126,8 @@ terms are not reused.
 - **Two probe vectors** for Finding 1, added to the exporter with expectation `valid`: a melt whose transaction
   carries a covenant-shaped output; a commit whose `changeOutput` blob carries two serialised outputs, one
   token-shaped. If both are accepted by the bytes, Finding 1 is confirmed by execution and the §5 decision can
-  be taken at the end of M1.
+  be taken at the end of M1. A third vector pins the Finding 3 probe (an off-genesis transfer commit with
+  `nextTxoType = 0x27` (undefined), expected `SCRIPT_ERR_EQUALVERIFY`) so the type-derivation fact stays regression-tested.
 
 ### 4.2 Symbolic-execution infrastructure (M2), `lean/BoltProof/Bridge/Glue/Sym/`, namespace `BoltProof.Glue`
 
@@ -157,8 +166,8 @@ terms are not reused.
 ### 4.3 MinSimpleBOLT block lemmas and `Enforced` (M3), `Bridge/Glue/MinSimple/`
 
 `Spec.lean`:
-- `Fields` (pkh, commitment, txoType, parent, gp, issuer) with `WF` (widths 20/20/1/36/36/33, `txoType ∈
-  {[0x00], [0x21]}`); `pushesOf f` (the six lock pushes).
+- `Fields` (pkh, commitment, txoType, parent, gp, issuer) with `WF` (widths 20/20/1/36/36/33, `txoType` is
+  `[0x00]` (settle) or `[0x21]` (commit)); `pushesOf f` (the six lock pushes).
 - `Args` (preimage, pubKey, sig, benefPKH, changeOutput, fundOutpoint, 26 ancestor pieces);
   `entryStack f a below` = `[issuer, gp, parent, txoType, commitment, pkh, preimage, pubKey, sig, benefPKH,
   changeOutput, fundOutpoint] ++ pieces ++ below` (top first; `below` is whatever the unlocking script left
@@ -311,9 +320,8 @@ vectors decide whether the finding holds by execution; the route is chosen then 
 
 ## 7. Open questions
 
-1. Is `nextTxoType = 0x27` accepted off-genesis by SimpleMultiBOLT? (One vector settles it in M1 or M5.)
-2. Hypothesis or model change for Finding 1 (§5).
-3. Does the token input have to be input 0? The hashPrevouts weld (`outpoint ++ [proof] ++ fundOutpoint`) suggests
+1. Hypothesis or model change for Finding 1 (§5).
+2. Does the token input have to be input 0? The hashPrevouts weld (`outpoint ++ [proof] ++ fundOutpoint`) suggests
    the spent outpoint is first for the NFT family; `fundOutpoint` is itself an unparsed blob, so `tx.inputs` is
    `[spent, (proof)] ++ parse fundOutpoint`. The refinement should derive `i = 0` where the bytes force it rather
    than assume it.
