@@ -434,6 +434,26 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   twice, `psA` above `psB`), so the rebuilds' `PICK`s resolve on the literal stack; `Reaches.lean` is regenerated
   for the new chunk set (the pad loop inside the skipped merge-settle arm of `reaches_splitSettle` is stepped over
   by its skip lemma).
+- **M5, third step** (the rebuilds' conditional arms and the first full fungible paths): the two rebuilds also
+  branch on the ancestor's data in four whole arms (the rebuilt transaction's second input, suffix 1961–2425 and
+  3186–3621; its second output, 2591–2607 and 3773–3788) and in two conditional counts (`IF 3 ELSE 2 ENDIF`,
+  `IF 4 ELSE 3 ENDIF`). The counts are landmarks with block lemmas (`ite32_shape`, `ite43_shape`, `Blocks.lean`);
+  each arm is read as one step by `SimpleMulti/Arms.lean`, generated from an isolated symbolic run of the arm on an
+  abstract stack: the flag popped, the accumulator extended by the arm's bytes (`secondInA`, `secondOutA`, …, with
+  `rest[n]?.getD []` the item at depth `n` below it) under the widths its `OP_NUM2BIN`s fix and the size bounds it
+  checks, else unchanged. A folded flow chunk's rule is keyed by its full name (`c1961_if`). The driver also reads
+  two-byte script-number literals (`decode_lit2`, the rebuilds' `PICK` depths past 127) and the truth of a byte
+  string by its tail (`castToBool_append_of_right`: the covenant tests a built output with `OP_IF`). Full paths now
+  run end to end without case analysis on the ancestor's shape: a commit from a settled transfer token
+  (`ty = 0x20`, `nty = 0x21`, 2334 instructions) and into a split (`nty = 0x23`, 2315) leave the facts the fungible
+  `Enforced` will state: version, sighash byte, the one-satoshi value, the balance bounds, the split guard
+  `bal − nbc ≥ 0`, `hashOutputs` over the new token (the old balance push, `balanceCommit` zero or `nbc`, the old
+  owner, `com = pkh1`, `com2 = pkh2` for a split, `ogp` zero, the next type, this outpoint, the old parent, the
+  issuer, the suffix) and the tagged pay-to-proof outputs, the 150 pieces empty, `hashPrevouts` over this outpoint
+  and the funding outpoint, the sighash byte of the signature and the owner's hash. Findings: a commit, not a
+  settle, is what rebuilds the ancestors in this family (the gate at 1419 is "spent type odd and `gp ≠ 0`", so the
+  even types are the settled states and the odd ones the commits, the reverse of the NFT family's `0x00`/`0x21`);
+  the token's input index (`inputIndexN`) decides the prevouts order at 1149–1416 and is a path hypothesis.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,

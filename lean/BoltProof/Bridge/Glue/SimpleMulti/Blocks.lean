@@ -129,6 +129,8 @@ def AnchorOK (c ty n3 n2 n1 x : Bytes) : Prop :=
   (castToBool c = false ∧ ty ≠ [0x23] ∧ encode (decode x) = [1] ∧ n1 = n2)
 
 theorem encode_two : encode 2 = [2] := by decide
+theorem encode_three : encode 3 = [3] := by decide
+theorem encode_four : encode 4 = [4] := by decide
 
 theorem castToBool_ite_one_nil_eq_true (c : Prop) [Decidable c] : castToBool (if c then [1] else []) = true ↔ c := by
   split_ifs with hc <;> simp [hc, castToBool_one, castToBool_nil]
@@ -153,6 +155,39 @@ theorem anchor_shape {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {cn
       exact ⟨Or.inr (Or.inr ⟨hcnd, h23, ‹_›, ‹_›⟩), _, _, h⟩
   · sym_all h hcnd
     exact ⟨Or.inl ⟨hcnd, ‹_›, ‹_›⟩, _, _, h⟩
+
+/-! ## The conditional counts -/
+
+/-- `IF 3 ELSE 2 ENDIF`: the rebuilt transaction's input count, on the flag "the ancestor has a
+second input" (suffix 1439 and 2728); the result in the pushes' own form, `encode 3`/`encode 2`
+(`encode_three`, `encode_two` read them as bytes). -/
+def ite32 : Bytes := [0x63, 0x53, 0x67, 0x52, 0x68]
+/-- `IF 4 ELSE 3 ENDIF`: its output count, on "the ancestor has a second output" (2450 and 3643). -/
+def ite43 : Bytes := [0x63, 0x54, 0x67, 0x53, 0x68]
+
+theorem ite32_shape {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {x : Bytes} {S A : List Bytes}
+    {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
+    (h : run Eval.opExec env (c ++ k) t (St (x :: S) A m C kk cs) = r) (hr : r.IsOk) (hc : c = ite32) :
+    ∃ m' k', run Eval.opExec env k t (St ((if castToBool x then encode 3 else encode 2) :: S) A m' C k' cs) = r := by
+  subst hc
+  simp only [ite32, List.cons_append, List.nil_append] at h
+  cases hx : castToBool x
+  · sym_all h hx
+    exact ⟨_, _, by simpa [hx] using h⟩
+  · sym_all h hx
+    exact ⟨_, _, by simpa [hx] using h⟩
+
+theorem ite43_shape {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {x : Bytes} {S A : List Bytes}
+    {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
+    (h : run Eval.opExec env (c ++ k) t (St (x :: S) A m C kk cs) = r) (hr : r.IsOk) (hc : c = ite43) :
+    ∃ m' k', run Eval.opExec env k t (St ((if castToBool x then encode 4 else encode 3) :: S) A m' C k' cs) = r := by
+  subst hc
+  simp only [ite43, List.cons_append, List.nil_append] at h
+  cases hx : castToBool x
+  · sym_all h hx
+    exact ⟨_, _, by simpa [hx] using h⟩
+  · sym_all h hx
+    exact ⟨_, _, by simpa [hx] using h⟩
 
 /-! ## The blocks inside an inactive arm -/
 
@@ -184,6 +219,24 @@ theorem anchor_skip {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {S A
   sym_skip h hin
   exact ⟨_, h⟩
 
+theorem ite32_skip {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {S A : List Bytes} {D : Cond} {cs : Bytes}
+    {m kk : Nat} (hin : D.isActive = false)
+    (h : run Eval.opExec env (c ++ k) t (St S A m D kk cs) = r) (hr : r.IsOk) (hc : c = ite32) :
+    ∃ k', run Eval.opExec env k t (St S A m D k' cs) = r := by
+  subst hc
+  simp only [ite32, List.cons_append, List.nil_append] at h
+  sym_skip h hin
+  exact ⟨_, h⟩
+
+theorem ite43_skip {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {S A : List Bytes} {D : Cond} {cs : Bytes}
+    {m kk : Nat} (hin : D.isActive = false)
+    (h : run Eval.opExec env (c ++ k) t (St S A m D kk cs) = r) (hr : r.IsOk) (hc : c = ite43) :
+    ∃ k', run Eval.opExec env k t (St S A m D k' cs) = r := by
+  subst hc
+  simp only [ite43, List.cons_append, List.nil_append] at h
+  sym_skip h hin
+  exact ⟨_, h⟩
+
 /-! ## The rules for the drivers
 
 The chunk's kind, the part of its name after the last underscore (`c797_pad16`, `c1465_optTail`,
@@ -198,6 +251,14 @@ macro_rules
     `(tactic| (replace $h := optTail_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr) (by first | rfl | decide)
                obtain ⟨_, _, $h:ident⟩ := $h))
 macro_rules
+  | `(tactic| sym_blockrule "ite32" $h:ident $hact:ident) =>
+    `(tactic| (replace $h := ite32_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr) (by first | rfl | decide)
+               obtain ⟨_, _, $h:ident⟩ := $h))
+macro_rules
+  | `(tactic| sym_blockrule "ite43" $h:ident $hact:ident) =>
+    `(tactic| (replace $h := ite43_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr) (by first | rfl | decide)
+               obtain ⟨_, _, $h:ident⟩ := $h))
+macro_rules
   | `(tactic| sym_blockrule "anchor" $h:ident $hact:ident) =>
     `(tactic| (obtain ⟨_, _, _, $h:ident⟩ := anchor_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr) (by first | rfl | decide)))
 
@@ -210,6 +271,18 @@ macro_rules
 macro_rules
   | `(tactic| sym_skipblockrule "optTail" $h:ident $hin:ident) =>
     `(tactic| (replace $h := optTail_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf, Bool.and_false,
+                 Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)
+                 (by first | rfl | decide)
+               obtain ⟨_, $h:ident⟩ := $h))
+macro_rules
+  | `(tactic| sym_skipblockrule "ite32" $h:ident $hin:ident) =>
+    `(tactic| (replace $h := ite32_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf, Bool.and_false,
+                 Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)
+                 (by first | rfl | decide)
+               obtain ⟨_, $h:ident⟩ := $h))
+macro_rules
+  | `(tactic| sym_skipblockrule "ite43" $h:ident $hin:ident) =>
+    `(tactic| (replace $h := ite43_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf, Bool.and_false,
                  Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)
                  (by first | rfl | decide)
                obtain ⟨_, $h:ident⟩ := $h))

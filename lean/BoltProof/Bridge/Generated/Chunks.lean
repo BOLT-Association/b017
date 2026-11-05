@@ -735,25 +735,9 @@ def c1425_if : List Nat := [
 def c1426 : List Nat := [
     0x02, 0xd4, 0x00, 0x79, 0x82, 0x54, 0x88, 0x02, 0xb8, 0x00, 0x79, 0x92, 0x76]
 
-/-- `[1439, 1440)`: flow opcode, 1 byte, 1 instruction. -/
-def c1439_if : List Nat := [
-    0x63]
-
-/-- `[1440, 1441)`: straight-line run, 1 byte, 1 instruction. -/
-def c1440 : List Nat := [
-    0x53]
-
-/-- `[1441, 1442)`: flow opcode, 1 byte, 1 instruction. -/
-def c1441_else : List Nat := [
-    0x67]
-
-/-- `[1442, 1443)`: straight-line run, 1 byte, 1 instruction. -/
-def c1442 : List Nat := [
-    0x52]
-
-/-- `[1443, 1444)`: flow opcode, 1 byte, 1 instruction. -/
-def c1443_endif : List Nat := [
-    0x68]
+/-- `[1439, 1444)`: the `ite32` fragment, 5 bytes, 5 instructions. -/
+def c1439_ite32 : List Nat := [
+    0x63, 0x53, 0x67, 0x52, 0x68]
 
 /-- `[1444, 1465)`: straight-line run, 21 bytes, 15 instructions. -/
 def c1444 : List Nat := [
@@ -998,25 +982,9 @@ def c2426 : List Nat := [
     0x02, 0x9c, 0x00, 0x79, 0x7e, 0x02, 0x9b, 0x00, 0x79, 0x82, 0x7c, 0x7e, 0x7e, 0x02, 0x9a, 0x00,
     0x79, 0x7e, 0x02, 0x8e, 0x00, 0x79, 0x92, 0x76]
 
-/-- `[2450, 2451)`: flow opcode, 1 byte, 1 instruction. -/
-def c2450_if : List Nat := [
-    0x63]
-
-/-- `[2451, 2452)`: straight-line run, 1 byte, 1 instruction. -/
-def c2451 : List Nat := [
-    0x54]
-
-/-- `[2452, 2453)`: flow opcode, 1 byte, 1 instruction. -/
-def c2452_else : List Nat := [
-    0x67]
-
-/-- `[2453, 2454)`: straight-line run, 1 byte, 1 instruction. -/
-def c2453 : List Nat := [
-    0x53]
-
-/-- `[2454, 2455)`: flow opcode, 1 byte, 1 instruction. -/
-def c2454_endif : List Nat := [
-    0x68]
+/-- `[2450, 2455)`: the `ite43` fragment, 5 bytes, 5 instructions. -/
+def c2450_ite43 : List Nat := [
+    0x63, 0x54, 0x67, 0x53, 0x68]
 
 /-- `[2455, 2534)`: straight-line run, 79 bytes, 55 instructions. -/
 def c2455 : List Nat := [
@@ -1074,25 +1042,9 @@ def c2715_if : List Nat := [
 def c2716 : List Nat := [
     0x02, 0x8a, 0x00, 0x79, 0x82, 0x54, 0x88, 0x01, 0x6e, 0x79, 0x92, 0x76]
 
-/-- `[2728, 2729)`: flow opcode, 1 byte, 1 instruction. -/
-def c2728_if : List Nat := [
-    0x63]
-
-/-- `[2729, 2730)`: straight-line run, 1 byte, 1 instruction. -/
-def c2729 : List Nat := [
-    0x53]
-
-/-- `[2730, 2731)`: flow opcode, 1 byte, 1 instruction. -/
-def c2730_else : List Nat := [
-    0x67]
-
-/-- `[2731, 2732)`: straight-line run, 1 byte, 1 instruction. -/
-def c2731 : List Nat := [
-    0x52]
-
-/-- `[2732, 2733)`: flow opcode, 1 byte, 1 instruction. -/
-def c2732_endif : List Nat := [
-    0x68]
+/-- `[2728, 2733)`: the `ite32` fragment, 5 bytes, 5 instructions. -/
+def c2728_ite32 : List Nat := [
+    0x63, 0x53, 0x67, 0x52, 0x68]
 
 /-- `[2733, 2753)`: straight-line run, 20 bytes, 16 instructions. -/
 def c2733 : List Nat := [
@@ -1332,25 +1284,9 @@ def c3623 : List Nat := [
     0x01, 0x52, 0x79, 0x7e, 0x01, 0x51, 0x79, 0x82, 0x7c, 0x7e, 0x7e, 0x01, 0x50, 0x79, 0x7e, 0x01,
     0x44, 0x79, 0x92, 0x76]
 
-/-- `[3643, 3644)`: flow opcode, 1 byte, 1 instruction. -/
-def c3643_if : List Nat := [
-    0x63]
-
-/-- `[3644, 3645)`: straight-line run, 1 byte, 1 instruction. -/
-def c3644 : List Nat := [
-    0x54]
-
-/-- `[3645, 3646)`: flow opcode, 1 byte, 1 instruction. -/
-def c3645_else : List Nat := [
-    0x67]
-
-/-- `[3646, 3647)`: straight-line run, 1 byte, 1 instruction. -/
-def c3646 : List Nat := [
-    0x53]
-
-/-- `[3647, 3648)`: flow opcode, 1 byte, 1 instruction. -/
-def c3647_endif : List Nat := [
-    0x68]
+/-- `[3643, 3648)`: the `ite43` fragment, 5 bytes, 5 instructions. -/
+def c3643_ite43 : List Nat := [
+    0x63, 0x54, 0x67, 0x53, 0x68]
 
 /-- `[3648, 3719)`: straight-line run, 71 bytes, 55 instructions. -/
 def c3648 : List Nat := [
@@ -1516,9 +1452,9 @@ def c4696_endif : List Nat := [
 def c4697 : List Nat := [
     0x79, 0x88, 0xac]
 
-/-- `SimpleMultiBOLT`: the shipped suffix as the right-nested concatenation of its 332 chunks (4700 bytes). -/
+/-- `SimpleMultiBOLT`: the shipped suffix as the right-nested concatenation of its 316 chunks (4700 bytes). -/
 def suffix : List Nat :=
-  c0 ++ (c10_if ++ (c11 ++ (c27_else ++ (c28 ++ (c29_endif ++ (c30 ++ (c37_if ++ (c38 ++ (c159 ++ (c280 ++ (c423 ++ (c441_if ++ (c442 ++ (c446_else ++ (c447 ++ (c451_if ++ (c452 ++ (c456_else ++ (c457 ++ (c461_if ++ (c462 ++ (c466_else ++ (c467 ++ (c470_endif ++ (c471_endif ++ (c472_endif ++ (c473 ++ (c528_parityCheck ++ (c557 ++ (c610_boundCheck27 ++ (c621_boundCheck2d ++ (c632 ++ (c671_if ++ (c672_mergeGuard ++ (c683_endif ++ (c684 ++ (c686_if ++ (c687_splitGuard ++ (c697_endif ++ (c698 ++ (c700_notif ++ (c701 ++ (c718_if ++ (c719 ++ (c729_else ++ (c730 ++ (c731_endif ++ (c732_else ++ (c733 ++ (c735_endif ++ (c736 ++ (c741_if ++ (c742 ++ (c748_else ++ (c749 ++ (c754_if ++ (c755 ++ (c771_if ++ (c772 ++ (c773_endif ++ (c774 ++ (c775_else ++ (c776 ++ (c778_if ++ (c779 ++ (c781_mergeSettle ++ (c797_pad16 ++ (c925 ++ (c929_else ++ (c930 ++ (c932_if ++ (c933 ++ (c935_splitSettle ++ (c950_pad16 ++ (c1078 ++ (c1082_endif ++ (c1083_endif ++ (c1084_endif ++ (c1085_endif ++ (c1086 ++ (c1088_if ++ (c1089 ++ (c1102_else ++ (c1103 ++ (c1111_if ++ (c1112 ++ (c1120_else ++ (c1121 ++ (c1123_if ++ (c1124 ++ (c1141_else ++ (c1142 ++ (c1144_if ++ (c1145 ++ (c1149_notif ++ (c1150 ++ (c1153_else ++ (c1154 ++ (c1160_endif ++ (c1161 ++ (c1171_endif ++ (c1172_endif ++ (c1173_endif ++ (c1174_endif ++ (c1175 ++ (c1190_if ++ (c1191 ++ (c1194_else ++ (c1195 ++ (c1197_if ++ (c1198 ++ (c1202_notif ++ (c1203 ++ (c1210_else ++ (c1211 ++ (c1215_endif ++ (c1216_endif ++ (c1217_endif ++ (c1218 ++ (c1232_if ++ (c1233 ++ (c1251_else ++ (c1252 ++ (c1256_notif ++ (c1257 ++ (c1260_else ++ (c1261 ++ (c1264_endif ++ (c1265 ++ (c1277_endif ++ (c1278 ++ (c1299_if ++ (c1300 ++ (c1308_notif ++ (c1309 ++ (c1311_else ++ (c1312 ++ (c1314_endif ++ (c1315 ++ (c1336_notif ++ (c1337 ++ (c1340_else ++ (c1341 ++ (c1344_endif ++ (c1345 ++ (c1378_if ++ (c1379 ++ (c1380_endif ++ (c1381 ++ (c1382_endif ++ (c1383 ++ (c1387_notif ++ (c1388 ++ (c1389_else ++ (c1390 ++ (c1391_endif ++ (c1392 ++ (c1406_if ++ (c1407 ++ (c1414_if ++ (c1415 ++ (c1416_endif ++ (c1417 ++ (c1418_endif ++ (c1419 ++ (c1425_if ++ (c1426 ++ (c1439_if ++ (c1440 ++ (c1441_else ++ (c1442 ++ (c1443_endif ++ (c1444 ++ (c1465_optTail ++ (c1479 ++ (c1484_optTail ++ (c1498 ++ (c1504_optTail ++ (c1518 ++ (c1524_optTail ++ (c1538 ++ (c1544_optTail ++ (c1558 ++ (c1582_optTail ++ (c1596 ++ (c1602_optTail ++ (c1616 ++ (c1621_optTail ++ (c1635 ++ (c1640_optTail ++ (c1654 ++ (c1659_optTail ++ (c1673 ++ (c1692_optTail ++ (c1706 ++ (c1795_optTail ++ (c1809 ++ (c1961_if ++ (c1962 ++ (c1978_optTail ++ (c1992 ++ (c1997_optTail ++ (c2011 ++ (c2017_optTail ++ (c2031 ++ (c2037_optTail ++ (c2051 ++ (c2057_optTail ++ (c2071 ++ (c2095_optTail ++ (c2109 ++ (c2115_optTail ++ (c2129 ++ (c2134_optTail ++ (c2148 ++ (c2153_optTail ++ (c2167 ++ (c2172_optTail ++ (c2186 ++ (c2205_optTail ++ (c2219 ++ (c2308_optTail ++ (c2322 ++ (c2425_endif ++ (c2426 ++ (c2450_if ++ (c2451 ++ (c2452_else ++ (c2453 ++ (c2454_endif ++ (c2455 ++ (c2534_optTail ++ (c2548 ++ (c2591_if ++ (c2592 ++ (c2608_endif ++ (c2609 ++ (c2660_anchor ++ (c2709 ++ (c2715_if ++ (c2716 ++ (c2728_if ++ (c2729 ++ (c2730_else ++ (c2731 ++ (c2732_endif ++ (c2733 ++ (c2753_optTail ++ (c2767 ++ (c2772_optTail ++ (c2786 ++ (c2792_optTail ++ (c2806 ++ (c2812_optTail ++ (c2826 ++ (c2832_optTail ++ (c2846 ++ (c2870_optTail ++ (c2884 ++ (c2890_optTail ++ (c2904 ++ (c2909_optTail ++ (c2923 ++ (c2928_optTail ++ (c2942 ++ (c2947_optTail ++ (c2961 ++ (c2978_optTail ++ (c2992 ++ (c3072_optTail ++ (c3086 ++ (c3186_if ++ (c3187 ++ (c3201_optTail ++ (c3215 ++ (c3219_optTail ++ (c3233 ++ (c3238_optTail ++ (c3252 ++ (c3257_optTail ++ (c3271 ++ (c3276_optTail ++ (c3290 ++ (c3311_optTail ++ (c3325 ++ (c3330_optTail ++ (c3344 ++ (c3348_optTail ++ (c3362 ++ (c3366_optTail ++ (c3380 ++ (c3384_optTail ++ (c3398 ++ (c3415_optTail ++ (c3429 ++ (c3509_optTail ++ (c3523 ++ (c3622_endif ++ (c3623 ++ (c3643_if ++ (c3644 ++ (c3645_else ++ (c3646 ++ (c3647_endif ++ (c3648 ++ (c3719_optTail ++ (c3733 ++ (c3773_if ++ (c3774 ++ (c3789_endif ++ (c3790 ++ (c3835_anchor ++ (c3884 ++ (c3892_if ++ (c3893 ++ (c3894_endif ++ (c3895 ++ (c3896_endif ++ (c3897 ++ (c3898_else ++ (c3899 ++ (c4139 ++ (c4379 ++ (c4559 ++ (c4648_nullTail ++ (c4652_endif ++ (c4653 ++ (c4680_else ++ (c4681 ++ (c4696_endif ++ (c4697)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  c0 ++ (c10_if ++ (c11 ++ (c27_else ++ (c28 ++ (c29_endif ++ (c30 ++ (c37_if ++ (c38 ++ (c159 ++ (c280 ++ (c423 ++ (c441_if ++ (c442 ++ (c446_else ++ (c447 ++ (c451_if ++ (c452 ++ (c456_else ++ (c457 ++ (c461_if ++ (c462 ++ (c466_else ++ (c467 ++ (c470_endif ++ (c471_endif ++ (c472_endif ++ (c473 ++ (c528_parityCheck ++ (c557 ++ (c610_boundCheck27 ++ (c621_boundCheck2d ++ (c632 ++ (c671_if ++ (c672_mergeGuard ++ (c683_endif ++ (c684 ++ (c686_if ++ (c687_splitGuard ++ (c697_endif ++ (c698 ++ (c700_notif ++ (c701 ++ (c718_if ++ (c719 ++ (c729_else ++ (c730 ++ (c731_endif ++ (c732_else ++ (c733 ++ (c735_endif ++ (c736 ++ (c741_if ++ (c742 ++ (c748_else ++ (c749 ++ (c754_if ++ (c755 ++ (c771_if ++ (c772 ++ (c773_endif ++ (c774 ++ (c775_else ++ (c776 ++ (c778_if ++ (c779 ++ (c781_mergeSettle ++ (c797_pad16 ++ (c925 ++ (c929_else ++ (c930 ++ (c932_if ++ (c933 ++ (c935_splitSettle ++ (c950_pad16 ++ (c1078 ++ (c1082_endif ++ (c1083_endif ++ (c1084_endif ++ (c1085_endif ++ (c1086 ++ (c1088_if ++ (c1089 ++ (c1102_else ++ (c1103 ++ (c1111_if ++ (c1112 ++ (c1120_else ++ (c1121 ++ (c1123_if ++ (c1124 ++ (c1141_else ++ (c1142 ++ (c1144_if ++ (c1145 ++ (c1149_notif ++ (c1150 ++ (c1153_else ++ (c1154 ++ (c1160_endif ++ (c1161 ++ (c1171_endif ++ (c1172_endif ++ (c1173_endif ++ (c1174_endif ++ (c1175 ++ (c1190_if ++ (c1191 ++ (c1194_else ++ (c1195 ++ (c1197_if ++ (c1198 ++ (c1202_notif ++ (c1203 ++ (c1210_else ++ (c1211 ++ (c1215_endif ++ (c1216_endif ++ (c1217_endif ++ (c1218 ++ (c1232_if ++ (c1233 ++ (c1251_else ++ (c1252 ++ (c1256_notif ++ (c1257 ++ (c1260_else ++ (c1261 ++ (c1264_endif ++ (c1265 ++ (c1277_endif ++ (c1278 ++ (c1299_if ++ (c1300 ++ (c1308_notif ++ (c1309 ++ (c1311_else ++ (c1312 ++ (c1314_endif ++ (c1315 ++ (c1336_notif ++ (c1337 ++ (c1340_else ++ (c1341 ++ (c1344_endif ++ (c1345 ++ (c1378_if ++ (c1379 ++ (c1380_endif ++ (c1381 ++ (c1382_endif ++ (c1383 ++ (c1387_notif ++ (c1388 ++ (c1389_else ++ (c1390 ++ (c1391_endif ++ (c1392 ++ (c1406_if ++ (c1407 ++ (c1414_if ++ (c1415 ++ (c1416_endif ++ (c1417 ++ (c1418_endif ++ (c1419 ++ (c1425_if ++ (c1426 ++ (c1439_ite32 ++ (c1444 ++ (c1465_optTail ++ (c1479 ++ (c1484_optTail ++ (c1498 ++ (c1504_optTail ++ (c1518 ++ (c1524_optTail ++ (c1538 ++ (c1544_optTail ++ (c1558 ++ (c1582_optTail ++ (c1596 ++ (c1602_optTail ++ (c1616 ++ (c1621_optTail ++ (c1635 ++ (c1640_optTail ++ (c1654 ++ (c1659_optTail ++ (c1673 ++ (c1692_optTail ++ (c1706 ++ (c1795_optTail ++ (c1809 ++ (c1961_if ++ (c1962 ++ (c1978_optTail ++ (c1992 ++ (c1997_optTail ++ (c2011 ++ (c2017_optTail ++ (c2031 ++ (c2037_optTail ++ (c2051 ++ (c2057_optTail ++ (c2071 ++ (c2095_optTail ++ (c2109 ++ (c2115_optTail ++ (c2129 ++ (c2134_optTail ++ (c2148 ++ (c2153_optTail ++ (c2167 ++ (c2172_optTail ++ (c2186 ++ (c2205_optTail ++ (c2219 ++ (c2308_optTail ++ (c2322 ++ (c2425_endif ++ (c2426 ++ (c2450_ite43 ++ (c2455 ++ (c2534_optTail ++ (c2548 ++ (c2591_if ++ (c2592 ++ (c2608_endif ++ (c2609 ++ (c2660_anchor ++ (c2709 ++ (c2715_if ++ (c2716 ++ (c2728_ite32 ++ (c2733 ++ (c2753_optTail ++ (c2767 ++ (c2772_optTail ++ (c2786 ++ (c2792_optTail ++ (c2806 ++ (c2812_optTail ++ (c2826 ++ (c2832_optTail ++ (c2846 ++ (c2870_optTail ++ (c2884 ++ (c2890_optTail ++ (c2904 ++ (c2909_optTail ++ (c2923 ++ (c2928_optTail ++ (c2942 ++ (c2947_optTail ++ (c2961 ++ (c2978_optTail ++ (c2992 ++ (c3072_optTail ++ (c3086 ++ (c3186_if ++ (c3187 ++ (c3201_optTail ++ (c3215 ++ (c3219_optTail ++ (c3233 ++ (c3238_optTail ++ (c3252 ++ (c3257_optTail ++ (c3271 ++ (c3276_optTail ++ (c3290 ++ (c3311_optTail ++ (c3325 ++ (c3330_optTail ++ (c3344 ++ (c3348_optTail ++ (c3362 ++ (c3366_optTail ++ (c3380 ++ (c3384_optTail ++ (c3398 ++ (c3415_optTail ++ (c3429 ++ (c3509_optTail ++ (c3523 ++ (c3622_endif ++ (c3623 ++ (c3643_ite43 ++ (c3648 ++ (c3719_optTail ++ (c3733 ++ (c3773_if ++ (c3774 ++ (c3789_endif ++ (c3790 ++ (c3835_anchor ++ (c3884 ++ (c3892_if ++ (c3893 ++ (c3894_endif ++ (c3895 ++ (c3896_endif ++ (c3897 ++ (c3898_else ++ (c3899 ++ (c4139 ++ (c4379 ++ (c4559 ++ (c4648_nullTail ++ (c4652_endif ++ (c4653 ++ (c4680_else ++ (c4681 ++ (c4696_endif ++ (c4697)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 /-- The byte offset of every chunk, in order. -/
 def offsets : List (String × Nat) := [
@@ -1690,11 +1626,7 @@ def offsets : List (String × Nat) := [
   ("c1419", 1419),
   ("c1425_if", 1425),
   ("c1426", 1426),
-  ("c1439_if", 1439),
-  ("c1440", 1440),
-  ("c1441_else", 1441),
-  ("c1442", 1442),
-  ("c1443_endif", 1443),
+  ("c1439_ite32", 1439),
   ("c1444", 1444),
   ("c1465_optTail", 1465),
   ("c1479", 1479),
@@ -1748,11 +1680,7 @@ def offsets : List (String × Nat) := [
   ("c2322", 2322),
   ("c2425_endif", 2425),
   ("c2426", 2426),
-  ("c2450_if", 2450),
-  ("c2451", 2451),
-  ("c2452_else", 2452),
-  ("c2453", 2453),
-  ("c2454_endif", 2454),
+  ("c2450_ite43", 2450),
   ("c2455", 2455),
   ("c2534_optTail", 2534),
   ("c2548", 2548),
@@ -1764,11 +1692,7 @@ def offsets : List (String × Nat) := [
   ("c2709", 2709),
   ("c2715_if", 2715),
   ("c2716", 2716),
-  ("c2728_if", 2728),
-  ("c2729", 2729),
-  ("c2730_else", 2730),
-  ("c2731", 2731),
-  ("c2732_endif", 2732),
+  ("c2728_ite32", 2728),
   ("c2733", 2733),
   ("c2753_optTail", 2753),
   ("c2767", 2767),
@@ -1822,11 +1746,7 @@ def offsets : List (String × Nat) := [
   ("c3523", 3523),
   ("c3622_endif", 3622),
   ("c3623", 3623),
-  ("c3643_if", 3643),
-  ("c3644", 3644),
-  ("c3645_else", 3645),
-  ("c3646", 3646),
-  ("c3647_endif", 3647),
+  ("c3643_ite43", 3643),
   ("c3648", 3648),
   ("c3719_optTail", 3719),
   ("c3733", 3733),
