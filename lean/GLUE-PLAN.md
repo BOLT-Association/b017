@@ -42,6 +42,12 @@ of the block lemmas and is delivered first (M3, §8).
      (MinSimple 597, SimpleMulti 1394, *trace*). `buildChangeOutput` (`src/lib/boltLib.ts:104`) serialises one
      output, but the covenant never parses the blob, so a spender can put several serialised outputs in it,
      token-shaped ones included. The "change carries no token" half of `l2_outs` is unenforced.
+   - **Confirmed by execution (M1).** Four probe vectors built with the production builders and judged on the
+     SDK Spend engine are all `valid`: `nft_probe_melt_token_output` (a melt whose transaction also emits a
+     covenant-shaped output), `nft_probe_change_single_token` (the single change output is covenant-shaped,
+     honest unlock), `nft_probe_change_two_p2pkh` (the change blob carries two outputs) and
+     `nft_probe_change_blob_token` (two outputs, one covenant-shaped). They are registered with the kernel like
+     every other vector.
    - A refinement to `Accepts` as written is therefore false without an extra hypothesis or a model change
      (§5, decision gate after M1).
 2. **The NFT `nftFlag` docstring is wrong.** `76 81 92` at suffix offset 6 (`OP_DUP OP_BIN2NUM OP_0NOTEQUAL`)
@@ -123,11 +129,11 @@ terms are not reused.
   `splitGuard` 687, `mergeSettle` 781, `splitSettle` 935, `nullTail` at 4648 (SimpleMulti), 1072 (MinSimple),
   1094 (AuthBOLT), 1232 (SerialBOLT), and the suffix lengths 4700/1123/1145/1283.
 - Optional: `framedB` (fuel = length, structural) with `framedB_eq_framed`, so `framed cNN = true` is `decide`.
-- **Two probe vectors** for Finding 1, added to the exporter with expectation `valid`: a melt whose transaction
-  carries a covenant-shaped output; a commit whose `changeOutput` blob carries two serialised outputs, one
-  token-shaped. If both are accepted by the bytes, Finding 1 is confirmed by execution and the §5 decision can
-  be taken at the end of M1. A third vector pins the Finding 3 probe (an off-genesis transfer commit with
-  `nextTxoType = 0x27` (undefined), expected `SCRIPT_ERR_EQUALVERIFY`) so the type-derivation fact stays regression-tested.
+- **Probe vectors** for Finding 1, in the exporter with expectation `valid` (all confirmed, see Finding 1): a melt
+  whose transaction carries a covenant-shaped output; a commit whose single change output is covenant-shaped; a
+  commit whose `changeOutput` blob carries two outputs; the same with one of them covenant-shaped. A fifth vector
+  pins the Finding 3 probe (`smb_probe_type27_commit`, an off-genesis transfer commit with `nextTxoType = 0x27`
+  (undefined), `SCRIPT_ERR_EQUALVERIFY`) so the type-derivation fact stays regression-tested.
 
 ### 4.2 Symbolic-execution infrastructure (M2), `lean/BoltProof/Bridge/Glue/Sym/`, namespace `BoltProof.Glue`
 
