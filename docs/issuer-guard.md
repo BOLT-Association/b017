@@ -128,7 +128,7 @@ is the NFT equivalent? There is none, for two reasons that together leave nothin
    `AuthBOLT` adds only `authOrMiscData`, which the next settle authenticates by rebuilding the commit
    that created it, and `SerialBOLT`'s two extra fields are its mint outpoint and the mint's
    `mintData`, neither of them a balance. The value-bearing NFT variants (`MinSimpleBalance`, `MinSimpleDiscount`) were
-   removed in the `0.1.0` release commit, and even they spliced the token's **own** fields into the
+   removed in `ab95827` (2026-09-07; the changelog lists it under `0.1.0`), and even they spliced the token's **own** fields into the
    ancestor rebuild rather than accepting the ancestor's as unlock arguments, so an invented value sat
    inside the pre-image hashed against `grandparentOutpoint` and failed the hash. No split or merge
    exists in the family, so there is no transition whose arithmetic could be gamed.
