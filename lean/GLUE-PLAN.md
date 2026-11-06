@@ -331,6 +331,11 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    the spent outpoint is first for the NFT family; `fundOutpoint` is itself an unparsed blob, so `tx.inputs` is
    `[spent, (proof)] ++ parse fundOutpoint`. The refinement should derive `i = 0` where the bytes force it rather
    than assume it.
+3. The split settle's flags (§Progress, M5): with `pkh1` or `i2` non-empty the bytes accept a split settle whose
+   two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
+   whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
+   and whether the refinement maps these spends to the model's split settle, needs a hypothesis, or should be
+   reported as a covenant defect with a probe vector.
 
 ## 8. Milestones and effort
 
@@ -523,8 +528,18 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   terms: the probes' output equations agree character for character). `settle0_21/23/25` are runs of about 625
   instructions with one or two block steps. The merge settle needs no output-index hypothesis without a
   grandparent (the index only selects the second rebuild's case); the split settle still branches on `i2` and
-  `pkh1` (its run stops at 512 without them), so those values stay fixed. Next for M5: the other values of the
-  split flags and the merge's output index, the token at input 1, the genesis variants, the melt,
+  `pkh1` (its run stops at 512 without them), so those values stay fixed for now.
+- **M5, the split settle's flags (finding):** the split settle reads two unlock arguments as flags that the bytes
+  leave to the spender: `pkh1` (the run's condition at 542) and the second interop slot `i2` (at 512). The honest
+  spend has both empty. Probing the other three cases, every run reaches the end, and the outputs are the same two
+  token outputs in all four: the remainder `bal - balCommit` to the first commitment (`splitOutA`) and the
+  committed balance to the second (`splitOutB`). A non-empty `pkh1` puts the second token first; a non-empty `i2`
+  writes 0 instead of 1 into the second token's output-index byte (`splitIdx`). No balance is created or lost in
+  any case, but a settled token can carry an index byte that is not its output position. `settleOuts_22` now states
+  the outputs for all four cases, and `settle_23`/`settle0_23` case on both flags instead of assuming them, so the
+  split settle theorems take no flag hypotheses. Whether a token whose index byte disagrees with its position can
+  be spent again, and how the model's split settle should read such a spend, is §7's third open question. Next
+  for M5: the merge's other output-index case, the token at input 1, the genesis variants, the melt,
   `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security

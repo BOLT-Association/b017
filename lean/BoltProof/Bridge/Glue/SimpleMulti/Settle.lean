@@ -41,9 +41,22 @@ abbrev settleOuts_20 (f : Fields) (a : Args) : Bytes :=
 abbrev gateT_22 (f : Fields) (a : Args) (S : List Bytes) : List Bytes :=
   (253 :: encode (((padN 16 (encode (decode f.bal - decode f.balCommit)) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 0] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))).length + 1 : Nat) : Int)) :: [] :: [] :: [] :: [1] :: [] :: [] :: (36 :: (zeros 36)) :: (33 :: (zeros 33)) :: (20 :: (zeros 20)) :: (16 :: (zeros 16)) :: [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 127] :: [29, 2, 176, 23, 136, 118, 169, 20] :: [1] :: List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre)) :: List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 37 (List.drop 175 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 2 (List.drop 136 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 2 (List.drop 134 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 37 (List.drop 97 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 21 (List.drop 76 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 21 (List.drop 34 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 17 (List.drop 17 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) :: List.take 17 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre)) :: List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat + 8 + 4 + 32 + 4 + 1) a.pre :: List.take 4 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat + 8 + 4 + 32) a.pre) :: List.take 32 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat + 8 + 4) a.pre) :: List.take 4 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat + 8) a.pre) :: List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre) :: List.take 36 (List.drop 68 a.pre) :: List.take 32 (List.drop 36 a.pre) :: List.take 32 (List.drop 4 a.pre) :: List.take 4 a.pre :: [1] :: f.gp :: [] :: f.parent :: f.outIdx :: [35] :: f.ogp :: f.com2 :: f.com :: f.pkh :: f.balCommit :: f.bal :: a.pre :: a.pk :: a.sig :: a.inIdx :: [34] :: a.nbc :: a.pkh2 :: a.pkh1 :: a.chg :: a.fund :: a.i1 :: a.i2 :: a.i3 :: a.i4 :: a.i5 :: (a.psA.stack ++ (a.psB.stack ++ S))
 
-/-- The outputs of a split settle before the change blob. -/
+/-- The split settle's first token output: the remainder `bal - balCommit` to the first commitment, index byte 0. -/
+abbrev splitOutA (f : Fields) (a : Args) : Bytes :=
+  List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre) ++ 253 :: encode (((padN 16 (encode (decode f.bal - decode f.balCommit)) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 0] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))).length + 1 : Nat) : Int) ++ 16 :: (padN 16 (encode (decode f.bal - decode f.balCommit)) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 0] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre)))
+
+/-- The second token's index byte: 1 when the second interop slot `i2` is zero, else 0. -/
+abbrev splitIdx (a : Args) : Nat :=
+  if decode a.i2 = 0 then 1 else 0
+
+/-- The split settle's second token output: the committed balance to the second commitment, its index byte by `i2`. -/
+abbrev splitOutB (f : Fields) (a : Args) : Bytes :=
+  List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre) ++ 253 :: encode (((padN 16 (encode (decode f.bal - decode f.balCommit)) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 0] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))).length + 1 : Nat) : Int) ++ (List.take 17 (List.drop 17 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 76 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, splitIdx a] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre)))
+
+/-- The outputs of a split settle before the change blob: the two token outputs, in the order `pkh1` selects
+(the bytes leave both flags to the spender; the honest spend has both empty). -/
 abbrev settleOuts_22 (f : Fields) (a : Args) : Bytes :=
-  List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre) ++ 253 :: encode (((padN 16 (encode (decode f.bal - decode f.balCommit)) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 0] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))).length + 1 : Nat) : Int) ++ 16 :: (padN 16 (encode (decode f.bal - decode f.balCommit)) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 0] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ (List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre) ++ 253 :: encode (((padN 16 (encode (decode f.bal - decode f.balCommit)) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 55 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 0] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))).length + 1 : Nat) : Int) ++ (List.take 17 (List.drop 17 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 16 :: (zeros 16) ++ List.take 21 (List.drop 76 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ 20 :: ((zeros 20) ++ 20 :: (zeros 20)) ++ 36 :: (zeros 36) ++ [1, 34] ++ [1, 1] ++ 36 :: List.take 36 (List.drop 68 a.pre) ++ List.take 37 (List.drop 138 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.take 34 (List.drop 212 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))) ++ List.drop 246 (List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre))))
+  if decode a.pkh1 = 0 then splitOutA f a ++ splitOutB f a else splitOutB f a ++ splitOutA f a
 
 /-- The stack under the gate flag (suffix 1425) for a merge settle (`nextTxoType = 0x24`): the new token's varint, the mode flags, the bound, the pay-to-proof template, the scriptCode's pushes, the preimage's fields, the lock fields, the arguments, the pieces. -/
 abbrev gateT_24 (f : Fields) (a : Args) (S : List Bytes) : List Bytes :=
@@ -174,9 +187,13 @@ elab "factD" : tactic => withMainContext do
           return
   throwError "factD: no hypothesis matches"
 
-/-- Selects the mode's gate stack and outputs in the goal from the `nextTxoType` hypothesis. -/
-macro "settleSel" h:ident : tactic =>
-  `(tactic| simp (config := { decide := true, failIfUnchanged := false }) only [gateT, settleOuts, $h:ident, ↓reduceIte])
+open Lean Elab Tactic in
+/-- Selects the mode's gate stack and outputs in the goal from the `nextTxoType` hypothesis and, for a split, the
+flags' hypotheses. -/
+elab "settleSel" hs:(colGt ident)* : tactic => do
+  let extras ← hs.mapM fun i => `(Lean.Parser.Tactic.simpLemma| $i:ident)
+  evalTactic (← `(tactic| simp (config := { decide := true, failIfUnchanged := false }) only [gateT, settleOuts,
+    settleOuts_22, splitOutA, splitOutB, splitIdx, eq_self_iff_true, ↓reduceIte, $extras,*]))
 
 /-- The settle paths' normaliser on the facts: `enforced_normF`'s set with the regions' facts kept folded (their
 arguments are the gate stack and the derived outpoints), the concrete flags reduced and the vacuous arms dropped. -/
@@ -189,7 +206,7 @@ macro "settleNormF0" h:ident : tactic =>
 
 /-- The same normaliser on the goal, the settle vocabulary unfolded first. -/
 macro "settleNorm" : tactic =>
-  `(tactic| simp (config := { failIfUnchanged := false }) only [gateT_20, gateT_22, gateT_24, settleOuts_20, settleOuts_22, settleOuts_24, gpOutA, altA1, altA2, gpOutB_1, gpOutB_2, decode_lit, Nat.reduceLT, Int.reduceToNat, Int.toNat_natCast, Int.pred_toNat, decode_encode, castToBool_encode_ite, decide_eq_true_eq, ge_iff_le, encode_eq_one_iff, encode_length_eq_nil_iff, num2bin_nil_16, num2bin_nil_20, num2bin_nil_33, num2bin_nil_36, num2bin_nil_150, Option.some.injEq, encode_two, encode_three, encode_four, List.append_assoc, List.cons_append, List.nil_append, List.singleton_append, rebuildA_stack, nullArm_stack, rebuildB_0_stack, rebuildB_1_stack, rebuildB_2_stack, item, Pieces75.stack, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.getD_some, Option.getD_none, zeros, preOutpoint, preHashPrevouts, List.drop_drop, Nat.reduceAdd, Nat.reduceSub, Nat.reduceMul, castToBool_nil, castToBool_one, eq_self_iff_true, false_implies, true_implies, Bool.false_eq_true, Bool.true_eq_false, not_false_eq_true, not_true_eq_false, ↓reduceIte])
+  `(tactic| simp (config := { failIfUnchanged := false }) only [gateT_20, gateT_22, gateT_24, settleOuts_20, settleOuts_22, settleOuts_24, splitOutA, splitOutB, gpOutA, altA1, altA2, gpOutB_1, gpOutB_2, decode_lit, Nat.reduceLT, Int.reduceToNat, Int.toNat_natCast, Int.pred_toNat, decode_encode, castToBool_encode_ite, decide_eq_true_eq, ge_iff_le, encode_eq_one_iff, encode_length_eq_nil_iff, num2bin_nil_16, num2bin_nil_20, num2bin_nil_33, num2bin_nil_36, num2bin_nil_150, Option.some.injEq, encode_two, encode_three, encode_four, List.append_assoc, List.cons_append, List.nil_append, List.singleton_append, rebuildA_stack, nullArm_stack, rebuildB_0_stack, rebuildB_1_stack, rebuildB_2_stack, item, Pieces75.stack, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.getD_some, Option.getD_none, zeros, preOutpoint, preHashPrevouts, List.drop_drop, Nat.reduceAdd, Nat.reduceSub, Nat.reduceMul, castToBool_nil, castToBool_one, eq_self_iff_true, false_implies, true_implies, Bool.false_eq_true, Bool.true_eq_false, not_false_eq_true, not_true_eq_false, ↓reduceIte])
 
 /-- A transfer settle (`txoType = 0x21`, `nextTxoType = 0x20`) of a token with a grandparent, the token at input 0. -/
 theorem settle_21 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
@@ -225,12 +242,12 @@ theorem settle_21 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fie
       (by factF), trivial, trivial,
       (by factD)⟩
 
-/-- A split settle (`txoType = 0x23`, `nextTxoType = 0x22`) of a token with a grandparent, the token at input 0, the mode flags fixed. -/
+/-- A split settle (`txoType = 0x23`, `nextTxoType = 0x22`) of a token with a grandparent, the token at input 0, both split flags in all four cases. -/
 theorem settle_23 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hpre : castToBool a.pre = true) (hvar : List.take 1 (List.drop 104 a.pre) = [0xfd])
     (hty : f.ty = [0x23]) (hnty : a.nty = [0x22]) (hpar : ¬ decode f.parent = 0) (hgp : ¬ decode f.gp = 0)
-    (hidx : decode a.inIdx = 0) (hi2 : decode a.i2 = 0) (hpk1 : decode a.pkh1 = 0)
+    (hidx : decode a.inIdx = 0) 
     (h : run Eval.opExec env (SimpleMulti.suffix ++ k) t (St (f.stack ++ (a.stack ++ S)) A m C kk cs) = r)
     (hr : r.IsOk) : EnforcedSettle env f a S cs ∧ Ends env a k t r C cs := by
   obtain ⟨hguard, m', k', h⟩ := prologue he hact hpre h hr
@@ -241,23 +258,25 @@ theorem settle_23 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fie
   replace h := pushTx_shape he (by simp [hact]) h hr
   obtain ⟨_, _, h⟩ := h
   simp only [stack38, guardFlag, hasGpFlag, SimpleMulti.c423, SimpleMulti.c441_if, SimpleMulti.c442, SimpleMulti.c446_else, SimpleMulti.c447, SimpleMulti.c451_if, SimpleMulti.c452, SimpleMulti.c456_else, SimpleMulti.c457, SimpleMulti.c461_if, SimpleMulti.c462, SimpleMulti.c466_else, SimpleMulti.c467, SimpleMulti.c470_endif, SimpleMulti.c471_endif, SimpleMulti.c472_endif, SimpleMulti.c473, SimpleMulti.c528_parityCheck, SimpleMulti.c557, SimpleMulti.c610_boundCheck27, SimpleMulti.c621_boundCheck2d, SimpleMulti.c632, SimpleMulti.c671_if, SimpleMulti.c672_mergeGuard, SimpleMulti.c683_endif, SimpleMulti.c684, SimpleMulti.c686_if, SimpleMulti.c687_splitGuard, SimpleMulti.c697_endif, SimpleMulti.c698, SimpleMulti.c700_notif, SimpleMulti.c701, SimpleMulti.c718_if, SimpleMulti.c719, SimpleMulti.c729_else, SimpleMulti.c730, SimpleMulti.c731_endif, SimpleMulti.c732_else, SimpleMulti.c733, SimpleMulti.c735_endif, SimpleMulti.c736, SimpleMulti.c741_if, SimpleMulti.c742, SimpleMulti.c748_else, SimpleMulti.c749, SimpleMulti.c754_if, SimpleMulti.c755, SimpleMulti.c771_if, SimpleMulti.c772, SimpleMulti.c773_endif, SimpleMulti.c774, SimpleMulti.c775_else, SimpleMulti.c776, SimpleMulti.c778_if, SimpleMulti.c779, SimpleMulti.c781_mergeSettle, SimpleMulti.c925, SimpleMulti.c929_else, SimpleMulti.c930, SimpleMulti.c932_if, SimpleMulti.c933, SimpleMulti.c935_splitSettle, SimpleMulti.c1078, SimpleMulti.c1082_endif, SimpleMulti.c1083_endif, SimpleMulti.c1084_endif, SimpleMulti.c1085_endif, SimpleMulti.c1086, SimpleMulti.c1088_if, SimpleMulti.c1089, SimpleMulti.c1102_else, SimpleMulti.c1103, SimpleMulti.c1111_if, SimpleMulti.c1112, SimpleMulti.c1120_else, SimpleMulti.c1121, SimpleMulti.c1123_if, SimpleMulti.c1124, SimpleMulti.c1141_else, SimpleMulti.c1142, SimpleMulti.c1144_if, SimpleMulti.c1145, SimpleMulti.c1149_notif, SimpleMulti.c1150, SimpleMulti.c1153_else, SimpleMulti.c1154, SimpleMulti.c1160_endif, SimpleMulti.c1161, SimpleMulti.c1171_endif, SimpleMulti.c1172_endif, SimpleMulti.c1173_endif, SimpleMulti.c1174_endif, SimpleMulti.c1175, SimpleMulti.c1190_if, SimpleMulti.c1191, SimpleMulti.c1194_else, SimpleMulti.c1195, SimpleMulti.c1197_if, SimpleMulti.c1198, SimpleMulti.c1202_notif, SimpleMulti.c1203, SimpleMulti.c1210_else, SimpleMulti.c1211, SimpleMulti.c1215_endif, SimpleMulti.c1216_endif, SimpleMulti.c1217_endif, SimpleMulti.c1218, SimpleMulti.c1232_if, SimpleMulti.c1233, SimpleMulti.c1251_else, SimpleMulti.c1252, SimpleMulti.c1256_notif, SimpleMulti.c1257, SimpleMulti.c1260_else, SimpleMulti.c1261, SimpleMulti.c1264_endif, SimpleMulti.c1265, SimpleMulti.c1277_endif, SimpleMulti.c1278, SimpleMulti.c1299_if, SimpleMulti.c1300, SimpleMulti.c1308_notif, SimpleMulti.c1309, SimpleMulti.c1311_else, SimpleMulti.c1312, SimpleMulti.c1314_endif, SimpleMulti.c1315, SimpleMulti.c1336_notif, SimpleMulti.c1337, SimpleMulti.c1340_else, SimpleMulti.c1341, SimpleMulti.c1344_endif, SimpleMulti.c1345, SimpleMulti.c1378_if, SimpleMulti.c1379, SimpleMulti.c1380_endif, SimpleMulti.c1381, SimpleMulti.c1382_endif, SimpleMulti.c1383, SimpleMulti.c1387_notif, SimpleMulti.c1388, SimpleMulti.c1389_else, SimpleMulti.c1390, SimpleMulti.c1391_endif, SimpleMulti.c1392, SimpleMulti.c1406_if, SimpleMulti.c1407, SimpleMulti.c1414_if, SimpleMulti.c1415, SimpleMulti.c1416_endif, SimpleMulti.c1417, SimpleMulti.c1418_endif, SimpleMulti.c1419, SimpleMulti.c1425_if, SimpleMulti.c3897, SimpleMulti.c3898_else, SimpleMulti.c4652_endif, SimpleMulti.c4653, SimpleMulti.c4680_else, SimpleMulti.c4681, SimpleMulti.c4696_endif, SimpleMulti.c4697, List.cons_append, List.nil_append] at h
-  sym_all h hvar hty hnty hpar hgp hidx hi2 hpk1
-  settleNormF h
-  refine ⟨⟨hpt, (by factF), (by factF), (by factF), (by factF), (by factF), (by factF), (by factF),
-    ?bcl, ?srem, ?msum, ?outs, ?reb, fun hG => hguard hG, (by factF), (by factF), (by factF), (by factF)⟩, _, _, _, _, h⟩
-  case bcl => exact fun _ => (by factF)
-  case srem => exact fun _ => (by factF)
-  case msum => exact fun h0 => absurd (hnty.symm.trans h0) (by decide)
-  case outs =>
-    settleSel hnty
-    settleNorm
-    factF
-  case reb =>
-    settleSel hnty
-    settleNorm
-    refine ⟨_, _, _, _, _, _, _, _, _, _, _, [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
-      (by factF), trivial, trivial,
-      (by factD)⟩
+  by_cases hpk : decode a.pkh1 = 0 <;> by_cases hi : decode a.i2 = 0
+  all_goals
+    sym_all h hvar hty hnty hpar hgp hidx  hpk hi
+    settleNormF h
+    refine ⟨⟨hpt, (by factF), (by factF), (by factF), (by factF), (by factF), (by factF), (by factF),
+      ?bcl, ?srem, ?msum, ?outs, ?reb, fun hG => hguard hG, (by factF), (by factF), (by factF), (by factF)⟩, _, _, _, _, h⟩
+    case bcl => exact fun _ => (by factF)
+    case srem => exact fun _ => (by factF)
+    case msum => exact fun h0 => absurd (hnty.symm.trans h0) (by decide)
+    case outs =>
+      settleSel hnty hpk hi
+      settleNorm
+      factF
+    case reb =>
+      settleSel hnty
+      settleNorm
+      refine ⟨_, _, _, _, _, _, _, _, _, _, _, [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
+        (by factF), trivial, trivial,
+        (by factD)⟩
 
 /-- A merge settle (`txoType = 0x25`, `nextTxoType = 0x24`) of a token with a grandparent, the token at input 0, the mode flags fixed. -/
 theorem settle_25 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
@@ -351,12 +370,12 @@ theorem settle0_21 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fi
     settleNorm
     factD
 
-/-- A split settle (`txoType = 0x23`, `nextTxoType = 0x22`) of a token without a grandparent, the token at input 0, the mode flags fixed. -/
+/-- A split settle (`txoType = 0x23`, `nextTxoType = 0x22`) of a token without a grandparent, the token at input 0, both split flags in all four cases. -/
 theorem settle0_23 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hpre : castToBool a.pre = true) (hvar : List.take 1 (List.drop 104 a.pre) = [0xfd])
     (hty : f.ty = [0x23]) (hnty : a.nty = [0x22]) (hpar : ¬ decode f.parent = 0) (hgp0 : decode f.gp = 0)
-    (hidx : decode a.inIdx = 0) (hi2 : decode a.i2 = 0) (hpk1 : decode a.pkh1 = 0)
+    (hidx : decode a.inIdx = 0) 
     (h : run Eval.opExec env (SimpleMulti.suffix ++ k) t (St (f.stack ++ (a.stack ++ S)) A m C kk cs) = r)
     (hr : r.IsOk) : EnforcedSettle0 env f a cs ∧ Ends env a k t r C cs := by
   obtain ⟨hguard, m', k', h⟩ := prologue he hact hpre h hr
@@ -367,22 +386,24 @@ theorem settle0_23 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fi
   replace h := pushTx_shape he (by simp [hact]) h hr
   obtain ⟨_, _, h⟩ := h
   simp only [stack38, guardFlag, hasGpFlag, SimpleMulti.c423, SimpleMulti.c441_if, SimpleMulti.c442, SimpleMulti.c446_else, SimpleMulti.c447, SimpleMulti.c451_if, SimpleMulti.c452, SimpleMulti.c456_else, SimpleMulti.c457, SimpleMulti.c461_if, SimpleMulti.c462, SimpleMulti.c466_else, SimpleMulti.c467, SimpleMulti.c470_endif, SimpleMulti.c471_endif, SimpleMulti.c472_endif, SimpleMulti.c473, SimpleMulti.c528_parityCheck, SimpleMulti.c557, SimpleMulti.c610_boundCheck27, SimpleMulti.c621_boundCheck2d, SimpleMulti.c632, SimpleMulti.c671_if, SimpleMulti.c672_mergeGuard, SimpleMulti.c683_endif, SimpleMulti.c684, SimpleMulti.c686_if, SimpleMulti.c687_splitGuard, SimpleMulti.c697_endif, SimpleMulti.c698, SimpleMulti.c700_notif, SimpleMulti.c701, SimpleMulti.c718_if, SimpleMulti.c719, SimpleMulti.c729_else, SimpleMulti.c730, SimpleMulti.c731_endif, SimpleMulti.c732_else, SimpleMulti.c733, SimpleMulti.c735_endif, SimpleMulti.c736, SimpleMulti.c741_if, SimpleMulti.c742, SimpleMulti.c748_else, SimpleMulti.c749, SimpleMulti.c754_if, SimpleMulti.c755, SimpleMulti.c771_if, SimpleMulti.c772, SimpleMulti.c773_endif, SimpleMulti.c774, SimpleMulti.c775_else, SimpleMulti.c776, SimpleMulti.c778_if, SimpleMulti.c779, SimpleMulti.c781_mergeSettle, SimpleMulti.c925, SimpleMulti.c929_else, SimpleMulti.c930, SimpleMulti.c932_if, SimpleMulti.c933, SimpleMulti.c935_splitSettle, SimpleMulti.c1078, SimpleMulti.c1082_endif, SimpleMulti.c1083_endif, SimpleMulti.c1084_endif, SimpleMulti.c1085_endif, SimpleMulti.c1086, SimpleMulti.c1088_if, SimpleMulti.c1089, SimpleMulti.c1102_else, SimpleMulti.c1103, SimpleMulti.c1111_if, SimpleMulti.c1112, SimpleMulti.c1120_else, SimpleMulti.c1121, SimpleMulti.c1123_if, SimpleMulti.c1124, SimpleMulti.c1141_else, SimpleMulti.c1142, SimpleMulti.c1144_if, SimpleMulti.c1145, SimpleMulti.c1149_notif, SimpleMulti.c1150, SimpleMulti.c1153_else, SimpleMulti.c1154, SimpleMulti.c1160_endif, SimpleMulti.c1161, SimpleMulti.c1171_endif, SimpleMulti.c1172_endif, SimpleMulti.c1173_endif, SimpleMulti.c1174_endif, SimpleMulti.c1175, SimpleMulti.c1190_if, SimpleMulti.c1191, SimpleMulti.c1194_else, SimpleMulti.c1195, SimpleMulti.c1197_if, SimpleMulti.c1198, SimpleMulti.c1202_notif, SimpleMulti.c1203, SimpleMulti.c1210_else, SimpleMulti.c1211, SimpleMulti.c1215_endif, SimpleMulti.c1216_endif, SimpleMulti.c1217_endif, SimpleMulti.c1218, SimpleMulti.c1232_if, SimpleMulti.c1233, SimpleMulti.c1251_else, SimpleMulti.c1252, SimpleMulti.c1256_notif, SimpleMulti.c1257, SimpleMulti.c1260_else, SimpleMulti.c1261, SimpleMulti.c1264_endif, SimpleMulti.c1265, SimpleMulti.c1277_endif, SimpleMulti.c1278, SimpleMulti.c1299_if, SimpleMulti.c1300, SimpleMulti.c1308_notif, SimpleMulti.c1309, SimpleMulti.c1311_else, SimpleMulti.c1312, SimpleMulti.c1314_endif, SimpleMulti.c1315, SimpleMulti.c1336_notif, SimpleMulti.c1337, SimpleMulti.c1340_else, SimpleMulti.c1341, SimpleMulti.c1344_endif, SimpleMulti.c1345, SimpleMulti.c1378_if, SimpleMulti.c1379, SimpleMulti.c1380_endif, SimpleMulti.c1381, SimpleMulti.c1382_endif, SimpleMulti.c1383, SimpleMulti.c1387_notif, SimpleMulti.c1388, SimpleMulti.c1389_else, SimpleMulti.c1390, SimpleMulti.c1391_endif, SimpleMulti.c1392, SimpleMulti.c1406_if, SimpleMulti.c1407, SimpleMulti.c1414_if, SimpleMulti.c1415, SimpleMulti.c1416_endif, SimpleMulti.c1417, SimpleMulti.c1418_endif, SimpleMulti.c1419, SimpleMulti.c1425_if, SimpleMulti.c3897, SimpleMulti.c3898_else, SimpleMulti.c4652_endif, SimpleMulti.c4653, SimpleMulti.c4680_else, SimpleMulti.c4681, SimpleMulti.c4696_endif, SimpleMulti.c4697, List.cons_append, List.nil_append] at h
-  sym_all h hvar hty hnty hpar hgp0 hidx hi2 hpk1
-  settleNormF0 h
-  refine ⟨⟨hpt, (by factF), (by factF), (by factF), (by factF), (by factF), (by factF), (by factF),
-    ?bcl, ?srem, ?msum, ?outs, ?null, ?prev, fun hG => hguard hG, (by factF), (by factF), (by factF), (by factF)⟩,
-    _, _, _, _, h⟩
-  case bcl => exact fun _ => (by factF)
-  case srem => exact fun _ => (by factF)
-  case msum => exact fun h0 => absurd (hnty.symm.trans h0) (by decide)
-  case outs =>
-    settleSel hnty
-    settleNorm
-    factF
-  case null => factF
-  case prev =>
-    settleNorm
-    factD
+  by_cases hpk : decode a.pkh1 = 0 <;> by_cases hi : decode a.i2 = 0
+  all_goals
+    sym_all h hvar hty hnty hpar hgp0 hidx  hpk hi
+    settleNormF0 h
+    refine ⟨⟨hpt, (by factF), (by factF), (by factF), (by factF), (by factF), (by factF), (by factF),
+      ?bcl, ?srem, ?msum, ?outs, ?null, ?prev, fun hG => hguard hG, (by factF), (by factF), (by factF), (by factF)⟩,
+      _, _, _, _, h⟩
+    case bcl => exact fun _ => (by factF)
+    case srem => exact fun _ => (by factF)
+    case msum => exact fun h0 => absurd (hnty.symm.trans h0) (by decide)
+    case outs =>
+      settleSel hnty hpk hi
+      settleNorm
+      factF
+    case null => factF
+    case prev =>
+      settleNorm
+      factD
 
 /-- A merge settle (`txoType = 0x25`, `nextTxoType = 0x24`) of a token without a grandparent, the token at input 0. -/
 theorem settle0_25 {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
