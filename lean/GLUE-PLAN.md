@@ -330,7 +330,9 @@ vectors decide whether the finding holds by execution; the route is chosen then 
 2. Does the token input have to be input 0? The hashPrevouts weld (`outpoint ++ [proof] ++ fundOutpoint`) suggests
    the spent outpoint is first for the NFT family; `fundOutpoint` is itself an unparsed blob, so `tx.inputs` is
    `[spent, (proof)] ++ parse fundOutpoint`. The refinement should derive `i = 0` where the bytes force it rather
-   than assume it.
+   than assume it. For the fungible family (M5) the bytes do force it: `inputIndexN` is only an argument, and
+   `hashPrevouts` begins with this outpoint on every path except a merge commit's second token input, where it
+   begins with the other token's outpoint `i2` and this one follows (input 1).
 3. The split settle's flags (§Progress, M5): with `pkh1` or `i2` non-empty the bytes accept a split settle whose
    two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
    whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
@@ -550,8 +552,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   non-zero, every run reaches the end and the only change is the new token's index byte, 1 instead of 0
   (`inIdxByte`), in the outputs and in the gate stack the regions read; the split's second token keeps the byte
   `i2` selects. The six settle theorems now case on the argument as well, so they take no hypothesis on any
-  unlock argument; the settle file builds in about twenty minutes. Next for M5: the commit paths' input-index
-  cases, the genesis variants, the melt, `simpleMulti_sound`, and the refinement.
+  unlock argument; the settle file builds in about twenty minutes.
+- **M5, the commits' input-index cases:** the transfer and split commits with the argument non-zero change only the
+  new token's index byte, now `inIdxByte` in `commitLock` (moved to `Enforced.lean`). The merge commit is different:
+  with the argument non-zero the run is the merge's second token input, which builds the merged token from the
+  interop arguments (`mergeLock1`: the other token's balance `nbc` and its own as `balanceCommit`, the other's owner
+  `i3`, its own parent as `ogp`, the other's outpoint `i2` as parent and its parent `i1` as grandparent, index 0) and
+  whose `hashPrevouts` begins with the other token's outpoint (`prevoutsOf`: `i2 ++ outpoint`). With honest interop
+  arguments both inputs pin the same merged output; with dishonest ones they must still agree on one `hashOutputs`.
+  The nine commit theorems case on the argument; none takes an unlock-argument hypothesis. Next for M5: the genesis
+  variants, the melt, `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
