@@ -545,7 +545,13 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   so `hashPrevouts` runs over this outpoint, the other lineage's rebuilt outpoint, then this lineage's, then the
   funding outpoint (`gpOutB_2 ++ gpOutA`), where case 1 has `gpOutA ++ gpOutB_1`. All six settle theorems now take
   no flag or index hypotheses beyond the path's types, the grandparent's presence and the token's input index.
-  Next for M5: the token at input 1, the genesis variants, the melt, `simpleMulti_sound`, and the refinement.
+- **M5, the input-index argument:** `inputIndexN` is an unlock argument, not the input's position; `hashPrevouts`
+  beginning with this outpoint is what places the token at input 0. Probing the settles with the argument
+  non-zero, every run reaches the end and the only change is the new token's index byte, 1 instead of 0
+  (`inIdxByte`), in the outputs and in the gate stack the regions read; the split's second token keeps the byte
+  `i2` selects. The six settle theorems now case on the argument as well, so they take no hypothesis on any
+  unlock argument; the settle file builds in about twenty minutes. Next for M5: the commit paths' input-index
+  cases, the genesis variants, the melt, `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
