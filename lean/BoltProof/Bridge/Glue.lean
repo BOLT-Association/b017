@@ -38,6 +38,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.Weld
 import BoltProof.Bridge.Glue.SimpleMulti.Facts
 import BoltProof.Bridge.Glue.SimpleMulti.Residual
 import BoltProof.Bridge.Glue.SimpleMulti.Outs
+import BoltProof.Bridge.Glue.SimpleMulti.Refine
 
 /-!
 # BoltProof.Bridge.Glue

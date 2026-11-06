@@ -620,8 +620,20 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   clause-level facts (`accepts_of_facts`), deriving the type, mode and issuer clauses. Two lock-data conditions the
   bytes do not check surface as hypotheses: a genesis token is settled-typed (`decode parent = 0 → settledTy ty`,
   without which the issuer could settle a genesis-minted merge commit, which `l5_no_merge_at_genesis` forbids),
-  and a split's second recipient is not the zero hash (the model reads the zero hash as no commitment). Next: the
-  residual, the per-path discharge of the clause facts, and `simpleMulti_refines`.
+  and a split's second recipient is not the zero hash (the model reads the zero hash as no commitment).
+- **M5, `simpleMulti_refines_basic` (the refinement's first stage):** a spend the shipped lock accepts under the
+  post-Chronicle rules is one `Accepts .fungible` admits, read through `spendOf`, for the transfer and split commits,
+  the transfer and split settles of a token without a grandparent, and the melt (`Refine.lean`). `Residual.lean`
+  states the residual over the fungible `OP_PUSH_TX` block and abstraction (`PushTxSound`, `NoSecondPreimage` of
+  the preimage, the outputs and the outpoints, `Agrees`, the scope assumptions `HonestOutputs`, `HonestMelt` and the
+  split settle's honest flags); `pushTxReached` gets the preimage weighed before the paths run (the prologue alone
+  reaches the block), which is what discharges the `fd` varint `simpleMulti_sound` assumes (`preimage_varint`; the
+  soundness theorem now asks for it only with a preimage). `types_of_run` gives the parity relations from the
+  refused pairs. `Outs.lean` turns the outputs equation into `l2_outs` per path. The lock-data conditions the first
+  stage asks of the spent token, which every covenant-produced token meets: a genesis token is settled-typed, a
+  non-merge token carries no other lineage, the balance is in range (a melt checks none), a split's second recipient
+  is not the zero hash. Next: the settles with a grandparent (the rebuilds, the balance anchor, `GpReal`), then the
+  merge commit's two-input argument and the merge settle, then the regression guards.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,

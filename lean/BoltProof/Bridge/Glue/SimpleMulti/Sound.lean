@@ -40,90 +40,139 @@ def SpendEnforced (env : Env) (f : Fields) (a : Args) (S : List Bytes) (cs : Byt
   else EnforcedMelt env f a
 
 /-- **The glue theorem for `SimpleMultiBOLT`.** From the stack the eleven lock pushes and the unlocking script
-leave, in an active arm, with the scriptCode's length a `fd` varint, a successful run of the suffix enforces
+leave, in an active arm, with the scriptCode's length a `fd` varint when there is a preimage, a successful run of the suffix enforces
 `SpendEnforced` and runs on with the owner's signature check on top. -/
 theorem simpleMulti_sound {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
-    (hty : SmbType f.ty) (hnty : SmbType a.nty) (hvar : List.take 1 (List.drop 104 a.pre) = [0xfd])
+    (hty : SmbType f.ty) (hnty : SmbType a.nty)
+    (hvar : castToBool a.pre = true → List.take 1 (List.drop 104 a.pre) = [0xfd])
     (h : run Eval.opExec env (SimpleMulti.suffix ++ k) t (St (f.stack ++ (a.stack ++ S)) A m C kk cs) = r)
     (hr : r.IsOk) : SpendEnforced env f a S cs ∧ Ends env a k t r C cs := by
   by_cases hpre : castToBool a.pre = true
   · rcases hty with hty|hty|hty|hty|hty|hty <;> rcases hnty with hnty|hnty|hnty|hnty|hnty|hnty
-    · exact (refuse_20_20 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_20_21 he hact hpre hvar hty hnty h hr
+    · exact (refuse_20_20 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_20_21 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_20_22 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_20_23 he hact hpre hvar hty hnty h hr
+    · exact (refuse_20_22 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_20_23 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_20_24 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_20_25 he hact hpre hvar hty hnty h hr
+    · exact (refuse_20_24 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_20_25 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
     · by_cases hgp : decode f.gp = 0
-      · have key := settle0_21_20 he hact hpre hvar hty hnty hgp h hr
+      · have key := settle0_21_20 he hact hpre (hvar hpre) hty hnty hgp h hr
         simp (config := { decide := true }) only [SpendEnforced, hpre, hty, hgp, ↓reduceIte]
         exact key
-      · have key := settle_21_20 he hact hpre hvar hty hnty hgp h hr
+      · have key := settle_21_20 he hact hpre (hvar hpre) hty hnty hgp h hr
         simp (config := { decide := true }) only [SpendEnforced, hpre, hty, hgp, ↓reduceIte]
         exact key
-    · exact (refuse_21_21 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_21_22 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_21_23 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_21_24 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_21_25 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_22_20 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_22_21 he hact hpre hvar hty hnty h hr
+    · exact (refuse_21_21 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_21_22 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_21_23 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_21_24 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_21_25 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_22_20 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_22_21 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_22_22 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_22_23 he hact hpre hvar hty hnty h hr
+    · exact (refuse_22_22 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_22_23 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_22_24 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_22_25 he hact hpre hvar hty hnty h hr
+    · exact (refuse_22_24 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_22_25 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_23_20 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_23_21 he hact hpre hvar hty hnty h hr).elim
+    · exact (refuse_23_20 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_23_21 he hact hpre (hvar hpre) hty hnty h hr).elim
     · by_cases hgp : decode f.gp = 0
-      · have key := settle0_23_22 he hact hpre hvar hty hnty hgp h hr
+      · have key := settle0_23_22 he hact hpre (hvar hpre) hty hnty hgp h hr
         simp (config := { decide := true }) only [SpendEnforced, hpre, hty, hgp, ↓reduceIte]
         exact key
-      · have key := settle_23_22 he hact hpre hvar hty hnty hgp h hr
+      · have key := settle_23_22 he hact hpre (hvar hpre) hty hnty hgp h hr
         simp (config := { decide := true }) only [SpendEnforced, hpre, hty, hgp, ↓reduceIte]
         exact key
-    · exact (refuse_23_23 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_23_24 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_23_25 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_24_20 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_24_21 he hact hpre hvar hty hnty h hr
+    · exact (refuse_23_23 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_23_24 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_23_25 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_24_20 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_24_21 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_24_22 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_24_23 he hact hpre hvar hty hnty h hr
+    · exact (refuse_24_22 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_24_23 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_24_24 he hact hpre hvar hty hnty h hr).elim
-    · have key := commit_24_25 he hact hpre hvar hty hnty h hr
+    · exact (refuse_24_24 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · have key := commit_24_25 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]
       exact key
-    · exact (refuse_25_20 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_25_21 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_25_22 he hact hpre hvar hty hnty h hr).elim
-    · exact (refuse_25_23 he hact hpre hvar hty hnty h hr).elim
+    · exact (refuse_25_20 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_25_21 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_25_22 he hact hpre (hvar hpre) hty hnty h hr).elim
+    · exact (refuse_25_23 he hact hpre (hvar hpre) hty hnty h hr).elim
     · by_cases hgp : decode f.gp = 0
-      · have key := settle0_25_24 he hact hpre hvar hty hnty hgp h hr
+      · have key := settle0_25_24 he hact hpre (hvar hpre) hty hnty hgp h hr
         simp (config := { decide := true }) only [SpendEnforced, hpre, hty, hgp, ↓reduceIte]
         exact key
-      · have key := settle_25_24 he hact hpre hvar hty hnty hgp h hr
+      · have key := settle_25_24 he hact hpre (hvar hpre) hty hnty hgp h hr
         simp (config := { decide := true }) only [SpendEnforced, hpre, hty, hgp, ↓reduceIte]
         exact key
-    · exact (refuse_25_25 he hact hpre hvar hty hnty h hr).elim
+    · exact (refuse_25_25 he hact hpre (hvar hpre) hty hnty h hr).elim
   · have hpre' : castToBool a.pre = false := by simpa using hpre
     have key := melt he hact hpre' h hr
     simp only [SpendEnforced, hpre', Bool.false_eq_true, ↓reduceIte]
     exact key
+
+/-- **The type relations a successful run leaves.** A settle-typed (even) token is followed by a commit type and a
+commit-typed (odd) token by its own settle type: every other pair is refused (`Refute.lean`). -/
+theorem types_of_run {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
+    {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
+    (hty : SmbType f.ty) (hnty : SmbType a.nty) (hpre : castToBool a.pre = true)
+    (hvar : List.take 1 (List.drop 104 a.pre) = [0xfd])
+    (h : run Eval.opExec env (SimpleMulti.suffix ++ k) t (St (f.stack ++ (a.stack ++ S)) A m C kk cs) = r)
+    (hr : r.IsOk) :
+    ((f.ty = [0x20] ∨ f.ty = [0x22] ∨ f.ty = [0x24]) → ¬ (a.nty = [0x20] ∨ a.nty = [0x22] ∨ a.nty = [0x24])) ∧
+      (¬ (f.ty = [0x20] ∨ f.ty = [0x22] ∨ f.ty = [0x24]) → f.ty.headD 0 = a.nty.headD 0 + 1) := by
+  rcases hty with hty|hty|hty|hty|hty|hty <;> rcases hnty with hnty|hnty|hnty|hnty|hnty|hnty
+  · exact (refuse_20_20 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_20_22 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_20_24 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · simp [hty, hnty]
+  · exact (refuse_21_21 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_21_22 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_21_23 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_21_24 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_21_25 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_22_20 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_22_22 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_22_24 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_23_20 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_23_21 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_23_23 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_23_24 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_23_25 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_24_20 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_24_22 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_24_24 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_25_20 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_25_21 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_25_22 he hact hpre hvar hty hnty h hr).elim
+  · exact (refuse_25_23 he hact hpre hvar hty hnty h hr).elim
+  · simp [hty, hnty]
+  · exact (refuse_25_25 he hact hpre hvar hty hnty h hr).elim
 
 end BoltProof.Glue.SimpleMulti

@@ -20,7 +20,7 @@ namespace BoltProof.Glue.SimpleMulti
 open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Gadget BsvScript.Tx
   BsvScript.Sighash BsvScript.TxContext
 open BoltProof.Glue.Serial
-open BoltProof.Glue.MinSimple (NoSecondPreimage Agrees reached_of_append)
+open BoltProof.Glue.MinSimple (NoSecondPreimage reached_of_append)
 open BoltProof.Bridge.Generated
 
 /-- A preimage the fungible lock's `OP_PUSH_TX` block accepts, under this spend's context, hashes to this spend's
@@ -30,6 +30,11 @@ def PushTxSound (tx : Tx) (i amt : Nat) (lock : Bytes) : Prop :=
     C.isActive = true →
     run Eval.opExec (phase2Env (txContext tx i amt)) pushTxBlock tail (St (pre :: X) A m C kk lock) = r →
     r.IsOk → Hash.hash256 pre = sighashBIP143 lock tx i ⟨0x41⟩ amt
+
+/-- The primitives agree with this spend's cryptography, over the fungible abstraction of the transaction. -/
+structure Agrees (P : Prims Bytes) (tx : Tx) (i amt : Nat) (lock : Bytes) : Prop where
+  h160 : ∀ pk, P.h160 pk = Hash.hash160 pk
+  verify : ∀ pk sig, P.verify pk (P.sighash (absTx tx) i) sig = Ops.Crypto.txCheckSig tx i amt sig pk lock true
 
 /-- The outputs after the first `n` carry no fungible token. -/
 def HonestOutputs (tx : Tx) (n : Nat) : Prop := ∀ o ∈ tx.outputs.drop n, (outOf o).isToken = false
