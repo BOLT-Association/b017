@@ -24,8 +24,9 @@ boolean differently.
 
 ### NFT family: `MinSimpleBOLT`, `AuthBOLT`, `SerialBOLT`
 
-The first opcodes of `LOCK_SCRIPT_SUFFIX` in `src/tokens/templates/MinSimple.sx.template.ts` (and,
-byte for byte, `AuthBolt.sx.template.ts`):
+The first 25 opcodes of `LOCK_SCRIPT_SUFFIX` in `src/tokens/templates/MinSimple.sx.template.ts`.
+`AuthBolt.sx.template.ts` shares exactly these 25, then diverges to check its `authOrMiscData` length
+(`29 OP_PICK OP_SIZE OP_NIP 4c OP_LESSTHAN OP_VERIFY`); the two suffixes are not otherwise identical.
 
 ```
 OP_2 OP_PICK OP_BIN2NUM OP_NOT                      isGenesis      = (parentOutpoint == 0)
