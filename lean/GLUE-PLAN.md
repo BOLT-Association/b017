@@ -516,9 +516,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   facts are equations in `Bytes` where `simp` rebuilds the goal's in `List Nat`. Both are invisible in printed goals
   and defeat reducible matching; `factD` closes such an equation by the one hypothesis with the same right-hand side,
   matched at default transparency. The generators (`gen_sm.py`, `gen_region.py`, `gen_settle.py`) and the probe
-  harness still live outside the tree; M7 adds them under `lean/scripts/`. Next for M5: the no-grandparent settles
-  (through the null arm), the other values of the mode flags and the output index, the token at input 1, the
-  genesis variants, the melt, `simpleMulti_sound`, and the refinement.
+  harness still live outside the tree; M7 adds them under `lean/scripts/`.
+- **M5, sixth step** (the settles without a grandparent): with `gp = 0` the gate at 1419 sends the run through
+  the null arm (3899–4651), so `EnforcedSettle0` has the 150 pieces empty and `hashPrevouts` over this outpoint
+  and the funding outpoint, and otherwise the same clauses as `EnforcedSettle` (the settle outputs are the same
+  terms: the probes' output equations agree character for character). `settle0_21/23/25` are runs of about 625
+  instructions with one or two block steps. The merge settle needs no output-index hypothesis without a
+  grandparent (the index only selects the second rebuild's case); the split settle still branches on `i2` and
+  `pkh1` (its run stops at 512 without them), so those values stay fixed. Next for M5: the other values of the
+  split flags and the merge's output index, the token at input 1, the genesis variants, the melt,
+  `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
