@@ -373,7 +373,8 @@ private def mkActivity (h : Ident) (active : Bool) (extra : Array Ident) : Tacti
 private def decideCond (h : Ident) (extra : Array Ident) : TacticM Unit := withMainContext do
   let extras ← extra.mapM fun i => `(Lean.Parser.Tactic.simpLemma| $i:ident)
   evalTactic (← `(tactic| simp (config := { decide := true, failIfUnchanged := false, maxDischargeDepth := 6 }) only
-    [castToBool_single, castToBool_one, castToBool_nil, castToBool_encode_ite, castToBool_encode_decode, castToBool_append_of_right, castToBool_cons_of_ne, encode_zero, encode_one, decode_nil, decode_lit2, Nat.reduceLT, Nat.reduceMul, Nat.reduceAdd, Nat.cast_ofNat, bne_iff_ne, ne_eq, decide_eq_true_eq, decide_true, decide_false, Int.reduceTMod, Int.reduceAdd, Int.reduceSub, Int.reduceEq, Int.reduceLT, Int.reduceLE, Bool.and_true, Bool.and_false,
+    [castToBool_single, castToBool_one, castToBool_nil, castToBool_encode_ite, castToBool_encode_decode, castToBool_append_of_right, castToBool_cons_of_ne,
+     item, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.getD_some, Option.getD_none, encode_zero, encode_one, decode_nil, decode_lit2, Nat.reduceLT, Nat.reduceMul, Nat.reduceAdd, Nat.cast_ofNat, bne_iff_ne, ne_eq, decide_eq_true_eq, decide_true, decide_false, Int.reduceTMod, Int.reduceAdd, Int.reduceSub, Int.reduceEq, Int.reduceLT, Int.reduceLE, Bool.and_true, Bool.and_false,
      Bool.true_and, Bool.false_and, Bool.or_true, Bool.or_false, Bool.true_or, Bool.false_or, Bool.not_true,
      Bool.not_false, ↓reduceIte, not_not, not_false_eq_true, not_true_eq_false, and_true, and_false, true_and,
      false_and, or_true, or_false, true_or, false_or, $extras,*] at $h:ident))
@@ -429,6 +430,9 @@ elab "sym_all" h:ident hs:(colGt ident)* : tactic => do
             pure false
         if ok then
           blocks := blocks + 1
+          -- a block's result may be a conditional on the stack's data (the second rebuild's result
+          -- turns on the spent lock's output index): decide it under the hypotheses
+          decideCond h extras
           continue
         else break
     if op == 0x63 || op == 0x64 then

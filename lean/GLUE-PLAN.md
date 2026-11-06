@@ -491,7 +491,12 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   through a reducible accessor (`item T n`), since a nine-kilobyte statement that spells `T[n]?.getD []` a hundred
   times spends twenty seconds in instance resolution; with it the whole region file compiles in two minutes. Two
   generator defects found on the way: the branches of a many-case proof must not share named holes, and each case's
-  `OP_NUM2BIN` widths need their own names, or the later binders shadow the earlier.
+  `OP_NUM2BIN` widths need their own names, or the later binders shadow the earlier. With the regions folded a
+  commit path is 628 instructions and one block step, and a file of three such theorems builds in about 100 s;
+  the nine commit paths are in the tree (`Paths/Commit{Transfer,Split,Merge}.lean`, pushed with `Enforced.lean` and
+  `Regions.lean`). Next: the settle paths on the same design (their prefix stops at the gate, the regions' facts
+  supply the rebuild clause), the no-grandparent settles, the genesis and input-1 variants, the melt,
+  `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
