@@ -592,6 +592,20 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   A lesson for the remaining families: the driver records `OP_EQUALVERIFY` and `OP_VERIFY` facts without checking
   them, so a path theorem can be vacuous; every probe is scanned for false literal facts, and the soundness theorem's
   case split shows each path's hypotheses are the ones a real run meets. Next for M5: the refinement to `Accepts`.
+- **M5, the refinement (design and first step):** `SimpleMulti/Lock.lean` is the lock as eleven pushes and the
+  suffix (`lockScript`, 246 bytes of pushes), `lock_pushes` (a run of the lock is a run of the suffix from
+  `Fields.stack`), `decodeLock` and `decodeLock_lockScript`. The refinement follows M4's route B, with these fungible
+  specifics. (1) The abstraction reads the balances as script numbers and normalises the zero second commitment the
+  bytes write to the model's `[]` (`Spend.commitToken` and `settleToken` write `[]` where the bytes write twenty
+  zero bytes). (2) A merge commit is one model spend that consumes two tokens, so the theorem is per input: at the
+  primary input `Accepts` holds of `spendOf`; a merge commit's second token input (`inputIndexN` non-zero) builds the
+  merged token from the interop arguments, and the two inputs' agreement on one `hashOutputs` pins those arguments
+  to the other token's real fields, which gives `balanceCommit = other.balance`, `other_settle_typed`,
+  `l_merge_same_issuer` and `other_input` for the primary spend. (3) The residual gains a scope assumption for the
+  split settle's output order (`pkh1` and `i2` empty on a split settle, the split-flag finding above), alongside
+  `HonestOutputs`/`HonestMelt` (the decision for Finding 1). (4) `PushTxSound`, `NoSecondPreimage` (now also of the
+  two rebuilt ancestors) and `GpReal` for both lineages, as for the NFT family. Next: the abstraction (`tokenOf`,
+  `outOf`, `absTx`, `spendOf` with the rebuilt ancestors' bytes), the facts and welds, `simpleMulti_refines`.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
