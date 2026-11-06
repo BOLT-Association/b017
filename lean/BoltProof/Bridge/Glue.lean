@@ -22,6 +22,9 @@ import BoltProof.Bridge.Glue.SimpleMulti.PushTx
 import BoltProof.Bridge.Glue.SimpleMulti.Reaches
 import BoltProof.Bridge.Glue.SimpleMulti.Blocks
 import BoltProof.Bridge.Glue.SimpleMulti.Arms
+import BoltProof.Bridge.Glue.SimpleMulti.Regions
+import BoltProof.Bridge.Glue.SimpleMulti.Enforced
+import BoltProof.Bridge.Glue.SimpleMulti.Paths
 
 /-!
 # BoltProof.Bridge.Glue

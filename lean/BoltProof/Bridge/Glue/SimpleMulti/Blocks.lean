@@ -21,6 +21,11 @@ namespace BoltProof.Glue.SimpleMulti
 open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Gadget
 open BoltProof.Bridge.Generated
 
+/-- The item at depth `n` of a stack, as the region lemmas name the pieces of an abstract stack
+(`T[n]?.getD []`, with its instances resolved once here: the generated statements name hundreds
+of them). -/
+abbrev item (T : List Bytes) (n : Nat) : Bytes := T[n]?.getD []
+
 /-! ## The pad-to-16 loop -/
 
 /-- One iteration: `SIZE 16 LESSTHAN IF 00 CAT ENDIF`. -/

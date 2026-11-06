@@ -454,6 +454,44 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   settle, is what rebuilds the ancestors in this family (the gate at 1419 is "spent type odd and `gp ≠ 0`", so the
   even types are the settled states and the odd ones the commits, the reverse of the NFT family's `0x00`/`0x21`);
   the token's input index (`inputIndexN`) decides the prevouts order at 1149–1416 and is a path hypothesis.
+- **M5, fourth step** (`Enforced` and the commit paths): `SimpleMulti/Enforced.lean` is the fungible family's
+  vocabulary, as `MinSimple/Spec.lean` is the NFT family's: the spent lock's pushes read off the scriptCode in the
+  preimage (`scBalPush`, `scPkhPush`, `scComPush`, `scParentPush`, `scIssuerPush`, `scSuffix`), the new token's lock
+  (`commitLock`, by the next type: `balanceCommit` zero, `nbc` for a split or a merge; `com = pkh1`; `com2` zero or
+  `pkh2`; `ogp` zero or the other lineage's outpoint `i1` for a merge; `settleLock` for a settle), the outputs a spend
+  hashes to (`expectedOuts`: the token output with its `fd` varint and a tagged pay-to-proof output per recipient),
+  the 150 pieces concatenated (`nullCat`), and the structure `Enforced`: the `OP_PUSH_TX` block, version, sighash
+  byte, the one-satoshi value, the four balance bounds, the split and merge guards, `hashOutputs`, the null pieces,
+  `hashPrevouts` over this outpoint and the funding outpoint, the issuer guard, the owner's hash, the signature's
+  sighash byte and the two encodings. The path theorems close by `enforced_normF` (the flags as propositions, the
+  zero widths substituted, the appends right-nested on both sides) and `factF` (reducible matching), exactly as the
+  NFT family's, and `gen_sm.py` generates them: `Paths/Commit{Transfer,Split,Merge}.lean`, the nine commit spends
+  (each settled type into each commit type) with the token at input 0, one run of about 1850 instructions each.
+  Still to probe: the split and merge settles (their runs stop on `pkh1`, reused as a flag, and on the spent lock's
+  `outputIndexN`), the no-grandparent settles, the token at input 1 (`inputIndexN ≠ 0` flips the prevouts), the
+  genesis variants and the melt; the settle spends also need the rebuild clause (the first rebuild's term over `psB`
+  with the arms' widths, as the transfer settle's probe gives it).
+- **M5, the path proofs' size (finding):** a full fungible path theorem (one symbolic run of about 1850
+  instructions on a stack of some 230 explicit items, the 150 pieces among them) elaborates in five to six minutes
+  and peaks at 8 GB of memory, since every step's state is retained in the proof: four such files in parallel
+  exhaust a 16 GB runner (two were killed), and the thirty-odd paths the family needs would not fit the CI budget.
+  The remedy is the arm lemmas' pattern applied to the whole rebuild-or-null conditional (suffix 1425–4652): one
+  block lemma on an abstract stack, keyed by its first chunk (`c1425_if`), proved once by cases on the gate, the
+  merge gate and the spent lock's output index, whose facts read the pieces as `T[n]?.getD []`; a path then runs
+  only its prefix (suffix 423–1424, with the pieces folded) and the epilogue, and the block's facts are instantiated
+  on its explicit stack. Done as three regions rather than one block (`SimpleMulti/Regions.lean`, generated from
+  isolated runs on an abstract stack `t0 :: T`): the first rebuild with its anchor (suffix 1426–2714, key `c1426`,
+  eleven widths, thirteen facts, the merge flag left on top), the second rebuild's arm (2715–3896, key `c2715_if`,
+  three cases: the merge flag off, on with the spent lock's `outputIndexN` zero, on with it non-zero) and the null
+  arm (3899–4651, key `c3899`, the 150 pieces at depths 62–211 of `T` concatenate to nothing, the stack unchanged);
+  the gate at 1425 and the merge flag at 2714 stay with the path, whose type hypotheses decide them. The path
+  theorems then run their prefix with the pieces folded (`a.psA.stack ++ (a.psB.stack ++ S)` never unfolded, the
+  prefix's deepest `PICK` is 61), step over the regions by their rules, and run the epilogue; the regions' facts are
+  instantiated on the explicit stack by `enforced_normF`. The region lemmas' statements name their stack items
+  through a reducible accessor (`item T n`), since a nine-kilobyte statement that spells `T[n]?.getD []` a hundred
+  times spends twenty seconds in instance resolution; with it the whole region file compiles in two minutes. Two
+  generator defects found on the way: the branches of a many-case proof must not share named holes, and each case's
+  `OP_NUM2BIN` widths need their own names, or the later binders shadow the earlier.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
