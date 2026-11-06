@@ -14,6 +14,11 @@ import BoltProof.Bridge.Glue.AuthBolt.Spec
 import BoltProof.Bridge.Glue.AuthBolt.PushTx
 import BoltProof.Bridge.Glue.AuthBolt.Paths
 import BoltProof.Bridge.Glue.AuthBolt.Sound
+import BoltProof.Bridge.Glue.AuthBolt.Abs
+import BoltProof.Bridge.Glue.AuthBolt.Facts
+import BoltProof.Bridge.Glue.AuthBolt.Weld
+import BoltProof.Bridge.Glue.AuthBolt.Refine
+import BoltProof.Bridge.Glue.AuthBolt.Regress
 import BoltProof.Bridge.Glue.Refine.Verify
 import BoltProof.Bridge.Glue.Refine.Serial
 import BoltProof.Bridge.Glue.Refine.Parse

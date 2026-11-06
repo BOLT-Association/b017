@@ -119,25 +119,10 @@ outpoint ‖ scriptCode ‖ value ‖ nSequence ‖ hashOutputs ‖ nLocktime �
 scriptCode length read as a three-byte `fd` varint at bytes 104–106 (suffix 414–482; the `fd`
 byte itself is dropped, not checked). -/
 
-/-- The scriptCode length: the two bytes after the `fd` at byte 104. -/
-abbrev scLen (pre : Bytes) : Nat := (decode (List.take 2 (List.drop 105 pre))).toNat
-/-- The scriptCode, i.e. the lock script being spent. -/
-abbrev sc (pre : Bytes) : Bytes := List.take (scLen pre) (List.drop 107 pre)
-abbrev preVersion (pre : Bytes) : Bytes := List.take 4 pre
-abbrev preHashPrevouts (pre : Bytes) : Bytes := List.take 32 (List.drop 4 pre)
-/-- The outpoint being spent. -/
-abbrev preOutpoint (pre : Bytes) : Bytes := List.take 36 (List.drop 68 pre)
-/-- The value of the output being spent, 8 bytes after the scriptCode. -/
-abbrev preValue (pre : Bytes) : Bytes := List.take 8 (List.drop (107 + scLen pre) pre)
-abbrev preHashOutputs (pre : Bytes) : Bytes := List.take 32 (List.drop (107 + scLen pre + 8 + 4) pre)
-abbrev preSighashType (pre : Bytes) : Bytes := List.take 1 (List.drop (107 + scLen pre + 8 + 4 + 32 + 4) pre)
-
-/-- The lock script's `parent` push (bytes 44–80 of the scriptCode: `0x24` and 36 bytes). -/
-abbrev scParentPush (pre : Bytes) : Bytes := List.take 37 (List.drop 44 (sc pre))
-/-- The lock script's `issuer` push (bytes 118–151: `0x21` and 33 bytes). -/
-abbrev scIssuerPush (pre : Bytes) : Bytes := List.take 34 (List.drop 118 (sc pre))
-/-- The lock script after its six pushes: the covenant suffix, as the preimage carries it. -/
-abbrev scSuffix (pre : Bytes) : Bytes := List.drop 152 (sc pre)
+/- The preimage's fields and the scriptCode's pushes sit where `MinSimpleBOLT`'s do (the lock is the same six
+pushes), so the accessors are `MinSimple`'s, and the preimage lemmas of `Refine/Serial.lean` apply as they are. -/
+export BoltProof.Glue.MinSimple (scLen sc preVersion preHashPrevouts preOutpoint preValue preHashOutputs
+  preSighashType scParentPush scIssuerPush scSuffix)
 
 /-! ## The outputs the covenant rebuilds -/
 
