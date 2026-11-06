@@ -30,6 +30,11 @@ All notable changes to **b017** are documented here. The format is based on
   fires when the spent token is parentless"). The lemma now states the shipped rule for both families inline,
   with a two-line provenance note in place of stacked corrections; §8.1 gains the F3 row and §9 the new suite; the
   README links the new document and notes that both families demand the issuer at the first settle too.
+- **Docs: `formal-proof.md` §9 and `unforgeability.md` §7 had gone stale.** Both quoted "126 tests across 18
+  files", cited suites removed in `ab95827` (`parity.test.ts`, `singleAncestor.test.ts`, `singleCoupon.test.ts`)
+  and said the scanner accepts a lone genesis mint, which it has refused as unauthenticated since `110ff77`. The
+  rows now cite the suites that carry each property, and the counts point at the README, where
+  `npm run coverage:readme` generates them, instead of being copied.
 
 ## [0.1.0] - 2026-10-11
 

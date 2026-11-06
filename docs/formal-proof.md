@@ -564,22 +564,25 @@ copies a token's field layout yet carries different code, because the suffix has
 
 ## 9. Empirical Validation
 
-Every property above is exercised by this package's test suite — **126 tests across 18 files**
-that build *real* Bitcoin transactions and verify them against the actual `@bsv/sdk` Script
-interpreter (no mocks). Run `npm test`.
+Every property above is exercised by this package's test suite, which builds *real* Bitcoin
+transactions and verifies them against the actual `@bsv/sdk` Script interpreter (no mocks). Run
+`npm test`. The test and file counts are generated into the README by `npm run coverage:readme` and
+are not repeated here, so they cannot drift; the table names the suites that carry each property,
+not every file.
 
 | Suite (file) | Validates |
 |--------------|-----------|
 | `test/tokens/MultiBOLT.test.ts`, `test/templates/SimpleMulti.test.ts` | Full `SimpleMultiBOLT` lifecycles (mint → transfer×2 → split; mint×2 → merge → melt) build real txs and verify on the `@bsv/sdk` Spend engine; split/merge conserve balance (Theorem 3, Lemma 6). |
 | `test/templates/MinSimple.test.ts`, `test/lib/minSimpleLifecycle.test.ts` | NFT lock/unlock; the identity NFT `MinSimpleBOLT` mint/commit/settle and a 2-hop ancestor reconstruction, gated on verifyTx. |
-| `test/lib/singleAncestor.test.ts`, `singleSpend.test.ts`, `singleCoupon.test.ts`, `multiBoltLib.test.ts` | Multi-hop chains: commit→settle verify on the Spend engine and the rebuilt ancestor matches the real grandparent txid (Lemma 3). |
-| `test/scanner/verifyEvents.test.ts` | **Negative tests:** rejects a wrong trusted issuer, an orphan settle (chain missing its commit), an unsettled commit, an extra-`OP_RETURN`-tampered output, and a right-shape/wrong-code counterfeit; accepts a lone genesis mint as a single-tx event (Theorem 1, §8.1/§8.5). |
-| `test/scanner/parity.test.ts`, `events.test.ts`, `fingerprints.test.ts` | Scanner accept/reject **matches the on-chain contract** (parity); commit/settle event classification; fingerprint registry + p2Proof golden matching against tampered inputs (Theorems 1 & 4, §8.5). |
+| `test/lib/singleSpend.test.ts`, `multiBoltLib.test.ts`, `minSimpleZF.test.ts`, `serialBoltZF.test.ts` | Multi-hop chains: commit→settle verify on the Spend engine and the rebuilt ancestor matches the real grandparent txid; an ancestor rebuilt from wrong pieces is refused at the grandparent txid check (Lemma 3). |
+| `test/scanner/verifyEvents.test.ts` | **Negative tests:** rejects a wrong trusted issuer, an orphan settle (chain missing its commit), an unsettled commit, an extra-`OP_RETURN`-tampered output, and a right-shape/wrong-code counterfeit; refuses a lone genesis mint as unauthenticated, since a mint alone does not prove the issuer key (`unauthenticatedMint.test.ts`) (Theorem 1, §8.1/§8.5). |
+| `test/scanner/redteam2.test.ts`, `unauthenticatedMint.test.ts`, `events.test.ts`, `fingerprints.test.ts` | Scanner accept/reject **follows the on-chain contract**: the scanner executes every supplied input on the Spend engine, so a forged commit or a tampered input is refused on execution; commit/settle event classification; fingerprint registry + p2Proof golden matching against tampered inputs (Theorems 1 & 4, §8.5). |
 | `test/lib/boltLib.test.ts`, `branches.test.ts`, `test/tokens/BOLT.test.ts`, `test/templates/pay2Proof.test.ts`, `test/releasable.test.ts` | Shared layout-agnostic primitives (`splitCtx`, outpoint/output serialisers, `verifyTx` guards), default-value/guard branches, the abstract base contract, the `pay2Proof` marker output, and the release gate. |
 | `test/helpers/counterfeit.ts` | Constructs counterfeits at the **raw-byte (on-wire)** level — exactly as an attacker would — so rejection is proven independent of SDK behaviour. |
 | `test/lib/multiBoltIssuerGuard.test.ts`, `test/lib/minSimpleAttack.test.ts` | **The issuer guard of each family on the shipped bytecode** (Lemma 5, §8.1). Fungible: a non-issuer's spend of the F3 / `is2ndTx` shape (`21`, no grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the fungible rule refuses at its commit is refused at the guard's own `OP_EQUALVERIFY`; the honest first settle, and the same bytes under the attacker's own issuer key, are accepted. NFT: B1 and B4 cover the tolerated orphan and `is2ndTx` re-arming the guard. See [`issuer-guard.md`](issuer-guard.md). |
 
-**Negative tests must fail; positive tests must hold.** All 126 pass, 0 skipped.
+**Negative tests must fail; positive tests must hold.** None is skipped, and `vitest.config.ts` holds
+coverage at 100% on every metric, so a new uncovered branch fails the run.
 
 ---
 
@@ -609,6 +612,6 @@ proof validated by tests rather than a machine-checked one — see §1.6 for the
 ---
 
 *Adapted for the `b017` package (SimpleMultiBOLT, 16-byte balance, no swap; minimal NFT
-templates). Validated against the package's 126 automated tests. The covenant is the compiled
+templates). Validated against the package's automated test suite (§9). The covenant is the compiled
 artifact embedded in `src/tokens/templates/`, byte-pinned in-repo by the golden fingerprints of
 §9; on-chain it is enforced by miner transaction-script validation at layer-1.*
