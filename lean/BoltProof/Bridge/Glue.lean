@@ -32,6 +32,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.Settle.Merge
 import BoltProof.Bridge.Glue.SimpleMulti.Melt
 import BoltProof.Bridge.Glue.SimpleMulti.Refute
 import BoltProof.Bridge.Glue.SimpleMulti.Sound
+import BoltProof.Bridge.Glue.SimpleMulti.Lock
 
 /-!
 # BoltProof.Bridge.Glue
