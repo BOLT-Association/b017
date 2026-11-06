@@ -355,6 +355,10 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    parity check does enforce `Accepts.settle_mode` (`parityCheck_refuses_commit`), and `SimpleMulti/Refute.lean`
    proves the 24 refused type pairs fail. Every probe is now scanned for false literal facts: the split-flag,
    merge-index, input-index and merge-commit findings carry none.
+7. The rebuild's piece widths (M5, the refinement's second stage). The first rebuild pushes most of the
+   grandparent's fields from the pieces without a size check, so the refinement reads the rebuilt bytes as the
+   grandparent under `HonestPiecesB` (each piece at the width of the field it stands for, at most 520 bytes).
+   Whether the bytes force these widths, for instance through the grandparent's own structure or the hash, is open.
 3. The split settle's flags (§Progress, M5): with `pkh1` or `i2` non-empty the bytes accept a split settle whose
    two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
    whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
@@ -673,6 +677,17 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   transfer balance), given the grandparent's two balances are non-negative script numbers, a lock-data condition
   every covenant-built token meets. Next: the optional arms, then the weld into the refinement (`GpReal` for the
   fungible family, the residual's piece widths and `i5`).
+- **M5, the first rebuild welded to the spend (base case):** `SimpleMulti/GateItems.lean` names the gate-stack
+  items the rebuild reads (the spend's fields and constants, and item `137 + j` as the second piece set's `p j`,
+  each by `rfl`, with the lock-length varint from the spent lock's widths). `SimpleMulti/GpWeld.lean` derives
+  `WidthsA0` on the gate stack (`widthsA0_gate`) from the run's facts, the spent lock and preimage, and
+  `HonestPiecesB`: the nineteen pieces the parse reads at the widths of the fields they stand for, and every piece
+  at most 520 bytes, which bounds the first unlocking script below the two-byte varint (`scA0_length_lt`). Then a
+  well-formed grandparent whose txid the token names and whose serialisation has no second preimage is the parsed
+  transaction (`gp_eq_gpTxA0`). `HonestPiecesB` is the residual's scope assumption for the rebuild, alongside the
+  split flags; whether the bytes force those widths (through the grandparent's own structure) is §7's seventh
+  question. Also `i5` is the co-spent proof output's index as well as the anchor's, so the residual's index
+  assumption names both.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
