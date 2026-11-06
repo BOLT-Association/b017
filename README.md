@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 > **Status: `0.1.0`.** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
-> (767/767 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `1.0.0`. See
+> (791/791 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `1.0.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
 Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
@@ -26,7 +26,8 @@ is bound into a self-validating Bitcoin Script covenant via a dual hash-commitme
 a token would require breaking SHA-256 or ECDSA. See [`docs/unforgeability.md`](docs/unforgeability.md)
 for the argument and the forgery tests that demonstrate it, and
 [`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
-full attack-vector analysis).
+full attack-vector analysis). [`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard
+of each family, the NFT-only `is2ndTx` flag, and why the fungible family does not carry it.
 
 This is **third-party per-token unforgeability**: each unit is internally well-formed and traces
 to an issuer-signed mint. It is *not* a claim about **supply-honesty** (an issuer can mint many
@@ -39,7 +40,7 @@ independent genesis tokens — reserve/cap trust is an issuer matter) or **netwo
 ```
 npm install
 npm run build          # clean + tsc -> dist/ (JS + .d.ts)
-npm test               # vitest (767 tests)
+npm test               # vitest (791 tests)
 npm run test:coverage  # vitest + v8 coverage -> coverage/ (text + HTML report)
 ```
 
@@ -127,7 +128,8 @@ caller can fund the settle from elsewhere — so the scanner does not require it
 Sending someone a **minted** token over SPV does not prove that the sender holds the issuer key. A mint is
 just an output whose lock names an `issuerPubKey`; anyone can create one naming anybody's key (so
 `verifyEvents` refuses a lone mint as `unauthenticated`). The issuer guard runs when the
-genesis token is first **spent**, so the proof is the first **commit**:
+genesis token is first **spent** (and again at the first settle, in both families; see
+[`docs/issuer-guard.md`](docs/issuer-guard.md)), so the proof is the first **commit**:
 
 - **Ownership of a minted token:** the mint must come with a **commit tx spending it**, signed by the issuer
   key. This holds whether or not the commit is funded (an unfunded commit is SPV-only and never mined, but it
@@ -207,7 +209,7 @@ by concern (`test/tokens`, `test/templates`, `test/lib`, `test/scanner`), with s
 fixtures in `test/fixtures` and helpers in `test/helpers`.
 
 ```
-npm test               # 767 tests across 41 files
+npm test               # 791 tests across 42 files
 npm run test:coverage  # the same suite + a v8 coverage report (text to stdout, HTML in coverage/)
 ```
 

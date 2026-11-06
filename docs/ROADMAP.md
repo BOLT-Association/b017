@@ -93,6 +93,26 @@ because the event proves itself. Writing this architecture down as a referenceab
 envelope, batch/DAG verification semantics, the trust-surface argument above) is itself a roadmap
 item, so the claim can be engaged with on its own terms rather than as a slogan.
 
+## Deferred: align the NFT issuer guard with the fungible rule
+The two families derive "the issuer must sign this spend" differently (both prologues are decoded
+in [`issuer-guard.md`](issuer-guard.md)). The fungible prologue requires the issuer whenever the
+grandparent outpoint is zero. The NFT prologue (`is2ndTx`) additionally requires `txoType != 0`, so
+it lets a zero-grandparent *resting* token be committed by a non-issuer and relies on the settle to
+refuse it (`minSimpleAttack` B1). The NFT family is not exposed by this — no balance, and the settle
+does refuse — so this is an **optimisation, not a fix**, and it sits on the long finger:
+- **Change:** drop the `txoType` term from the NFT derivation so both families read
+  `needsIssuer = isGenesis || grandparentOutpoint == 0`. One rule to reason about, one lemma, the
+  orphan refused at its commit rather than its settle, and a few opcodes fewer in the prologue (the
+  exact saving must be measured, not assumed: the NFT prologue's stack shuffle and its
+  `hasGrandparent` are reused downstream).
+- **Cost:** new NFT bytecode, so a new fingerprint for `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT`
+  and a **reissue** of tokens on the current bytes; the prologue length shifts the rebuild's `signCtx`
+  slice offset, which must be recounted (the F3 fix's 36 to 41 tripwire); the full lifecycle and
+  attack suites re-run, with `minSimpleAttack` B1.0 flipped from "lone commit accepted" to "refused
+  at the commit".
+- **Do it when** the NFT bytecode is being rebuilt for another reason (the NFT token classes or
+  `SerialBOLT` work above), never on its own.
+
 ## Library hardening
 - `tsconfig strict: true`; remove `any` casts; type the `BOLT` abstract methods (today `any`,
   and they diverge from the concrete classes).
