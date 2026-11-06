@@ -779,6 +779,14 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   modules import MinSimple's spec, whose tactic syntax `enforced_norm` shadowed AuthBOLT's own of the same name, so
   the 27 empty pushes were never normalised and the rebuild's `fact` search ran unbounded instead of failing; the
   normaliser is now `auth_norm`. Next: AuthBOLT's refinement to `Accepts` and its guards.
+- **M6, AuthBOLT's refinement (`authBolt_refines`) and guards:** `AuthBolt/Abs.lean`, `Facts.lean`, `Weld.lean` and
+  `Refine.lean` are MinSimple's M4 files with AuthBOLT's suffix (1145 bytes, a 1297-byte lock), the rebuild's extra
+  width (`w6Of`, the grandparent's `authOrMiscData` push) and the 27 pieces; the preimage accessors are MinSimple's
+  own (exported), so `Refine/Serial.lean`'s preimage lemmas apply unchanged. The residual is MinSimple's: nothing
+  in the model reads `authOrMiscData`, which the bytes check only for size. `AuthBolt/Regress.lean` reads the honest
+  AuthBOLT lifecycle off the vectors (the first unlock push as `authOrMiscData`), checks the abstraction, and
+  applies `authBolt_refines` to the first commit, the second settle (which rebuilds the first commit) and the melt
+  with every decidable hypothesis discharged. Next: SerialBOLT.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
