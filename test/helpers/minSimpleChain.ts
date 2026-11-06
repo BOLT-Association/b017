@@ -194,7 +194,8 @@ export async function buildChain(fam: Family, f: ChainSpec = {}, upTo = 5): Prom
   return txs
 }
 
-export interface RunResult { ok: boolean; failedTx?: number; message?: string; pc?: number }
+/** `pc` and `context` locate a script failure: the opcode index, in the 'UnlockingScript' or the 'LockingScript'. */
+export interface RunResult { ok: boolean; failedTx?: number; message?: string; pc?: number; context?: string }
 
 /** Verify every tx in order; stops at the first failing tx (input 0 = the token unless noted). */
 export function verifyChain(txs: Transaction[]): RunResult {
@@ -205,7 +206,7 @@ export function verifyChain(txs: Transaction[]): RunResult {
       const { valid } = verifyTx(tx, true)
       if (!valid) return { ok: false, failedTx: i }
     } catch (e: any) {
-      return { ok: false, failedTx: i, message: String(e?.message ?? e), pc: e?.programCounter }
+      return { ok: false, failedTx: i, message: String(e?.message ?? e), pc: e?.programCounter, context: e?.context }
     }
   }
   return { ok: true }

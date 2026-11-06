@@ -19,7 +19,7 @@ import { FixedBOLT, OpenBOLT } from '../../src/tokens/GenesisMultiBOLT.js'
 import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
 import FixedMultiTemplate from '../../src/tokens/templates/FixedMulti.sx.template.js'
 import OpenMultiTemplate from '../../src/tokens/templates/OpenMulti.sx.template.js'
-import { verifyTx, buildOutpoint, toSigner } from '../../src/lib/boltLib.js'
+import { buildOutpoint, toSigner } from '../../src/lib/boltLib.js'
 import * as nft from '../helpers/minSimpleChain.js'
 import { minSimple } from '../helpers/minSimpleFamily.js'
 import { authBolt, tpl as authTpl } from '../helpers/authBoltFamily.js'
@@ -47,12 +47,8 @@ const INVENTED = bal(BigInt(1) << BigInt(100)) // 2^100: the balance of the fabr
 const freshSource = (key: PrivateKey) =>
   new Transaction(1, [], [{ satoshis: 1000, change: true, lockingScript: new P2PKH().lock(Hash.hash160(key.toPublicKey().encode(true) as number[])) }])
 
-type Run = { ok: boolean; message?: string; pc?: number; context?: string }
-function run(tx: Transaction): Run {
-  tx.inputs.forEach((i: any) => { if (!i.sourceTXID && i.sourceTransaction) i.sourceTXID = i.sourceTransaction.id('hex') })
-  try { return { ok: verifyTx(tx, true).valid } }
-  catch (e: any) { return { ok: false, message: String(e?.message ?? e), pc: e?.programCounter, context: e?.context } }
-}
+/** Verify one tx on the Spend engine (the shared helper; `pc` and `context` locate a refusal). */
+const run = (tx: Transaction) => nft.verifyChain([tx])
 
 /** Lock-chunk index of the issuer guard's OP_EQUALVERIFY, found from the guard's own flag rather than by position:
  *  the first OP_BOOLOR followed by OP_IF (fungible: OP_BOOLOR OP_TUCK OP_IF OP_13 OP_PICK; NFT: OP_BOOLOR OP_IF OP_3
@@ -148,8 +144,7 @@ describe.each(FUNGIBLE.map((f) => [f.name, f] as const))('%s: the zero-grandpare
     const victim = await victimMint(fam)
     const f = await fabricate(fam, 0x21, buildOutpoint(victim.tx!, 0), attackerPub)
     const r = run(await attackerSpends(fam, f, [victim.tx!, f], false, attackerPub))
-    expect(r.message, r.message).toBeUndefined()
-    expect(r.ok).toBe(true)
+    expect(r.ok, r.message).toBe(true)
   })
 })
 
@@ -211,8 +206,7 @@ describe.each(NFTS.map((n) => [n.name, n] as const))('%s: the NFT issuer guard (
   it('isolation: the SAME is2ndTx-shaped bytes naming the attacker as issuer are ACCEPTED (only the guard refuses)', async () => {
     const { txs, parent } = await fabricateNft(n, 0x21, nft.pub(nft.attackerKey))
     const r = run(await attackerSpendsNft(n, txs, parent, nft.pub(nft.attackerKey), false))
-    expect(r.message, r.message).toBeUndefined()
-    expect(r.ok).toBe(true)
+    expect(r.ok, r.message).toBe(true)
   })
 
   it('the narrower NFT rule: a resting 00 orphan with no grandparent is COMMITTED without the issuer (as minSimpleAttack B1.0)', async () => {
@@ -220,7 +214,6 @@ describe.each(NFTS.map((n) => [n.name, n] as const))('%s: the NFT issuer guard (
     // it must rebuild the fabrication and cannot. Aligning the NFT rule with the fungible one (docs/ROADMAP.md) flips this.
     const { txs, parent } = await fabricateNft(n, 0x00, nft.issuerPub)
     const r = run(await attackerSpendsNft(n, txs, parent, nft.issuerPub, true))
-    expect(r.message, r.message).toBeUndefined()
-    expect(r.ok).toBe(true)
+    expect(r.ok, r.message).toBe(true)
   })
 })
