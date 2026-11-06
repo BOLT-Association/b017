@@ -35,7 +35,19 @@ theorem gateT_item30 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a 
 theorem gateT_item36 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 36 = f.gp := by
   unfold gateT; split_ifs <;> rfl
 
+theorem gateT_item39 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 39 = f.outIdx := by
+  unfold gateT; split_ifs <;> rfl
+
+theorem gateT_item41 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 41 = f.ogp := by
+  unfold gateT; split_ifs <;> rfl
+
 theorem gateT_item46 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 46 = f.bal := by
+  unfold gateT; split_ifs <;> rfl
+
+theorem gateT_item59 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 59 = a.i3 := by
+  unfold gateT; split_ifs <;> rfl
+
+theorem gateT_item60 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 60 = a.i4 := by
   unfold gateT; split_ifs <;> rfl
 
 theorem gateT_item61 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 61 = a.i5 := by
