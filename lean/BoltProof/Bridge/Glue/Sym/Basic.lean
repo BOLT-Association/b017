@@ -130,6 +130,11 @@ theorem getOpTail_push {n : Nat} (hn : 1 ≤ n ∧ n ≤ 75) (g : Bytes) :
 theorem getOpTail_op {op : Nat} (hop : Op.OP_PUSHDATA4 < op) (g : Bytes) : getOpTail op g = some ([], 0) := by
   simp [getOpTail, Nat.not_le.mpr hop]
 
+/-- The item at depth `n` of a stack, as the block lemmas name the items of an abstract stack
+(`T[n]?.getD []`, with its instances resolved once here: a generated statement names hundreds of
+them). The driver unfolds it when it decides a block result's conditional. -/
+abbrev item (T : List Bytes) (n : Nat) : Bytes := T[n]?.getD []
+
 /-! ## Small facts the driver normalises with -/
 
 /-- A single byte below `0x80` is the script number it denotes. -/
