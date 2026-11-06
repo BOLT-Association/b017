@@ -359,6 +359,12 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    grandparent's fields from the pieces without a size check, so the refinement reads the rebuilt bytes as the
    grandparent under `HonestPiecesB` (each piece at the width of the field it stands for, at most 520 bytes).
    Whether the bytes force these widths, for instance through the grandparent's own structure or the hash, is open.
+8. The merge commit's second input (M5, the refinement's third stage). The first token input's covenant takes the
+   other token's balance and parent from interop arguments and relies on the second token input's covenant, which
+   builds the same merged token from its own fields, to vouch for them. That holds when the second input runs its
+   covenant's spend path; the refinement assumes the second input presents a preimage. Whether the bytes exclude the
+   other case (the second input spent through the melt branch, which constrains no outputs), for instance through
+   the merge settle's second rebuild, is open; a probe vector will settle it.
 3. The split settle's flags (§Progress, M5): with `pkh1` or `i2` non-empty the bytes accept a split settle whose
    two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
    whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
@@ -715,6 +721,12 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   script's varint as well (`widthA_vi2`, fact 2), bounded through the pieces (`scA2_length_lt`).
   `HonestPiecesB` gains the arms' widths, `gpTxA_token`, `widthsA_gate`, `gp_eq_gpTxA` and `l3_settle` replace
   their base-case versions, and `simpleMulti_refines_settle_gp` no longer takes the flags as hypotheses.
+- **M5, the merge commit's two inputs (first step):** `SimpleMulti/Merge.lean` reads the second token input's
+  merged token as a fungible lock (`mergeFields1`, `mergeLock1_eq`, `commitOuts_merge1`) and proves the two
+  inputs agree (`merge_fields_eq`): both weld their outputs to one `hashOutputs`, a token output in front fixes
+  its lock, and the lock fixes well-formed fields (`lockScript_inj`), so the first input's `nbc` is the second
+  token's balance, its `i1` the second token's parent, its outpoint the second's `i2`, and the issuers are one.
+  Next: the merge commit's refinement at the first input from both runs.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
