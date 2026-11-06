@@ -497,6 +497,28 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   `Regions.lean`). Next: the settle paths on the same design (their prefix stops at the gate, the regions' facts
   supply the rebuild clause), the no-grandparent settles, the genesis and input-1 variants, the melt,
   `simpleMulti_sound`, and the refinement.
+- **M5, fifth step** (the settle paths): `SimpleMulti/Settle.lean` proves the three settle spends of a token
+  with a grandparent at input 0: transfer (`0x21` into `0x20`), split (`0x23` into `0x22`, with `pkh1`, reused as a
+  flag, and `i2` zero) and merge (`0x25` into `0x24`, with the spent lock's `outputIndexN` zero). `EnforcedSettle`
+  keeps `Enforced`'s prefix clauses and replaces the commit clauses by the settle ones: the carried balance
+  non-negative (split and merge), the split's remainder non-negative, the merge's sum within the bound, the settled
+  token (two for a split) and the change hashing to `hashOutputs`, and the rebuild clause. The rebuild clause reads
+  the regions' facts on the stack at the gate (`gateT`, by mode, the stack the probe gives): the first rebuild's
+  thirteen facts, the second rebuild's facts under the merge flag and the spent lock's output index, and
+  `hashPrevouts` over this outpoint, the outpoints the rebuilds derive (`gpOutA`, `gpOutB_1/2`) and the funding
+  outpoint. Each path is one run of about 625 instructions with two or three block steps; the file builds in about
+  100 s. Three closing findings: a normaliser that runs `simp (config := {decide := true})` at every hypothesis
+  hangs, because it tries to evaluate the run hypothesis and the hash equations (the flags it was needed for reduce
+  by `castToBool_nil`/`castToBool_one`); the gate stack keeps unfused drops (`drop 41 (drop 246 _)`) that the driver
+  fused in the facts, so the normaliser carries `List.drop_drop` and the literal-arithmetic simprocs, which
+  `simp only` does not include by itself; and `simp` keeps an `if`'s decidability instance under a cast when it
+  rewrites the condition, so a rebuilt outpoint's instance still names an unread gate-stack item, and the run's
+  facts are equations in `Bytes` where `simp` rebuilds the goal's in `List Nat`. Both are invisible in printed goals
+  and defeat reducible matching; `factD` closes such an equation by the one hypothesis with the same right-hand side,
+  matched at default transparency. The generators (`gen_sm.py`, `gen_region.py`, `gen_settle.py`) and the probe
+  harness still live outside the tree; M7 adds them under `lean/scripts/`. Next for M5: the no-grandparent settles
+  (through the null arm), the other values of the mode flags and the output index, the token at input 1, the
+  genesis variants, the melt, `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
