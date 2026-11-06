@@ -45,6 +45,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.GateItems
 import BoltProof.Bridge.Glue.SimpleMulti.GpWeld
 import BoltProof.Bridge.Glue.SimpleMulti.L3
 import BoltProof.Bridge.Glue.SimpleMulti.Refine
+import BoltProof.Bridge.Glue.SimpleMulti.RefineGp
 
 /-!
 # BoltProof.Bridge.Glue
