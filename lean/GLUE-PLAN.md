@@ -604,8 +604,17 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   `l_merge_same_issuer` and `other_input` for the primary spend. (3) The residual gains a scope assumption for the
   split settle's output order (`pkh1` and `i2` empty on a split settle, the split-flag finding above), alongside
   `HonestOutputs`/`HonestMelt` (the decision for Finding 1). (4) `PushTxSound`, `NoSecondPreimage` (now also of the
-  two rebuilt ancestors) and `GpReal` for both lineages, as for the NFT family. Next: the abstraction (`tokenOf`,
-  `outOf`, `absTx`, `spendOf` with the rebuilt ancestors' bytes), the facts and welds, `simpleMulti_refines`.
+  two rebuilt ancestors) and `GpReal` for both lineages, as for the NFT family.
+- **M5, the refinement's abstraction and first welds:** `SimpleMulti/Abs.lean` reads a fungible spend into the model
+  (`tokenOf` with `balOf` and `com2Of`, `outOf`, `absTx`, `kindOf`, `modeOf`, `spendOf`). `spendOf` takes the merge's
+  other token input and the two rebuilt ancestors as arguments, so the refinement states that the choice the run's
+  facts determine makes `Accepts` hold; the model's `l3_rebuild` pins an ancestor by its txid, so under collision
+  resistance nothing is lost against computing the rebuilt bytes as the NFT family's `rebuiltOf` does.
+  `SimpleMulti/Weld.lean` reads each push off the scriptCode as the spent lock's field (`scPush_*`, once
+  `sc pre = lockScript f`) and proves the commit lock the covenant builds is the fungible lock of `commitFields`.
+  Next: the settled tokens' fields and the outputs' serialisation, the facts that assemble `Accepts`, the residual,
+  and `simpleMulti_refines` (first for the commits, the settles and the melt at the primary input, then the merge
+  commit's two-input argument).
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
