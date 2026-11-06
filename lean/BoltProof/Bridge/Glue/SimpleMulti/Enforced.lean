@@ -46,6 +46,11 @@ abbrev scSuffix (pre : Bytes) : Bytes := List.drop 246 (sc pre)
 of `OP_0` in the covenant. -/
 abbrev zeros (n : Nat) : Bytes := List.replicate n 0
 
+/-- The new token's index byte: 0 when the input-index argument `inputIndexN` is zero, else 1. The argument is
+not tied to the input's position: `hashPrevouts` beginning with this outpoint is what places the token at input 0
+(a merge commit's second token input excepted, whose prevouts begin with the other token's outpoint). -/
+abbrev inIdxByte (a : Args) : Nat := if decode a.inIdx = 0 then 0 else 1
+
 /-- A fungible lock from its eleven pushes and the suffix. -/
 abbrev lockOf (bal balCommit pkh com com2 ogp ty outIdx parent gp issuer suf : Bytes) : Bytes :=
   bal ++ balCommit ++ pkh ++ com ++ com2 ++ ogp ++ ty ++ outIdx ++ parent ++ gp ++ issuer ++ suf
@@ -59,28 +64,40 @@ abbrev tokenOut (pre lock : Bytes) : Bytes := preValue pre ++ [253] ++ encode (l
 
 /-- The commit token a commit spend builds: the old balance, `balanceCommit` zero for a transfer
 and `nbc` for a split or a merge, the old owner, `com = pkh1`, `com2` zero or `pkh2` for a split,
-`ogp` zero or the other lineage's outpoint `i1` for a merge, the next type, index 0, this
-outpoint as parent, the old parent as grandparent, the issuer, the suffix. -/
+`ogp` zero or the other lineage's outpoint `i1` for a merge, the next type, the index byte
+(`inIdxByte`), this outpoint as parent, the old parent as grandparent, the issuer, the suffix. -/
 abbrev commitLock (a : Args) (balCommit com2 ogp : Bytes) : Bytes :=
   lockOf (scBalPush a.pre) ([16] ++ balCommit) (scPkhPush a.pre) ([20] ++ a.pkh1) ([20] ++ com2) ([36] ++ ogp)
-    ([1] ++ a.nty) [1, 0] ([36] ++ preOutpoint a.pre) (scParentPush a.pre) (scIssuerPush a.pre) (scSuffix a.pre)
+    ([1] ++ a.nty) [1, inIdxByte a] ([36] ++ preOutpoint a.pre) (scParentPush a.pre) (scIssuerPush a.pre)
+    (scSuffix a.pre)
+
+/-- The merged token as a merge commit's second token input (`inputIndexN` non-zero) builds it: the other token's
+balance (`nbc`) and its own as `balanceCommit`, the other token's owner (`i3`), `com = pkh1`, `com2` zero, its own
+parent push as `ogp`, the next type, index 0, the other token's outpoint (`i2`) as parent and its parent (`i1`) as
+grandparent, the issuer, the suffix. With honest interop arguments it is the token the first input builds. -/
+abbrev mergeLock1 (a : Args) : Bytes :=
+  lockOf ([16] ++ a.nbc) (scBalPush a.pre) ([20] ++ a.i3) ([20] ++ a.pkh1) ([20] ++ zeros 20) (scParentPush a.pre)
+    ([1] ++ a.nty) [1, 0] ([36] ++ a.i2) ([36] ++ a.i1) (scIssuerPush a.pre) (scSuffix a.pre)
 
 /-- The settled token a settle spend builds: the old balance, `balanceCommit` zero, the committed
-recipient as owner, `com`, `com2` and `ogp` zero, the next type, index 0, this outpoint, the old
+recipient as owner, `com`, `com2` and `ogp` zero, the next type, the index byte, this outpoint, the old
 parent, the issuer, the suffix. -/
 abbrev settleLock (a : Args) : Bytes :=
   lockOf (scBalPush a.pre) ([16] ++ zeros 16) (scComPush a.pre) ([20] ++ zeros 20) ([20] ++ zeros 20) ([36] ++ zeros 36)
-    ([1] ++ a.nty) [1, 0] ([36] ++ preOutpoint a.pre) (scParentPush a.pre) (scIssuerPush a.pre) (scSuffix a.pre)
+    ([1] ++ a.nty) [1, inIdxByte a] ([36] ++ preOutpoint a.pre) (scParentPush a.pre) (scIssuerPush a.pre)
+    (scSuffix a.pre)
 
 /-- The outputs a spend must hash to, before the change blob, by the next type: a transfer commit
 (`0x21`), a split commit (`0x23`) and a merge commit (`0x25`) are the commit token and a proof
-output per recipient; a transfer settle (`0x20`) is the settled token. (The split and merge
-settles follow their probes.) -/
+output per recipient (a merge commit's second token input builds the merged token from the interop arguments,
+`mergeLock1`); a transfer settle (`0x20`) is the settled token. (The settles' outputs are `Settle.lean`'s.) -/
 def expectedOuts (a : Args) : Bytes :=
   if a.nty = [0x21] then tokenOut a.pre (commitLock a (zeros 16) (zeros 20) (zeros 36)) ++ proofOut a.pre a.pkh1
   else if a.nty = [0x23] then
     tokenOut a.pre (commitLock a a.nbc a.pkh2 (zeros 36)) ++ proofOut a.pre a.pkh1 ++ proofOut a.pre a.pkh2
-  else if a.nty = [0x25] then tokenOut a.pre (commitLock a a.nbc (zeros 20) a.i1) ++ proofOut a.pre a.pkh1
+  else if a.nty = [0x25] then
+    (if decode a.inIdx = 0 then tokenOut a.pre (commitLock a a.nbc (zeros 20) a.i1) else tokenOut a.pre (mergeLock1 a))
+      ++ proofOut a.pre a.pkh1
   else tokenOut a.pre (settleLock a)
 
 /-- The 150 pieces concatenated, as the null-ancestor check sees them (`OP_CAT` from the deepest
@@ -100,10 +117,11 @@ def Ends (env : Env) (a : Args) (k t : Bytes) (r : GOut) (C : Cond) (cs : Bytes)
 /-- The issuer guard's condition (suffix 0–9): a genesis (`parent = 0`) or no grandparent. -/
 def GuardF (f : Fields) : Prop := decode f.parent = 0 ∨ decode f.gp = 0
 
-/-- The outpoints `hashPrevouts` covers before the funding outpoint, with the token at input 0: this
-outpoint, and for a merge commit the other token's outpoint `i2` after it. -/
+/-- The outpoints `hashPrevouts` covers before the funding outpoint: this outpoint, and for a merge commit the
+other token's outpoint `i2` after it, or before it when this is the second token input (`inputIndexN` non-zero). -/
 def prevoutsOf (a : Args) : Bytes :=
-  if a.nty = [0x25] then preOutpoint a.pre ++ a.i2 else preOutpoint a.pre
+  if a.nty = [0x25] then (if decode a.inIdx = 0 then preOutpoint a.pre ++ a.i2 else a.i2 ++ preOutpoint a.pre)
+  else preOutpoint a.pre
 
 /-- The bound the balance checks compare against, `2^127 - 1`. -/
 abbrev maxBalance : Int := decode maxBalanceBytes
