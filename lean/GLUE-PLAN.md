@@ -654,6 +654,18 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   transaction whose first output is the token of those pieces; with `decodeTx (serTx G) = some G` this gives the
   anchor's fields. Where a piece's width is not among the facts, the lemma takes it as a hypothesis and the plan
   records it, rather than weakening the clause.
+- **M5, the first rebuild parsed (base case):** `Refine/Parse.lean` reads bytes laid out field by field
+  (`readTxIn_bytes`, `readTxOut_bytes`, `decodeTx_bytes`) and returns the pieces themselves as the fields, so no
+  byte-range condition is needed; a varint is any prefix that reads as the length that follows (`VarIntOf`), which
+  covers the covenant's own `0xfd` plus `OP_NUM2BIN` words (`varIntOf_num2bin3`). `SimpleMulti/Rebuilt.lean` names
+  the bytes the first rebuild hashes (`rebuiltA`, taken from the region's fact) and, with neither optional arm,
+  lays them out (`rebuiltA_00`) and reads them (`decode_rebuiltA_00`): two inputs, the first with the unlocking
+  script the rebuild assembles (`scA0`), and three outputs, the commit token (`lkA`), the pay-to-proof output and a
+  P2PKH output. The run fixes the version's width and the first script's varint (`widthA_ver`, `widthA_vi0`, given
+  the script is below 65536 bytes); the other widths the parse reads are pieces the bytes push without a size
+  check, and `WidthsA0` takes them as hypotheses. Next: the token output read as the grandparent token (`lkA` as
+  `lockScript` of the pieces), the anchor against `settledBalance`, the optional arms, and the weld into the
+  refinement.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
