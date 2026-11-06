@@ -37,7 +37,7 @@ structure ResidualGp (P : Prims Bytes) (f : Fields) (a : Args) (G : Tx) : Prop w
 /-- The run prefix of the refinement: a valid verdict runs the suffix to `SpendEnforced` with the owner's
 signature verified, and with a preimage the preimage is the real one and the types are related. -/
 theorem refine_run (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : Args) (S : List Bytes)
-    (scriptSig : Bytes) (hwf : WF f) (hty : SmbType f.ty) (hnty : SmbType a.nty) (htx : TxWF tx)
+    (scriptSig : Bytes) (hwf : WF f) (hty : SmbType f.ty) (hnty : castToBool a.pre = true → SmbType a.nty) (htx : TxWF tx)
     (hi : i < tx.inputs.length) (hres : Residual P tx i amt f a)
     (hS1 : ((evalScript Eval.opExec (mkEnv params (txContext tx i amt) params.flags.forkAdjust
       (some (lockScript f))) scriptSig [] 0).2).stack = a.stack ++ S)
@@ -83,7 +83,7 @@ theorem refine_run (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : A
     split_ifs at htop with hc
     · exact hc
     · simp at htop
-  exact ⟨hse, hsig0, hpreimg, fun hpre => types_of_run he (by decide) hty hnty hpre (hvar hpre) hsuf hok0⟩
+  exact ⟨hse, hsig0, hpreimg, fun hpre => types_of_run he (by decide) hty (hnty hpre) hpre (hvar hpre) hsuf hok0⟩
 
 /-- **`SimpleMultiBOLT` refines `Accepts`, second stage**: a transfer or split settle of a token with a
 grandparent. -/
@@ -100,7 +100,7 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
       (some (lockScript f))) scriptSig [] 0).2).stack = a.stack ++ S)
     (hv : Eval.verifyScript params (txContext tx i amt) scriptSig (lockScript f) = .valid) :
     Accepts P .fungible (spendOf tx i f a none (some G) none) := by
-  obtain ⟨hse, hsig0, hpreimg, htypes⟩ := refine_run P tx i amt f a S scriptSig hwf hty hnty htx hi hres hS1 hv
+  obtain ⟨hse, hsig0, hpreimg, htypes⟩ := refine_run P tx i amt f a S scriptSig hwf hty (fun _ => hnty) htx hi hres hS1 hv
   have hmem : inputAt tx i ∈ tx.inputs := by simp [inputAt, List.getElem?_eq_getElem hi]
   obtain ⟨h32, hidx, -, -⟩ := htx.inputs _ hmem
   have hpe := hpreimg hpre
@@ -156,7 +156,7 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
   have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none none hwf hsc hop hval8 hnty3 hlen
     (fun h => absurd h (by rcases hnty' with h' | h' <;> rw [h'] <;> decide)) hgr.pieces
     h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hco htx hgr.gp hgr.i5 henf.balLo hpar
-  refine accepts_of_facts P tx i f a none (some G) none hty hnty (fun _ h => absurd h hset) hgen hi hver
+  refine accepts_of_facts P tx i f a none (some G) none hty (fun _ => hnty) (fun _ h => absurd h hset) hgen hi hver
     (by rw [hres.agrees.h160]; exact henf.owner) hsig (by simp [hlast]) henf.issuer ?_
     (fun h => absurd h (by rw [hk]; decide)) (balOf_le henf.balHi) (fun h => by rw [hk] at h; cases h)
     (fun h => by rw [hk] at h; cases h) ?_ ?_ ?_ (fun _ h => by cases h) (fun _ h => by cases h)

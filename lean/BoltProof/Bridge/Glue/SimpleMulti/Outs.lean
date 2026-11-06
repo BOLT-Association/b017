@@ -55,11 +55,11 @@ theorem outs_commit_transfer {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (ot
     (hflat : expectedOuts a ++ a.chg = (tx.outputs.map serTxOut).flatten) (hhon : HonestOutputs tx 2) :
     ∃ change : List (Out Bytes), (∀ o ∈ change, o.isToken = false) ∧
       (absTx tx).outputs = (spendOf tx i f a other ancA ancB).expectedOuts .fungible ++ change := by
-  have hcwf := commitFields_wf hwf ha (zeros_length 16) (zeros_length 20) (zeros_length 36) (a := a)
+  have hcwf := commitFields_wf hwf ha (Or.inl hnty) (zeros_length 16) (zeros_length 20) (zeros_length 36) (a := a)
   rw [commitOuts_transfer hwf ha hsc hval hnty, List.append_assoc] at hflat
   obtain ⟨os1, hos1, hf1⟩ := flatten_serTxOut_cons htx.outputs (lockScript_value_ok hcwf hamt) hflat.symm
   obtain ⟨os2, hos2, hf2⟩ := flatten_serTxOut_cons
-    (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (proofScript_value_ok ha.pkh1 hamt) hf1
+    (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (proofScript_value_ok (ha.pkh1 (Or.inl hnty)) hamt) hf1
   refine ⟨os2.map outOf, ?_, ?_⟩
   · intro o ho
     obtain ⟨o', ho', rfl⟩ := List.mem_map.mp ho
@@ -67,7 +67,7 @@ theorem outs_commit_transfer {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (ot
   · have hk : (spendOf tx i f a other ancA ancB).kind = .commit := kindOf_commit hpre hset
     have hm : (spendOf tx i f a other ancA ancB).mode = .transfer := by
       simp [spendOf, modeOf, kindOf_commit hpre hset, modeOfNext, hnty]
-    simp only [absTx, hos1, hos2, List.map_cons, Spend.expectedOuts, hk, hm, outOf_lock hcwf, outOf_proof ha.pkh1,
+    simp only [absTx, hos1, hos2, List.map_cons, Spend.expectedOuts, hk, hm, outOf_lock hcwf, outOf_proof (ha.pkh1 (Or.inl hnty)),
       tokenOf_commit_transfer tx i other ancA ancB hpre hset hnty hout hnz h32 hidx]
     simp [spendOf]
 
@@ -82,14 +82,16 @@ theorem outs_commit_split {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (other
     (hflat : expectedOuts a ++ a.chg = (tx.outputs.map serTxOut).flatten) (hhon : HonestOutputs tx 3) :
     ∃ change : List (Out Bytes), (∀ o ∈ change, o.isToken = false) ∧
       (absTx tx).outputs = (spendOf tx i f a other ancA ancB).expectedOuts .fungible ++ change := by
-  have hcwf := commitFields_wf hwf ha ha.nbc ha.pkh2 (zeros_length 36) (a := a)
+  have hcwf := commitFields_wf hwf ha (Or.inr (Or.inl hnty)) (ha.nbc (Or.inl hnty)) (ha.pkh2 hnty) (zeros_length 36) (a := a)
+  have hp1 := ha.pkh1 (Or.inr (Or.inl hnty))
+  have hp2 := ha.pkh2 hnty
   rw [commitOuts_split hwf ha hsc hval hnty, List.append_assoc, List.append_assoc] at hflat
   obtain ⟨os1, hos1, hf1⟩ := flatten_serTxOut_cons htx.outputs (lockScript_value_ok hcwf hamt) hflat.symm
   obtain ⟨os2, hos2, hf2⟩ := flatten_serTxOut_cons
-    (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (proofScript_value_ok ha.pkh1 hamt) hf1
+    (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (proofScript_value_ok hp1 hamt) hf1
   obtain ⟨os3, hos3, hf3⟩ := flatten_serTxOut_cons
     (fun o ho => htx.outputs o (by rw [hos1, hos2]; exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ ho)))
-    (proofScript_value_ok ha.pkh2 hamt) hf2
+    (proofScript_value_ok hp2 hamt) hf2
   refine ⟨os3.map outOf, ?_, ?_⟩
   · intro o ho
     obtain ⟨o', ho', rfl⟩ := List.mem_map.mp ho
@@ -98,7 +100,7 @@ theorem outs_commit_split {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (other
     have hm : (spendOf tx i f a other ancA ancB).mode = .split := by
       simp [spendOf, modeOf, kindOf_commit hpre hset, modeOfNext, hnty]
     simp only [absTx, hos1, hos2, hos3, List.map_cons, Spend.expectedOuts, hk, hm, outOf_lock hcwf,
-      outOf_proof ha.pkh1, outOf_proof ha.pkh2, tokenOf_commit_split tx i other ancA ancB hpre hset hnty hout hnz h32 hidx]
+      outOf_proof hp1, outOf_proof hp2, tokenOf_commit_split tx i other ancA ancB hpre hset hnty hout hnz h32 hidx]
     simp [spendOf, com2Of, hpkh2]
 
 theorem settleFieldsT_wf {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) : WF (settleFieldsT f a) :=

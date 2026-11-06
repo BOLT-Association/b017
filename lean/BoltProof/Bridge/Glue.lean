@@ -50,6 +50,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.RefineGp
 import BoltProof.Bridge.Glue.SimpleMulti.RefineMerge
 import BoltProof.Bridge.Glue.SimpleMulti.RebuiltB
 import BoltProof.Bridge.Glue.SimpleMulti.RefineMergeSettle
+import BoltProof.Bridge.Glue.SimpleMulti.Regress
 
 /-!
 # BoltProof.Bridge.Glue

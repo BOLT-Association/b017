@@ -44,12 +44,12 @@ leave, in an active arm, with the scriptCode's length a `fd` varint when there i
 `SpendEnforced` and runs on with the owner's signature check on top. -/
 theorem simpleMulti_sound {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
-    (hty : SmbType f.ty) (hnty : SmbType a.nty)
+    (hty : SmbType f.ty) (hnty : castToBool a.pre = true → SmbType a.nty)
     (hvar : castToBool a.pre = true → List.take 1 (List.drop 104 a.pre) = [0xfd])
     (h : run Eval.opExec env (SimpleMulti.suffix ++ k) t (St (f.stack ++ (a.stack ++ S)) A m C kk cs) = r)
     (hr : r.IsOk) : SpendEnforced env f a S cs ∧ Ends env a k t r C cs := by
   by_cases hpre : castToBool a.pre = true
-  · rcases hty with hty|hty|hty|hty|hty|hty <;> rcases hnty with hnty|hnty|hnty|hnty|hnty|hnty
+  · rcases hty with hty|hty|hty|hty|hty|hty <;> rcases hnty hpre with hnty|hnty|hnty|hnty|hnty|hnty
     · exact (refuse_20_20 he hact hpre (hvar hpre) hty hnty h hr).elim
     · have key := commit_20_21 he hact hpre (hvar hpre) hty hnty h hr
       simp (config := { decide := true }) only [SpendEnforced, hpre, hty, ↓reduceIte]

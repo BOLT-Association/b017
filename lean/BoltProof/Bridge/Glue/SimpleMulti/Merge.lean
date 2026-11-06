@@ -29,8 +29,10 @@ def mergeFields1 (f : Fields) (a : Args) : Fields :=
   { bal := a.nbc, balCommit := f.bal, pkh := a.i3, com := a.pkh1, com2 := zeros 20, ogp := f.parent, ty := a.nty,
     outIdx := [0], parent := a.i2, gp := a.i1, issuer := f.issuer }
 
-theorem mergeFields1_wf {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) : WF (mergeFields1 f a) :=
-  ⟨ha.nbc, hwf.bal, ha.i3, ha.pkh1, zeros_length 20, hwf.parent, ha.nty, rfl, ha.i2, ha.i1, hwf.issuer⟩
+theorem mergeFields1_wf {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (hnty : a.nty = [0x25])
+    (hidx : ¬ decode a.inIdx = 0) : WF (mergeFields1 f a) :=
+  ⟨ha.nbc (Or.inr hnty), hwf.bal, ha.i3 hnty hidx, ha.pkh1 (Or.inr (Or.inr hnty)), zeros_length 20, hwf.parent, ha.nty, rfl,
+    ha.i2 hnty, ha.i1 hnty, hwf.issuer⟩
 
 /-- The lock the second token input builds is the fungible lock of `mergeFields1`. -/
 theorem mergeLock1_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = lockScript f) :
@@ -44,7 +46,8 @@ theorem commitOuts_merge1 {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (
     {amt : Nat} (hval : preValue a.pre = le64 amt) (hnty : a.nty = [0x25]) (hidx : ¬ decode a.inIdx = 0) :
     expectedOuts a = serTxOut ⟨amt, lockScript (mergeFields1 f a)⟩ ++ serTxOut ⟨amt, proofScript a.pkh1⟩ := by
   rw [expectedOuts, ite_eq_right (by rw [hnty]; decide), ite_eq_right (by rw [hnty]; decide), ite_eq_left hnty,
-    ite_eq_right hidx, mergeLock1_eq hwf hsc, tokenOut_eq (mergeFields1_wf hwf ha) hval, proofOut_eq ha.pkh1 hval]
+    ite_eq_right hidx, mergeLock1_eq hwf hsc, tokenOut_eq (mergeFields1_wf hwf ha hnty hidx) hval,
+    proofOut_eq (ha.pkh1 (Or.inr (Or.inr hnty))) hval]
 
 /-- The fungible lock determines well-formed fields. -/
 theorem lockScript_inj {g g' : Fields} (hg : WF g) (hg' : WF g') (h : lockScript g = lockScript g') : g = g' := by
@@ -71,7 +74,8 @@ theorem merge_fields_eq {f f' : Fields} {a a' : Args} (hwf : WF f) (hwf' : WF f'
     commitFields f a a.nbc (zeros 20) a.i1 = mergeFields1 f' a' := by
   rw [commitOuts_merge0 hwf ha hsc hval hnty hidx, commitOuts_merge1 hwf' ha' hsc' hval' hnty' hidx'] at hout
   simp only [List.append_assoc] at hout
-  exact lock_of_serTxOut_prefix (commitFields_wf hwf ha ha.nbc (zeros_length 20) ha.i1) (mergeFields1_wf hwf' ha')
+  exact lock_of_serTxOut_prefix (commitFields_wf hwf ha (Or.inr (Or.inr hnty)) (ha.nbc (Or.inr hnty)) (zeros_length 20) (ha.i1 hnty))
+    (mergeFields1_wf hwf' ha' hnty' hidx')
     hout
 
 /-! ## The merge commit at the first token input, read by the model -/
@@ -102,11 +106,12 @@ theorem outs_commit_merge {tx : Tx} {i amt : Nat} {f f' : Fields} {a : Args} (op
     (hflat : expectedOuts a ++ a.chg = (tx.outputs.map serTxOut).flatten) (hhon : HonestOutputs tx 2) :
     ∃ change : List (Out Bytes), (∀ o ∈ change, o.isToken = false) ∧
       (absTx tx).outputs = (spendOf tx i f a (some (f', op)) ancA ancB).expectedOuts .fungible ++ change := by
-  have hcwf := commitFields_wf hwf ha ha.nbc (zeros_length 20) ha.i1 (a := a)
+  have hcwf := commitFields_wf hwf ha (Or.inr (Or.inr hnty)) (ha.nbc (Or.inr hnty)) (zeros_length 20) (ha.i1 hnty) (a := a)
+  have hp1 := ha.pkh1 (Or.inr (Or.inr hnty))
   rw [commitOuts_merge0 hwf ha hsc hval hnty hidx0, List.append_assoc] at hflat
   obtain ⟨os1, hos1, hf1⟩ := flatten_serTxOut_cons htx.outputs (lockScript_value_ok hcwf hamt) hflat.symm
   obtain ⟨os2, hos2, hf2⟩ := flatten_serTxOut_cons
-    (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (proofScript_value_ok ha.pkh1 hamt) hf1
+    (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (proofScript_value_ok hp1 hamt) hf1
   refine ⟨os2.map outOf, ?_, ?_⟩
   · intro o ho
     obtain ⟨o', ho', rfl⟩ := List.mem_map.mp ho
@@ -114,7 +119,7 @@ theorem outs_commit_merge {tx : Tx} {i amt : Nat} {f f' : Fields} {a : Args} (op
   · have hk : (spendOf tx i f a (some (f', op)) ancA ancB).kind = .commit := kindOf_commit hpre hset
     have hm : (spendOf tx i f a (some (f', op)) ancA ancB).mode = .merge := by
       simp [spendOf, modeOf, kindOf_commit hpre hset, modeOfNext, hnty]
-    simp only [absTx, hos1, hos2, List.map_cons, Spend.expectedOuts, hk, hm, outOf_lock hcwf, outOf_proof ha.pkh1,
+    simp only [absTx, hos1, hos2, List.map_cons, Spend.expectedOuts, hk, hm, outOf_lock hcwf, outOf_proof hp1,
       tokenOf_commit_merge tx i op ancA ancB hpre hset hnty hnbc hi1 hout hnz h32 hidx]
     simp [spendOf]
 
@@ -208,7 +213,7 @@ theorem other_merge_path {env : Env} {f f' : Fields} {a a' : Args} {S' : List By
     {X : Bytes} (hX : ∀ y, Hash.hash256 y = Hash.hash256 X → y = X)
     (hflat : expectedOuts a ++ a.chg = X) (hh' : preHashOutputs a'.pre = Hash.hash256 X) :
     settledTy f'.ty ∧ a'.nty = [0x25] ∧ ¬ decode a'.inIdx = 0 ∧ Enforced env f' a' cs' := by
-  have hg := commitFields_wf hwf ha ha.nbc (zeros_length 20) ha.i1 (a := a)
+  have hg := commitFields_wf hwf ha (Or.inr (Or.inr hnty)) (ha.nbc (Or.inr hnty)) (zeros_length 20) (ha.i1 hnty) (a := a)
   rw [commitOuts_merge0 hwf ha hsc hval hnty hidx, List.append_assoc] at hflat
   by_cases hset' : settledTy f'.ty
   · have hset'' : f'.ty = [0x20] ∨ f'.ty = [0x22] ∨ f'.ty = [0x24] := hset'
@@ -220,16 +225,18 @@ theorem other_merge_path {env : Env} {f f' : Fields} {a a' : Args} {S' : List By
     rcases hnt with h21 | h23 | h25
     · rw [commitOuts_transfer hwf' ha' hsc' hval' h21, List.append_assoc] at hflat'
       have := congrArg Fields.ty (lock_of_serTxOut_prefix
-        (commitFields_wf hwf' ha' (zeros_length 16) (zeros_length 20) (zeros_length 36)) hg hflat')
+        (commitFields_wf hwf' ha' (Or.inl h21) (zeros_length 16) (zeros_length 20) (zeros_length 36)) hg hflat')
       simp [commitFields, h21, hnty] at this
     · rw [commitOuts_split hwf' ha' hsc' hval' h23, List.append_assoc, List.append_assoc] at hflat'
       have := congrArg Fields.ty (lock_of_serTxOut_prefix
-        (commitFields_wf hwf' ha' ha'.nbc ha'.pkh2 (zeros_length 36)) hg hflat')
+        (commitFields_wf hwf' ha' (Or.inr (Or.inl h23)) (ha'.nbc (Or.inl h23)) (ha'.pkh2 h23) (zeros_length 36)) hg
+        hflat')
       simp [commitFields, h23, hnty] at this
     · by_cases hi' : decode a'.inIdx = 0
       · rw [commitOuts_merge0 hwf' ha' hsc' hval' h25 hi', List.append_assoc] at hflat'
         have := congrArg Fields.parent (lock_of_serTxOut_prefix
-          (commitFields_wf hwf' ha' ha'.nbc (zeros_length 20) ha'.i1) hg hflat')
+          (commitFields_wf hwf' ha' (Or.inr (Or.inr h25)) (ha'.nbc (Or.inr h25)) (zeros_length 20) (ha'.i1 h25)) hg
+          hflat')
         simp only [commitFields] at this
         exact absurd this.symm hdis
       · exact ⟨hset', h25, hi', henf'⟩

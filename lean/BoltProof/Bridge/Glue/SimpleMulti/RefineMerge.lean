@@ -48,9 +48,9 @@ theorem simpleMulti_refines_merge_commit (P : Prims Bytes) (tx : Tx) (i amt : Na
     (hv' : Eval.verifyScript params (txContext tx i' amt') scriptSig' (lockScript f') = .valid) :
     Accepts P .fungible (spendOf tx i f a
       (some (f', ⟨(inputAt tx i').prevHash, (inputAt tx i').prevIndex⟩)) none none) := by
-  obtain ⟨hse, hsig0, hpreimg, htypes⟩ := refine_run P tx i amt f a S scriptSig hwf hty hnty htx hi hres hS1 hv
+  obtain ⟨hse, hsig0, hpreimg, htypes⟩ := refine_run P tx i amt f a S scriptSig hwf hty (fun _ => hnty) htx hi hres hS1 hv
   obtain ⟨hse', -, hpreimg', htypes'⟩ :=
-    refine_run P tx i' amt' f' a' S' scriptSig' hwf' hty' hnty' htx hi' hres' hS1' hv'
+    refine_run P tx i' amt' f' a' S' scriptSig' hwf' hty' (fun _ => hnty') htx hi' hres' hS1' hv'
   have hmem : inputAt tx i ∈ tx.inputs := by simp [inputAt, List.getElem?_eq_getElem hi]
   have hmem' : inputAt tx i' ∈ tx.inputs := by simp [inputAt, List.getElem?_eq_getElem hi']
   obtain ⟨h32, hidx, -, -⟩ := htx.inputs _ hmem
@@ -90,7 +90,7 @@ theorem simpleMulti_refines_merge_commit (P : Prims Bytes) (tx : Tx) (i amt : Na
   have hhon := hres.honest hpre
   have hcount : expectedCount f a = 2 := by simp [expectedCount, hset, hmrg]
   rw [hcount] at hhon
-  refine accepts_of_facts P tx i f a _ none none hty hnty (fun _ h => hpar1 h) hgen hi hver
+  refine accepts_of_facts P tx i f a _ none none hty (fun _ => hnty) (fun _ h => hpar1 h) hgen hi hver
     (by rw [hres.agrees.h160]; exact henf.owner) hsig (by simp [hlast]) henf.issuer ?_
     (fun h => absurd h (by rw [hk]; decide)) (balOf_le henf.balHi) ?_ ?_ (fun h => by rw [hk] at h; cases h)
     (fun h => by rw [hk] at h; cases h) ?_ ?_ ?_ ?_ (fun h => by rw [hk] at h; cases h)

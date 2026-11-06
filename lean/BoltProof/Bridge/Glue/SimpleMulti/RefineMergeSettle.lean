@@ -81,7 +81,7 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
       (some (lockScript f))) scriptSig [] 0).2).stack = a.stack ++ S)
     (hv : Eval.verifyScript params (txContext tx i amt) scriptSig (lockScript f) = .valid) :
     Accepts P .fungible (spendOf tx i f a none (some G) (some GB)) := by
-  obtain ⟨hse, hsig0, hpreimg, htypes⟩ := refine_run P tx i amt f a S scriptSig hwf hty hnty htx hi hres hS1 hv
+  obtain ⟨hse, hsig0, hpreimg, htypes⟩ := refine_run P tx i amt f a S scriptSig hwf hty (fun _ => hnty) htx hi hres hS1 hv
   have hmem : inputAt tx i ∈ tx.inputs := by simp [inputAt, List.getElem?_eq_getElem hi]
   obtain ⟨h32, hidx, -, -⟩ := htx.inputs _ hmem
   have hpe := hpreimg hpre
@@ -174,7 +174,7 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
     have hcount : expectedCount f a = 1 := by
       rw [expectedCount, ite_eq_right hset, ite_eq_right (by rw [hmrg]; decide)]
     rw [hcount] at hhon; exact hhon
-  refine accepts_of_facts P tx i f a none (some G) (some GB) hty hnty (fun _ h => absurd h hset) hgen hi hver
+  refine accepts_of_facts P tx i f a none (some G) (some GB) hty (fun _ => hnty) (fun _ h => absurd h hset) hgen hi hver
     (by rw [hres.agrees.h160]; exact henf.owner) hsig (by simp [hlast]) henf.issuer ?_
     (fun h => absurd h (by rw [hk]; decide)) (balOf_le henf.balHi) (fun h => by rw [hk] at h; cases h)
     (fun h => by rw [hk] at h; cases h) (fun _ hm => by rw [hmode] at hm; cases hm) ?_ ?_ (fun _ h => by cases h)
