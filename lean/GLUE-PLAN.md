@@ -663,9 +663,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   script the rebuild assembles (`scA0`), and three outputs, the commit token (`lkA`), the pay-to-proof output and a
   P2PKH output. The run fixes the version's width and the first script's varint (`widthA_ver`, `widthA_vi0`, given
   the script is below 65536 bytes); the other widths the parse reads are pieces the bytes push without a size
-  check, and `WidthsA0` takes them as hypotheses. Next: the token output read as the grandparent token (`lkA` as
-  `lockScript` of the pieces), the anchor against `settledBalance`, the optional arms, and the weld into the
-  refinement.
+  check, and `WidthsA0` takes them as hypotheses.
+- **M5, the rebuilt token and the anchor:** `SimpleMulti/Anchor.lean` reads the rebuilt token output as the
+  grandparent token. With the pieces at their push widths (`LockWidthsA`) and the spend's own issuer push and
+  suffix, `lkA` is the fungible lock of `gpFieldsA` (`lkA_eq`); the parsed grandparent's first output is that
+  token and the two short outputs are not tokens, so the grandparent index the model names is 0 (`gpTxA0_token`).
+  The run's anchor is the model's `settledBalance` of that token at the index one below the unlock argument
+  `i5` (`anchorOK_settled`, all three cases: the merge sum, the split remainder or piece by the index, the
+  transfer balance), given the grandparent's two balances are non-negative script numbers, a lock-data condition
+  every covenant-built token meets. Next: the optional arms, then the weld into the refinement (`GpReal` for the
+  fungible family, the residual's piece widths and `i5`).
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
