@@ -688,6 +688,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   split flags; whether the bytes force those widths (through the grandparent's own structure) is §7's seventh
   question. Also `i5` is the co-spent proof output's index as well as the anchor's, so the residual's index
   assumption names both.
+- **M5, `l3_rebuild` for the transfer and split settles (no optional arm):** `SimpleMulti/L3.lean` states the
+  fungible `GpRealF` (a well-formed grandparent whose txid the token names, no second preimage of its
+  serialisation, the primitives' id, a token at the named index, a proof output just after the parent's index,
+  non-negative token balances) and proves `l3_settle_00`: from the first rebuild's facts and the prevouts
+  clause, the model's `l3_rebuild` for `spendOf … (some G) …`. The grandparent is the parsed transaction, so the
+  named index is 0 and the token is the pieces' (`gpTxA0_token`); the second outpoint `hashPrevouts` names is the
+  grandparent's txid with `i5`, a 32-bit word that reads as the parent's index plus one (`decode_le32_of_pos`),
+  where `GpRealF` puts the proof output; and the anchor is `settledBalance` at the parent's index. The lemma
+  takes, beyond `GpRealF` and `HonestPiecesB`, the index assumption on `i5` (four bytes, the parent's index plus
+  one) and that the spent token is not a genesis token, which the refinement has from `hgen`.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
