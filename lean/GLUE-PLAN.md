@@ -727,6 +727,17 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   its lock, and the lock fixes well-formed fields (`lockScript_inj`), so the first input's `nbc` is the second
   token's balance, its `i1` the second token's parent, its outpoint the second's `i2`, and the issuers are one.
   Next: the merge commit's refinement at the first input from both runs.
+- **M5, `simpleMulti_refines_merge_commit` (the refinement's third stage, first part):** a merge commit at its first
+  token input (`inputIndexN` zero) satisfies `Accepts .fungible` of `spendOf` with the other token's fields and
+  outpoint, given the second token input's run (`RefineMerge.lean`). `other_merge_path` derives the second input's
+  path from the shared outputs rather than assuming it: a settle's first output has a settled type
+  (`settle_first_not_merge`, all three settle modes and both ancestor arms via `settle_outputs_of`), a transfer or
+  split commit's its own type, and the merge's first-input path would name its own outpoint as the merged token's
+  parent, which the distinct-outpoints hypothesis excludes. So the other token is settle-typed, the interop
+  arguments are its balance and parent (`merge_fields_eq`), and `outs_commit_merge` reads the outputs as the
+  model's. The theorem assumes, beyond both inputs' `Residual`, distinct outpoints for the two inputs (the
+  consensus rule against duplicate inputs) and a preimage at the second input (§7's eighth question). Next: the
+  merge settle (the second rebuild and `l3_merge`), then the regression guards.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
