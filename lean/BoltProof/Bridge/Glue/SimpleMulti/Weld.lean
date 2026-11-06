@@ -1,5 +1,6 @@
 import BoltProof.Bridge.Glue.SimpleMulti.Abs
 import BoltProof.Bridge.Glue.SimpleMulti.Enforced
+import BoltProof.Bridge.Glue.Refine.Serial
 
 /-!
 # `SimpleMultiBOLT`: the welds
@@ -17,7 +18,9 @@ namespace BoltProof.Glue.SimpleMulti
 
 open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Gadget
 open BoltProof.Bridge.Generated
-open BoltProof.Glue.MinSimple (sc scLen preOutpoint)
+open BoltProof.Glue.MinSimple (sc scLen preOutpoint preValue proofScript outpointOf)
+open BoltProof.Glue.Serial
+open BsvScript.Tx BsvScript.Sighash
 
 theorem suffix_length : SimpleMulti.suffix.length = 4700 := by decide +kernel
 
@@ -126,5 +129,95 @@ theorem commitLock_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = loc
   simp only [commitLock, lockOf, scBalPush_of_sc hwf hsc, scPkhPush_of_sc hwf hsc, scParentPush_of_sc hwf hsc,
     scIssuerPush_of_sc hwf hsc, scSuffix_of_sc hwf hsc, lockScript, commitFields, List.append_assoc,
     List.cons_append, List.singleton_append, List.nil_append]
+
+/-! ## The outputs as serialised outputs -/
+
+theorem compactSize_4946 : compactSize 4946 = [253, 0x52, 0x13] := by decide
+theorem compactSize_29 : compactSize 29 = [29] := by decide
+theorem encode_4946 : encode ((4946 : Nat) : Int) = [0x52, 0x13] := by decide
+
+/-- A token output the covenant builds is the serialised output of its lock, worth the spent value. -/
+theorem tokenOut_eq {pre : Bytes} {g : Fields} (hwf : WF g) {amt : Nat} (hval : preValue pre = le64 amt) :
+    tokenOut pre (lockScript g) = serTxOut ⟨amt, lockScript g⟩ := by
+  simp only [tokenOut, serTxOut, serScript, lockScript_length_eq hwf, hval, compactSize_4946, encode_4946,
+    List.append_assoc, List.cons_append, List.singleton_append, List.nil_append]
+
+/-- A pay-to-proof output the covenant builds is the serialised proof output, worth the spent value. -/
+theorem proofOut_eq {pre pkh : Bytes} (hpkh : pkh.length = 20) {amt : Nat} (hval : preValue pre = le64 amt) :
+    proofOut pre pkh = serTxOut ⟨amt, proofScript pkh⟩ := by
+  have hl : (proofScript pkh).length = 29 := by simp [proofScript, hpkh]
+  simp only [serTxOut, serScript, hl, compactSize_29]
+  simp only [proofOut, hval, proofScript, List.append_assoc, List.cons_append, List.singleton_append,
+    List.nil_append]
+
+theorem zeros_length (n : Nat) : (zeros n).length = n := List.length_replicate
+
+/-- A transfer commit's outputs: the commit token, then the proof output to the recipient. -/
+theorem commitOuts_transfer {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (hsc : sc a.pre = lockScript f)
+    {amt : Nat} (hval : preValue a.pre = le64 amt) (hnty : a.nty = [0x21]) :
+    expectedOuts a = serTxOut ⟨amt, lockScript (commitFields f a (zeros 16) (zeros 20) (zeros 36))⟩ ++
+      serTxOut ⟨amt, proofScript a.pkh1⟩ := by
+  rw [expectedOuts, ite_eq_left hnty, commitLock_eq hwf hsc,
+    tokenOut_eq (commitFields_wf hwf ha (zeros_length 16) (zeros_length 20) (zeros_length 36)) hval,
+    proofOut_eq ha.pkh1 hval]
+
+/-- A split commit's outputs: the commit token carrying the piece and the second recipient, then the proof
+outputs to the two recipients. -/
+theorem commitOuts_split {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (hsc : sc a.pre = lockScript f)
+    {amt : Nat} (hval : preValue a.pre = le64 amt) (hnty : a.nty = [0x23]) :
+    expectedOuts a = serTxOut ⟨amt, lockScript (commitFields f a a.nbc a.pkh2 (zeros 36))⟩ ++
+      (serTxOut ⟨amt, proofScript a.pkh1⟩ ++ serTxOut ⟨amt, proofScript a.pkh2⟩) := by
+  rw [expectedOuts, ite_eq_right (by rw [hnty]; decide), ite_eq_left hnty, commitLock_eq hwf hsc,
+    tokenOut_eq (commitFields_wf hwf ha ha.nbc ha.pkh2 (zeros_length 36)) hval,
+    proofOut_eq ha.pkh1 hval, proofOut_eq ha.pkh2 hval, List.append_assoc]
+
+/-- A merge commit's outputs at the first token input: the commit token carrying the other token's balance and
+lineage, then the proof output to the recipient. -/
+theorem commitOuts_merge0 {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (hsc : sc a.pre = lockScript f)
+    {amt : Nat} (hval : preValue a.pre = le64 amt) (hnty : a.nty = [0x25]) (hidx : decode a.inIdx = 0) :
+    expectedOuts a = serTxOut ⟨amt, lockScript (commitFields f a a.nbc (zeros 20) a.i1)⟩ ++
+      serTxOut ⟨amt, proofScript a.pkh1⟩ := by
+  rw [expectedOuts, ite_eq_right (by rw [hnty]; decide), ite_eq_right (by rw [hnty]; decide), ite_eq_left hnty, ite_eq_left hidx,
+    commitLock_eq hwf hsc, tokenOut_eq (commitFields_wf hwf ha ha.nbc (zeros_length 20) ha.i1) hval,
+    proofOut_eq ha.pkh1 hval]
+
+/-! ## The new tokens are the model's -/
+
+theorem decode_zeros_16 : decode (zeros 16) = 0 := by decide
+theorem decode_zeros_36 : decode (zeros 36) = 0 := by decide
+theorem com2Of_zeros : com2Of (zeros 20) = [] := by simp [com2Of, zeros, zeroPKH]
+theorem outpointOf_zeros_36 : outpointOf (zeros 36) = none := by simp [outpointOf, decode_zeros_36]
+
+/-- The outpoint the preimage names is this input's: the model's spent outpoint, as `outpointOf` reads it. -/
+theorem outpointOf_preOutpoint (tx : Tx) (i : Nat) {a : Args} (hout : preOutpoint a.pre = serOutPoint (inputAt tx i))
+    (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0) (h32 : (inputAt tx i).prevHash.length = 32)
+    (hidx : (inputAt tx i).prevIndex < 2 ^ 32) :
+    outpointOf (preOutpoint a.pre) = some ⟨(inputAt tx i).prevHash, (inputAt tx i).prevIndex⟩ := by
+  rw [hout, outpointOf, ite_eq_right hnz, (serOutPoint_inj h32 hidx).1, (serOutPoint_inj h32 hidx).2]
+
+/-- A commit with a preimage from a settled token: the model's kind and mode. -/
+theorem kindOf_commit {f : Fields} {a : Args} (hpre : castToBool a.pre = true) (hset : settledTy f.ty) :
+    kindOf f a = .commit := by simp [kindOf, hpre, hset]
+
+/-- The token a transfer commit creates is the model's `commitToken` of the abstracted spend. -/
+theorem tokenOf_commit_transfer (tx : Tx) (i : Nat) {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
+    (ancA ancB : Option Tx) (hpre : castToBool a.pre = true) (hset : settledTy f.ty) (hnty : a.nty = [0x21])
+    (hout : preOutpoint a.pre = serOutPoint (inputAt tx i)) (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0)
+    (h32 : (inputAt tx i).prevHash.length = 32) (hidx : (inputAt tx i).prevIndex < 2 ^ 32) :
+    tokenOf (commitFields f a (zeros 16) (zeros 20) (zeros 36)) = (spendOf tx i f a other ancA ancB).commitToken := by
+  simp only [tokenOf, commitFields, spendOf, Spend.commitToken, modeOf, kindOf_commit hpre hset, modeOfNext, hnty,
+    outpointOf_preOutpoint tx i hout hnz h32 hidx, com2Of_zeros, balOf, decode_zeros_16, outpointOf_zeros_36,
+    Mode.commitType]
+  simp
+
+/-- The token a split commit creates is the model's `commitToken` of the abstracted spend. -/
+theorem tokenOf_commit_split (tx : Tx) (i : Nat) {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
+    (ancA ancB : Option Tx) (hpre : castToBool a.pre = true) (hset : settledTy f.ty) (hnty : a.nty = [0x23])
+    (hout : preOutpoint a.pre = serOutPoint (inputAt tx i)) (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0)
+    (h32 : (inputAt tx i).prevHash.length = 32) (hidx : (inputAt tx i).prevIndex < 2 ^ 32) :
+    tokenOf (commitFields f a a.nbc a.pkh2 (zeros 36)) = (spendOf tx i f a other ancA ancB).commitToken := by
+  simp only [tokenOf, commitFields, spendOf, Spend.commitToken, modeOf, kindOf_commit hpre hset, modeOfNext, hnty,
+    outpointOf_preOutpoint tx i hout hnz h32 hidx, balOf, outpointOf_zeros_36, Mode.commitType]
+  simp
 
 end BoltProof.Glue.SimpleMulti
