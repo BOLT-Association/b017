@@ -333,6 +333,27 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    than assume it. For the fungible family (M5) the bytes do force it: `inputIndexN` is only an argument, and
    `hashPrevouts` begins with this outpoint on every path except a merge commit's second token input, where it
    begins with the other token's outpoint `i2` and this one follows (input 1).
+4. Undefined next types off genesis (M5). The parity check only requires `nextTxoType` to flip the spent type's
+   parity, so a settled token's spend may name any odd byte. Probing a commit to `0x27` or `0x29`, the run leaves
+   the six protocol types' paths at the output builder (suffix 1112, where it tests the zero `ogp` push) and then
+   runs on a misaligned stack: given the facts it needs (`decode (36 :: x) ≠ 0`, `castToBool (encode 39)`), it
+   tests the scriptCode's own suffix bytes as flags at 550 and 580. Whether any such run succeeds is open; the
+   SDK probe vector `smb_probe_type27_commit` (an honest-shaped transaction) fails with `SCRIPT_ERR_EQUALVERIFY`.
+   Settling it needs the driver to split on an undecided condition and close the failing branches. Until then
+   `simpleMulti_sound` covers the six protocol next types and states the restriction.
+5. Settle mode against commit type (M5, finding). `Accepts.settle_mode` says a settle's mode is the one the spent
+   commit type encodes, and the model's settle outputs follow that mode; the bytes build the settle outputs from
+   `nextTxoType` alone. Probing the six mismatched pairs (a commit-typed token settled into another mode's settled
+   type), every run reaches the end, with the outputs of the mode `nextTxoType` names. Without a grandparent the
+   issuer guard requires the issuer's signature, and the issuer can mint at will. With a grandparent, a merge
+   settle's second rebuild requires `hash256(rebuilt B) = take 32 ogp` (`rebuildB_k_fact1`), and a transfer or split
+   commit writes `ogp` as zeros, so settling either as a merge needs a transaction hashing to zero (excluded by
+   preimage resistance, which the plan's collision-resistance assumption does not cover). The remaining mismatches
+   lose value (a merge commit settled as a transfer or split drops the merged-in balance) or move it between the
+   owner's own recipients (a split commit settled as a transfer pays `com` everything); none creates value, and only
+   the owner can sign them. The refinement needs a decision as for Finding 1: a scope hypothesis that the settle
+   mode matches the commit type, a model change (settle outputs by `nextTxoType`, `settle_mode` dropped), or a
+   report as a covenant defect.
 3. The split settle's flags (§Progress, M5): with `pkh1` or `i2` non-empty the bytes accept a split settle whose
    two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
    whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
@@ -560,8 +581,15 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   `i3`, its own parent as `ogp`, the other's outpoint `i2` as parent and its parent `i1` as grandparent, index 0) and
   whose `hashPrevouts` begins with the other token's outpoint (`prevoutsOf`: `i2 ++ outpoint`). With honest interop
   arguments both inputs pin the same merged output; with dishonest ones they must still agree on one `hashOutputs`.
-  The nine commit theorems case on the argument; none takes an unlock-argument hypothesis. Next for M5: the genesis
-  variants, the melt, `simpleMulti_sound`, and the refinement.
+  The nine commit theorems case on the argument; none takes an unlock-argument hypothesis.
+- **M5, genesis and the melt:** the runs never branch on the parent; only the prologue's issuer guard reads it, as
+  the implication every structure carries (`issuer : GuardF f → …`). The settle theorems therefore drop their
+  parent hypothesis (the gate stack keeps the guard flag symbolic, `encode (if decode f.parent = 0 then 1 else 0)`),
+  and with the commit theorems, which never had one, they cover genesis tokens. The melt (`SimpleMulti/Melt.lean`)
+  skips the spend arm and runs the melt branch, about a thousand instructions with the arm skipped; it reads no type,
+  so one theorem `melt` covers every spent type, cased on the guard's two conditions, with `EnforcedMelt` (the
+  guard, the owner's key hash, the sighash byte, the encodings). Next for M5: the mismatched settle pairs (a commit
+  type settling into another mode's settled type), `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
