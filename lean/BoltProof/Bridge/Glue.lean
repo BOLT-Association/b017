@@ -36,6 +36,8 @@ import BoltProof.Bridge.Glue.SimpleMulti.Lock
 import BoltProof.Bridge.Glue.SimpleMulti.Abs
 import BoltProof.Bridge.Glue.SimpleMulti.Weld
 import BoltProof.Bridge.Glue.SimpleMulti.Facts
+import BoltProof.Bridge.Glue.SimpleMulti.Residual
+import BoltProof.Bridge.Glue.SimpleMulti.Outs
 
 /-!
 # BoltProof.Bridge.Glue
