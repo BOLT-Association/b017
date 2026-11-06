@@ -641,6 +641,19 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   non-merge token carries no other lineage, the balance is in range (a melt checks none), a split's second recipient
   is not the zero hash. Next: the settles with a grandparent (the rebuilds, the balance anchor, `GpReal`), then the
   merge commit's two-input argument and the merge settle, then the regression guards.
+- **M5, the second stage's design (settles with a grandparent):** the NFT route carries over for most of
+  `l3_rebuild`. `GpReal` names the real grandparent `G`, `NoSecondPreimage (serTx G)` equates the first rebuild's
+  bytes with `serTx G`, `spendOf` takes `some G` as the first ancestor, and the prevouts weld places the
+  grandparent's proof output among the inputs. The fungible clause is the balance anchor: the spent balance against
+  `settledBalance` of `G`'s token at the grandparent index. The covenant compares the pieces it pushed into the
+  rebuilt token output, so the refinement must read `G`'s output fields back from those bytes. A probe of the rebuilt
+  bytes with neither optional arm (`Scratch/RebuiltA.lean`, about a minute) shows the layout: the version, the input
+  count, the grandparent's inputs (the first with its scriptSig, whose length prefixes the rebuild's facts pin through
+  `num2bin` witnesses), then the outputs: the token output from the rebuild's pieces, the proof output, the lock time.
+  The next step is a decode lemma: `decodeTx` of the rebuilt bytes, under the rebuild's width facts, returns a
+  transaction whose first output is the token of those pieces; with `decodeTx (serTx G) = some G` this gives the
+  anchor's fields. Where a piece's width is not among the facts, the lemma takes it as a hypothesis and the plan
+  records it, rather than weakening the clause.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
