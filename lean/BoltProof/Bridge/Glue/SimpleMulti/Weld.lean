@@ -1,5 +1,6 @@
 import BoltProof.Bridge.Glue.SimpleMulti.Abs
 import BoltProof.Bridge.Glue.SimpleMulti.Enforced
+import BoltProof.Bridge.Glue.SimpleMulti.Settle
 import BoltProof.Bridge.Glue.Refine.Serial
 
 /-!
@@ -219,5 +220,143 @@ theorem tokenOf_commit_split (tx : Tx) (i : Nat) {f : Fields} {a : Args} (other 
   simp only [tokenOf, commitFields, spendOf, Spend.commitToken, modeOf, kindOf_commit hpre hset, modeOfNext, hnty,
     outpointOf_preOutpoint tx i hout hnz h32 hidx, balOf, outpointOf_zeros_36, Mode.commitType]
   simp
+
+/-! ## The settled tokens -/
+
+theorem beNat_cons_zero (l : Bytes) : beNat (0 :: l) = beNat l := by
+  simp [beNat, List.foldl]
+
+theorem beNat_replicate_append (k : Nat) (l : Bytes) : beNat (List.replicate k 0 ++ l) = beNat l := by
+  induction k with
+  | zero => simp
+  | succ k ih => rw [List.replicate_succ, List.cons_append, beNat_cons_zero, ih]
+
+/-- Zero bytes appended to a non-negative script number keep its value: the zeros become leading digits of the
+big-endian magnitude and the sign stays clear. -/
+theorem decode_append_zeros (x : Int) (hx : 0 ≤ x) (k : Nat) : decode (encode x ++ List.replicate k 0) = x := by
+  cases k with
+  | zero => simp [decode_encode]
+  | succ k =>
+    have hde := decode_encode x
+    unfold decode at hde ⊢
+    rw [List.reverse_append, List.reverse_replicate, List.replicate_succ, List.cons_append]
+    simp only [decodeRev] at hde ⊢
+    rcases hrev : (encode x).reverse with _ | ⟨t, rest⟩
+    · rw [hrev] at hde; simp at hde
+      have h0 := beNat_replicate_append k ([] : Bytes)
+      simp only [List.append_nil] at h0
+      simp only [beNat] at h0
+      simp [beNat, ← hde, h0]
+    · rw [hrev] at hde
+      by_cases ht : 128 ≤ t
+      · simp only [ht, decide_true, ↓reduceIte] at hde
+        have : x = 0 := by omega
+        subst this; simp [encode] at hrev
+      · have ht' : t % 128 = t := Nat.mod_eq_of_lt (by omega)
+        simp only [ht, decide_false, Bool.false_eq_true, ↓reduceIte, ht'] at hde
+        simp [beNat_cons_zero, beNat_replicate_append, ← hde]
+
+theorem padN16_length {x : Bytes} (h : x.length ≤ 16) : (padN 16 x).length = 16 := by
+  rw [padN_eq]; simp; omega
+
+theorem decode_padN16_encode (x : Int) (hx : 0 ≤ x) : decode (padN 16 (encode x)) = x := by
+  rw [padN_eq]; exact decode_append_zeros x hx _
+
+
+/-- The fields of the token a transfer settle creates: the committed recipient owns the old balance, the
+commitments and the other lineage are cleared, the type is `0x20`, this outpoint is the parent. -/
+def settleFieldsT (f : Fields) (a : Args) : Fields :=
+  { bal := f.bal, balCommit := zeros 16, pkh := f.com, com := zeros 20, com2 := zeros 20, ogp := zeros 36,
+    ty := [0x20], outIdx := [inIdxByte a], parent := preOutpoint a.pre, gp := f.parent, issuer := f.issuer }
+
+/-- The first token a split settle creates: the remainder `bal - balCommit` to the first recipient. -/
+def splitFieldsA (f : Fields) (a : Args) : Fields :=
+  { settleFieldsT f a with bal := padN 16 (encode (decode f.bal - decode f.balCommit)), ty := [0x22] }
+
+/-- The second token a split settle creates: the committed balance to the second recipient, its index byte by
+`i2`. -/
+def splitFieldsB (f : Fields) (a : Args) : Fields :=
+  { settleFieldsT f a with bal := f.balCommit, pkh := f.com2, ty := [0x22], outIdx := [splitIdx a] }
+
+/-- The token a merge settle creates: the sum `bal + balCommit` to the recipient. -/
+def mergeFieldsS (f : Fields) (a : Args) : Fields :=
+  { settleFieldsT f a with bal := padN 16 (encode (decode f.bal + decode f.balCommit)), ty := [0x24] }
+
+theorem settleOuts_20_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = lockScript f) :
+    settleOuts_20 f a = tokenOut a.pre (lockScript (settleFieldsT f a)) := by
+  simp only [settleOuts_20, tokenOut, lockScript, settleFieldsT, scPush_bal hwf hsc, scPush_com hwf hsc,
+    scPush_parent hwf hsc, scPush_issuer hwf hsc, scSuffix_of_sc hwf hsc, scSuffix, List.append_assoc,
+    List.cons_append, List.singleton_append, List.nil_append, List.length_cons]
+
+theorem splitOutA_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = lockScript f) :
+    splitOutA f a = tokenOut a.pre (lockScript (splitFieldsA f a)) := by
+  simp only [splitOutA, tokenOut, lockScript, splitFieldsA, settleFieldsT, scPush_com hwf hsc,
+    scPush_parent hwf hsc, scPush_issuer hwf hsc, scSuffix_of_sc hwf hsc, scSuffix, List.append_assoc,
+    List.cons_append, List.singleton_append, List.nil_append, List.length_cons]
+
+theorem splitOutB_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = lockScript f)
+    (hlen : (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16) :
+    splitOutB f a = tokenOut a.pre (lockScript (splitFieldsB f a)) := by
+  simp only [splitOutB, tokenOut, lockScript, splitFieldsB, settleFieldsT, scPush_balCommit hwf hsc,
+    scPush_com hwf hsc, scPush_com2 hwf hsc, scPush_parent hwf hsc, scPush_issuer hwf hsc, scSuffix_of_sc hwf hsc,
+    scSuffix, List.append_assoc, List.cons_append, List.singleton_append, List.nil_append, List.length_cons,
+    List.length_append, hlen, hwf.bal, hwf.balCommit, hwf.com, hwf.com2, hwf.parent, hwf.issuer, zeros_length,
+    List.length_singleton]
+
+theorem settleOuts_24_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = lockScript f) :
+    settleOuts_24 f a = tokenOut a.pre (lockScript (mergeFieldsS f a)) := by
+  simp only [settleOuts_24, tokenOut, lockScript, mergeFieldsS, settleFieldsT, scPush_com hwf hsc,
+    scPush_parent hwf hsc, scPush_issuer hwf hsc, scSuffix_of_sc hwf hsc, scSuffix, List.append_assoc,
+    List.cons_append, List.singleton_append, List.nil_append, List.length_cons]
+
+/-- A settle with a preimage of a commit-typed token: the model's kind. -/
+theorem kindOf_settle {f : Fields} {a : Args} (hpre : castToBool a.pre = true) (hset : ¬ settledTy f.ty) :
+    kindOf f a = .settle := by simp [kindOf, hpre, hset]
+
+/-- The token a transfer settle creates is the model's `settleToken` at output 0. -/
+theorem tokenOf_settle_transfer (tx : Tx) (i : Nat) {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
+    (ancA ancB : Option Tx) (hty : f.ty = [0x21])
+    (hout : preOutpoint a.pre = serOutPoint (inputAt tx i)) (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0)
+    (h32 : (inputAt tx i).prevHash.length = 32) (hidx : (inputAt tx i).prevIndex < 2 ^ 32) :
+    tokenOf (settleFieldsT f a) = (spendOf tx i f a other ancA ancB).settleToken .fungible 0 := by
+  simp only [tokenOf, settleFieldsT, spendOf, Spend.settleToken, outpointOf_preOutpoint tx i hout hnz h32 hidx,
+    com2Of_zeros, balOf, decode_zeros_16, outpointOf_zeros_36, Token.settledBalance, Fam.settleOf, hty,
+    Fam.modeOfCommitType, zeroPKH, zeros]
+  simp
+
+/-- The tokens a split settle creates are the model's `settleToken`s at outputs 0 and 1, the remainder bounded
+below by zero and the second recipient not the zero hash. -/
+theorem tokenOf_settle_split (tx : Tx) (i : Nat) {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
+    (ancA ancB : Option Tx) (hty : f.ty = [0x23]) (hbc : 0 ≤ decode f.balCommit)
+    (hrem : 0 ≤ decode f.bal - decode f.balCommit) (hcom2 : f.com2 ≠ zeroPKH)
+    (hout : preOutpoint a.pre = serOutPoint (inputAt tx i)) (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0)
+    (h32 : (inputAt tx i).prevHash.length = 32) (hidx : (inputAt tx i).prevIndex < 2 ^ 32) :
+    tokenOf (splitFieldsA f a) = (spendOf tx i f a other ancA ancB).settleToken .fungible 0 ∧
+      tokenOf (splitFieldsB f a) = (spendOf tx i f a other ancA ancB).settleToken .fungible 1 := by
+  have hsub : (decode f.bal - decode f.balCommit).toNat = (decode f.bal).toNat - (decode f.balCommit).toNat := by
+    omega
+  constructor
+  · simp only [tokenOf, splitFieldsA, settleFieldsT, spendOf, Spend.settleToken,
+      outpointOf_preOutpoint tx i hout hnz h32 hidx, com2Of_zeros, balOf, decode_zeros_16, outpointOf_zeros_36,
+      Token.settledBalance, Fam.settleOf, hty, Fam.modeOfCommitType, decode_padN16_encode _ hrem, hsub]
+    simp [zeroPKH, zeros]
+  · simp only [tokenOf, splitFieldsB, settleFieldsT, spendOf, Spend.settleToken,
+      outpointOf_preOutpoint tx i hout hnz h32 hidx, com2Of_zeros, balOf, decode_zeros_16, outpointOf_zeros_36,
+      Token.settledBalance, Fam.settleOf, hty, Fam.modeOfCommitType, com2Of, hcom2]
+    simp [zeroPKH, zeros]
+
+/-- The token a merge settle creates is the model's `settleToken` at output 0. -/
+theorem tokenOf_settle_merge (tx : Tx) (i : Nat) {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
+    (ancA ancB : Option Tx) (hty : f.ty = [0x25]) (hb : 0 ≤ decode f.bal) (hbc : 0 ≤ decode f.balCommit)
+    (hout : preOutpoint a.pre = serOutPoint (inputAt tx i)) (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0)
+    (h32 : (inputAt tx i).prevHash.length = 32) (hidx : (inputAt tx i).prevIndex < 2 ^ 32) :
+    tokenOf (mergeFieldsS f a) = (spendOf tx i f a other ancA ancB).settleToken .fungible 0 := by
+  have hadd : (decode f.bal + decode f.balCommit).toNat = (decode f.bal).toNat + (decode f.balCommit).toNat := by
+    omega
+  simp only [tokenOf, mergeFieldsS, settleFieldsT, spendOf, Spend.settleToken,
+    outpointOf_preOutpoint tx i hout hnz h32 hidx, com2Of_zeros, balOf, decode_zeros_16, outpointOf_zeros_36,
+    Token.settledBalance, Fam.settleOf, hty, Fam.modeOfCommitType,
+    decode_padN16_encode (decode f.bal + decode f.balCommit) (by omega), hadd]
+  simp [zeroPKH, zeros]
 
 end BoltProof.Glue.SimpleMulti
