@@ -1,6 +1,6 @@
 # Closing the glue gap: a plan for a symbolic proof that the covenant bytes enforce `Accepts`
 
-Status: **M1–M4 delivered, M5 in progress (the five fungible fragments are reached), M6–M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
+Status: **M1–M6 delivered, M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
 bsv-script-lean v1.2.0 (`6139161c`). Everything marked *(trace)* comes from a symbolic trace of the shipped
 suffix bytes in `BoltProof/Bridge/Generated/Bytes.lean` and is confirmed by execution or by a block lemma
 before it is relied on; everything else was checked against the source.
@@ -787,18 +787,28 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   AuthBOLT lifecycle off the vectors (the first unlock push as `authOrMiscData`), checks the abstraction, and
   applies `authBolt_refines` to the first commit, the second settle (which rebuilds the first commit) and the melt
   with every decidable hypothesis discharged. Next: SerialBOLT.
-- **M6, SerialBOLT (in progress, the probes):** SerialBOLT is further from MinSimpleBOLT than AuthBOLT. Its lock has
-  eight pushes (`genesisOutpoint`, a variable-width `mintData`, then MinSimple's six), and of its 98 chunks only the
-  `OP_PUSH_TX` block (62–446, byte-identical, so `pushTx_shape` carries over), the null tail and the melt tail are
-  MinSimple's. The prologue (0–30) drops `genesisOutpoint`, requires `mintData` empty after genesis, and parks the
-  `mintData` push's width (`len + 1`, or `len + 2` above 75 bytes, at most 255) on the alt stack, and every later
-  scriptCode read is offset by `37 +` that width. The probes so far: the run branches on that width (the symbolic
-  driver does not read the emptiness fact, so each path cases on `len ≤ 75`, the post-genesis `> 75` arm being
-  refuted by it); the new token's `genesisOutpoint` is this outpoint at genesis (where the spent lock's must be 36
-  zero bytes) and the spent lock's own afterwards, its `mintData` is `OP_0`, its lock 1473 bytes; and the rebuild
-  branches once more, on whether the great-grandparent token's parent (piece 14) is zero, which decides how the
-  rebuilt grandparent's input lock carries `mintData`. The path set is MinSimple's eleven times the width arm, with
-  the rebuild paths split on piece 14.
+- **M6, SerialBOLT (`serialBolt_sound`, `serialBolt_refines`, guards):** SerialBOLT is further from MinSimpleBOLT
+  than AuthBOLT. Its lock has eight pushes (`genesisOutpoint`, a variable-width `mintData`, then MinSimple's six),
+  and of its 98 chunks only the `OP_PUSH_TX` block (62–446, byte-identical, so `pushTx_shape` carries over), the
+  null tail and the melt tail are MinSimple's. The prologue (0–30) drops `genesisOutpoint`, requires `mintData`
+  empty after genesis, and parks the `mintData` push's width on the alt stack (`len + 1`, or `len + 2` above 75
+  bytes, at most 255), and every later scriptCode read is offset by `37 +` that width. Three data-dependent
+  conditionals are read as one step each (`SerialBolt/Arms.lean`), so the path set stays MinSimple's shape (twelve:
+  the melt without a grandparent now splits on genesis, since the prologue reads `parent`): the width itself
+  (`mintWidth_shape`, an `if` on the length that every offset carries as `mintW`), and in the rebuild the
+  grandparent's input lock's `genesisOutpoint` push (null when piece 14, that lock's own parent, is null:
+  `genesisPushOf`) and its `mintData` push (`OP_0`, a direct push, `OP_PUSHDATA1/2/4` by the length of piece 18:
+  `mintPushOf`). The new token's `genesisOutpoint` is this outpoint at genesis (where the spent lock's must be null,
+  `Enforced.genesisNull`) and the spent lock's own afterwards, its `mintData` is `OP_0`, its lock 1473 bytes. A
+  pitfall worth recording: the rebuild computes the input lock's length word twice, so `fact` gave both witnesses
+  the same hypothesis and the rebuilt-hash fact then failed to match deep in a long `++` chain, a failing
+  unification that blew up rather than failed; `num2bin_dedup` identifies equal `OP_NUM2BIN` words first. The
+  refinement is AuthBOLT's with the eight-push `lockOf` (`mintPush`, and `decodeLock` accepting only what `lockOf`
+  writes), two push inversions of any width (`inv_push_n`, `inv_pushdata1`), the scriptCode reads past `mintW`,
+  and the rebuild's seven widths; nothing in the model reads `genesisOutpoint` or `mintData`, so the residual is
+  AuthBOLT's. `SerialBolt/Regress.lean` reads the honest SerialBOLT lifecycle (whose mint carries an empty
+  `mintData`) and applies `serialBolt_refines` to the genesis commit, the second settle and the melt with every
+  decidable hypothesis discharged. M6 is complete; next, M7.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under

@@ -19,6 +19,16 @@ import BoltProof.Bridge.Glue.AuthBolt.Facts
 import BoltProof.Bridge.Glue.AuthBolt.Weld
 import BoltProof.Bridge.Glue.AuthBolt.Refine
 import BoltProof.Bridge.Glue.AuthBolt.Regress
+import BoltProof.Bridge.Glue.SerialBolt.Arms
+import BoltProof.Bridge.Glue.SerialBolt.Spec
+import BoltProof.Bridge.Glue.SerialBolt.PushTx
+import BoltProof.Bridge.Glue.SerialBolt.Paths
+import BoltProof.Bridge.Glue.SerialBolt.Sound
+import BoltProof.Bridge.Glue.SerialBolt.Abs
+import BoltProof.Bridge.Glue.SerialBolt.Facts
+import BoltProof.Bridge.Glue.SerialBolt.Weld
+import BoltProof.Bridge.Glue.SerialBolt.Refine
+import BoltProof.Bridge.Glue.SerialBolt.Regress
 import BoltProof.Bridge.Glue.Refine.Verify
 import BoltProof.Bridge.Glue.Refine.Serial
 import BoltProof.Bridge.Glue.Refine.Parse
@@ -87,4 +97,9 @@ rules; the few evaluator-trusted identities live in `BoltProof.Bridge` (`Bridge/
   lemmas; `Enforced.lean`, `Settle.lean` and `Melt.lean` state what each spend shape enforces;
   `Paths/`, `Settle/`, `Melt.lean` and `Refute.lean` are the path theorems and the refused type pairs;
   `Sound.lean` assembles them into `simpleMulti_sound`.
+* `AuthBolt/` and `SerialBolt/`: the two other NFT locks (M6), each MinSimple's files over its own bytes:
+  `Spec`, `PushTx`, `Paths/` and `Sound` (`authBolt_sound`, `serialBolt_sound`, the `reaches_*` corollaries),
+  `Abs`, `Facts`, `Weld` and `Refine` (`authBolt_refines`, `serialBolt_refines`), `Regress` on their vectors.
+  `SerialBolt/Arms.lean` reads the prologue's `mintData` width and the rebuild's two data-dependent pushes as one
+  step each.
 -/
