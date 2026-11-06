@@ -179,13 +179,14 @@ theorem lockWidthsA_gate {f : Fields} {a : Args} (S : List Bytes) (hp : HonestPi
       gateT_item145, gateT_item144, gateT_item143, gateT_item142]
   exacts [hp.bal, hp.balCommit, hp.pkh0, hp.com, hp.com2, hp.ogp, hp.ty, hp.outIdx, hp.parent, hp.gp]
 
-/-- The widths `decode_rebuiltA` reads, on a transfer or split settle: from the run's facts, the spent lock
+/-- The widths `decode_rebuiltA` reads, on a settle: from the run's facts, the spent lock
 and preimage, and the honest pieces. -/
 theorem widthsA_gate {f : Fields} {a : Args} {S : List Bytes} {t0 : Bytes} {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes}
     (hwf : WF f) (hsc : sc a.pre = lockScript f) (hop : 104 ≤ a.pre.length)
     (hval : (List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre)).length = 8)
-    (hnty : a.nty = [0x20] ∨ a.nty = [0x22])
+    (hnty : a.nty = [0x20] ∨ a.nty = [0x22] ∨ a.nty = [0x24])
     (hlen : a.nty = [0x22] → (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16)
+    (hlen24 : a.nty = [0x24] → (padN 16 (encode (decode f.bal + decode f.balCommit))).length = 16)
     (hp : HonestPiecesB a.psB)
     (h2 : rebuildA_fact2 t0 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
     (h3 : rebuildA_fact3 t0 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (h5 : rebuildA_fact5 t0 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
@@ -226,7 +227,7 @@ theorem widthsA_gate {f : Fields} {a : Args} {S : List Bytes} {t0 : Bytes} {w10 
   · rw [gateT_item153]; exact varIntOf_encode_small hp.sc1.1 hp.sc1.2
   · rw [gateT_item152]; exact hp.sq1
   · rw [gateT_item30]; exact hval
-  · rw [gateT_item0 S hwf hsc hop hnty hlen, hlk]; exact varIntOf_fd (a := 0x52) (b := 0x13) (by decide)
+  · rw [gateT_item0 S hwf hsc hop hnty hlen hlen24, hlk]; exact varIntOf_fd (a := 0x52) (b := 0x13) (by decide)
   · exact gateT_item12 f a S
   · rw [gateT_item141]; exact hp.pkh
   · intro h
