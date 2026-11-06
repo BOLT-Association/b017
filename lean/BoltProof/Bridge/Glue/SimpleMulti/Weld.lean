@@ -108,21 +108,25 @@ def commitFields (f : Fields) (a : Args) (balCommit com2 ogp : Bytes) : Fields :
   { bal := f.bal, balCommit := balCommit, pkh := f.pkh, com := a.pkh1, com2 := com2, ogp := ogp, ty := a.nty,
     outIdx := [inIdxByte a], parent := preOutpoint a.pre, gp := f.parent, issuer := f.issuer }
 
-/-- The widths of the unlocking arguments the commit copies into the new lock unchecked. -/
+/-- The widths of the unlocking arguments the commit copies into the new lock unchecked, each where the next type
+reads it: the committed balance on a split or merge, the recipient on any commit, the second recipient on a split,
+the interop slots on a merge (the other token's owner only at the second token input). An argument a spend does
+not read is left to the spender (the honest spends leave it empty). -/
 structure ArgsWF (a : Args) : Prop where
-  nbc : a.nbc.length = 16
-  pkh1 : a.pkh1.length = 20
-  pkh2 : a.pkh2.length = 20
+  nbc : a.nty = [0x23] ∨ a.nty = [0x25] → a.nbc.length = 16
+  pkh1 : a.nty = [0x21] ∨ a.nty = [0x23] ∨ a.nty = [0x25] → a.pkh1.length = 20
+  pkh2 : a.nty = [0x23] → a.pkh2.length = 20
   nty : a.nty.length = 1
-  i1 : a.i1.length = 36
-  i2 : a.i2.length = 36
-  i3 : a.i3.length = 20
+  i1 : a.nty = [0x25] → a.i1.length = 36
+  i2 : a.nty = [0x25] → a.i2.length = 36
+  i3 : a.nty = [0x25] → ¬ decode a.inIdx = 0 → a.i3.length = 20
   outpoint : (preOutpoint a.pre).length = 36
 
 theorem commitFields_wf {f : Fields} {a : Args} {balCommit com2 ogp : Bytes} (hwf : WF f) (ha : ArgsWF a)
+    (hcm : a.nty = [0x21] ∨ a.nty = [0x23] ∨ a.nty = [0x25])
     (hb : balCommit.length = 16) (hc : com2.length = 20) (ho : ogp.length = 36) :
     WF (commitFields f a balCommit com2 ogp) :=
-  ⟨hwf.bal, hb, hwf.pkh, ha.pkh1, hc, ho, ha.nty, rfl, ha.outpoint, hwf.parent, hwf.issuer⟩
+  ⟨hwf.bal, hb, hwf.pkh, ha.pkh1 hcm, hc, ho, ha.nty, rfl, ha.outpoint, hwf.parent, hwf.issuer⟩
 
 /-- The commit lock the covenant builds is the fungible lock of `commitFields`. -/
 theorem commitLock_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = lockScript f) (balCommit com2 ogp : Bytes) :
@@ -159,8 +163,8 @@ theorem commitOuts_transfer {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a)
     expectedOuts a = serTxOut ⟨amt, lockScript (commitFields f a (zeros 16) (zeros 20) (zeros 36))⟩ ++
       serTxOut ⟨amt, proofScript a.pkh1⟩ := by
   rw [expectedOuts, ite_eq_left hnty, commitLock_eq hwf hsc,
-    tokenOut_eq (commitFields_wf hwf ha (zeros_length 16) (zeros_length 20) (zeros_length 36)) hval,
-    proofOut_eq ha.pkh1 hval]
+    tokenOut_eq (commitFields_wf hwf ha (Or.inl hnty) (zeros_length 16) (zeros_length 20) (zeros_length 36)) hval,
+    proofOut_eq (ha.pkh1 (Or.inl hnty)) hval]
 
 /-- A split commit's outputs: the commit token carrying the piece and the second recipient, then the proof
 outputs to the two recipients. -/
@@ -169,8 +173,8 @@ theorem commitOuts_split {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (h
     expectedOuts a = serTxOut ⟨amt, lockScript (commitFields f a a.nbc a.pkh2 (zeros 36))⟩ ++
       (serTxOut ⟨amt, proofScript a.pkh1⟩ ++ serTxOut ⟨amt, proofScript a.pkh2⟩) := by
   rw [expectedOuts, ite_eq_right (by rw [hnty]; decide), ite_eq_left hnty, commitLock_eq hwf hsc,
-    tokenOut_eq (commitFields_wf hwf ha ha.nbc ha.pkh2 (zeros_length 36)) hval,
-    proofOut_eq ha.pkh1 hval, proofOut_eq ha.pkh2 hval, List.append_assoc]
+    tokenOut_eq (commitFields_wf hwf ha (Or.inr (Or.inl hnty)) (ha.nbc (Or.inl hnty)) (ha.pkh2 hnty) (zeros_length 36)) hval,
+    proofOut_eq (ha.pkh1 (Or.inr (Or.inl hnty))) hval, proofOut_eq (ha.pkh2 hnty) hval, List.append_assoc]
 
 /-- A merge commit's outputs at the first token input: the commit token carrying the other token's balance and
 lineage, then the proof output to the recipient. -/
@@ -179,8 +183,9 @@ theorem commitOuts_merge0 {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (
     expectedOuts a = serTxOut ⟨amt, lockScript (commitFields f a a.nbc (zeros 20) a.i1)⟩ ++
       serTxOut ⟨amt, proofScript a.pkh1⟩ := by
   rw [expectedOuts, ite_eq_right (by rw [hnty]; decide), ite_eq_right (by rw [hnty]; decide), ite_eq_left hnty, ite_eq_left hidx,
-    commitLock_eq hwf hsc, tokenOut_eq (commitFields_wf hwf ha ha.nbc (zeros_length 20) ha.i1) hval,
-    proofOut_eq ha.pkh1 hval]
+    commitLock_eq hwf hsc, tokenOut_eq (commitFields_wf hwf ha (Or.inr (Or.inr hnty)) (ha.nbc (Or.inr hnty)) (zeros_length 20)
+      (ha.i1 hnty)) hval,
+    proofOut_eq (ha.pkh1 (Or.inr (Or.inr hnty))) hval]
 
 /-! ## The new tokens are the model's -/
 

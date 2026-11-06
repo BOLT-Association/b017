@@ -751,6 +751,21 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   refinement covers every spend path: the commits (`simpleMulti_refines_basic`, `simpleMulti_refines_merge_commit`),
   the settles (`simpleMulti_refines_basic`, `simpleMulti_refines_settle_gp`, `simpleMulti_refines_merge_settle`)
   and the melt. Next: the regression guards (D6) for SimpleMulti.
+- **M5, the regression and vacuity guards (D6) for SimpleMulti:** `SimpleMulti/Regress.lean` (namespace
+  `BoltProof.Bridge.Glue.SimpleMulti`, `native_decide`) reads the honest lifecycles' spends off the vectors and
+  checks the abstraction reads each as the model expects (kind, mode, sighash byte, output shapes, the expected
+  outputs in front; a merge commit's first input with the other token input), and applies each refinement stage to
+  a real spend with every decidable hypothesis discharged on the data: two transfer commits and a split commit and a
+  settle without a grandparent and the melt (first stage), the transfer and split settles that rebuild a commit
+  (second stage), the merge commit from both inputs and the merge settle that rebuilds both lineages (third stage).
+  What remains of each is the residual alone: `Residual` per token input and, of the real grandparents, their
+  serialisations' second-preimage freedom and the primitives' ids. So `HonestPiecesB`, the index arguments and the
+  rest of `GpRealF`/`GpRealB` hold of the honest spends. The guards caught two vacuous hypotheses, now fixed:
+  `ArgsWF` asked fixed widths of every interop argument, but an honest spend leaves the ones its mode does not read
+  empty (a transfer commit has no `nbc`, `pkh2` or interop slots, a settle reads none), so its fields are now
+  conditional on the next type (and `i3` on the second token input); and the next type was asked to be one of the
+  six on a melt, which does not read it, so `simpleMulti_sound`, `accepts_of_facts` and the first stage now ask it
+  only with a preimage. M5 is complete.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under

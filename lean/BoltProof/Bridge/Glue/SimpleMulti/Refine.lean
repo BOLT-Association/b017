@@ -36,7 +36,7 @@ theorem balOf_le {b : Bytes} (h : decode b ≤ maxBalance) : balOf b ≤ Fam.max
 /-- **`SimpleMultiBOLT` refines `Accepts`, first stage.** -/
 theorem simpleMulti_refines_basic (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : Args)
     (S : List Bytes) (scriptSig : Bytes) (hwf : WF f) (ha : castToBool a.pre = true → ArgsWF a)
-    (hty : SmbType f.ty) (hnty : SmbType a.nty)
+    (hty : SmbType f.ty) (hnty : castToBool a.pre = true → SmbType a.nty)
     (hnm : f.ty ≠ [0x25] ∧ a.nty ≠ [0x25]) (hgp0 : ¬ settledTy f.ty → decode f.gp = 0)
     (hgen : decode f.parent = 0 → settledTy f.ty) (hogp : decode f.ogp = 0)
     (hbal : 0 ≤ decode f.bal ∧ decode f.bal ≤ maxBalance)
@@ -111,7 +111,7 @@ theorem simpleMulti_refines_basic (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f :
     obtain ⟨-, hsc, hver', hprev, hout, hval, hhout, -⟩ :=
       preimage_fields (lockScript f) (by rw [lockScript_length_eq hwf]; decide) tx i amt h32
     rw [← hpe] at hsc hver' hprev hout hval hhout
-    obtain ⟨hpar1, hpar2⟩ := types_of_run he (by decide) hty hnty hpre' (hvar hpre') hsuf hok0
+    obtain ⟨hpar1, hpar2⟩ := types_of_run he (by decide) hty (hnty hpre') hpre' (hvar hpre') hsuf hok0
     have hA := ha hpre'
     have hhon := hres.honest hpre'
     by_cases hset : settledTy f.ty
@@ -128,7 +128,7 @@ theorem simpleMulti_refines_basic (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f :
       have hver : 2 ≤ tx.version := two_le_of_decode_serVersion _ htx.version (by rw [← hver']; exact henf.version)
       have hnt : a.nty = [0x21] ∨ a.nty = [0x23] := by
         have := hpar1 hset
-        rcases hnty with h | h | h | h | h | h <;> simp_all [settledTy]
+        rcases hnty hpre' with h | h | h | h | h | h <;> simp_all [settledTy]
       have hmode : modeOf f a = (if a.nty = [0x23] then .split else .transfer) := by
         simp only [modeOf, hk, ↓reduceIte, modeOfNext]
         rcases hnt with h | h <;> simp [h]
@@ -172,7 +172,7 @@ theorem simpleMulti_refines_basic (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f :
       have hver : 2 ≤ tx.version := two_le_of_decode_serVersion _ htx.version (by rw [← hver']; exact henf.version)
       have hrel := hpar2 hset
       have htn : (f.ty = [0x21] ∧ a.nty = [0x20]) ∨ (f.ty = [0x23] ∧ a.nty = [0x22]) := by
-        rcases hty with h | h | h | h | h | h <;> rcases hnty with g | g | g | g | g | g <;> simp_all [settledTy]
+        rcases hty with h | h | h | h | h | h <;> rcases hnty hpre' with g | g | g | g | g | g <;> simp_all [settledTy]
       have hmode : modeOf f a = (if f.ty = [0x23] then .split else .transfer) := by
         have hkc : kindOf f a ≠ .commit := by rw [hk]; decide
         simp only [modeOf, hkc, ↓reduceIte]

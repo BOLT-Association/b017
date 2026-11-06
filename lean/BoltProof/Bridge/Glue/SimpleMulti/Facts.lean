@@ -38,7 +38,7 @@ theorem issuerMustSign_iff {f : Fields} : (tokenOf f).issuerMustSign .fungible �
 /-- Everything `Accepts` needs of `spendOf`, from the facts the bytes establish. -/
 theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a : Args)
     (other : Option (Fields × Outpoint Bytes)) (ancA ancB : Option Tx)
-    (hty : SmbType f.ty) (hnty : SmbType a.nty)
+    (hty : SmbType f.ty) (hnty : castToBool a.pre = true → SmbType a.nty)
     (hpar : castToBool a.pre = true → settledTy f.ty → ¬ settledTy a.nty)
     (hgen : decode f.parent = 0 → settledTy f.ty)
     (hin : i < tx.inputs.length)
@@ -88,7 +88,7 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
     have hns := hpar hpre h0
     have hk : kindOf f a = .commit := h
     simp only [spendOf, modeOf, hk, ↓reduceIte]
-    rcases hnty with hn | hn | hn | hn | hn | hn
+    rcases hnty hpre with hn | hn | hn | hn | hn | hn
     · exact absurd (Or.inl hn) hns
     · simp [hn, modeOfNext, Mode.commitType, Fam.commitTypes]
     · exact absurd (Or.inr (Or.inl hn)) hns
