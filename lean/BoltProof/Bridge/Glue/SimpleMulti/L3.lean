@@ -3,14 +3,15 @@ import BoltProof.Bridge.Glue.SimpleMulti.Residual
 import BoltProof.Bridge.Glue.Refine.Weld
 
 /-!
-# `Accepts.l3_rebuild` for the transfer and split settles (no optional arm)
+# `Accepts.l3_rebuild` for the transfer and split settles
 
 A settle of a token with a grandparent rebuilds the grandparent, hashes it against the grandparent's txid,
 anchors the spent balance to the grandparent token's, and names the co-spent proof output in `hashPrevouts`.
 Under the fungible `GpRealF` (the grandparent is a real, well-formed transaction whose serialisation has no
 second preimage, whose token output the token names, with a proof output after the parent's index and
 non-negative balances), the honest piece widths and the index assumption on `i5`, those facts are the model's
-`l3_rebuild` (`l3_settle_00`), for the rebuild with neither optional arm.
+`l3_rebuild` (`l3_settle`), for each of the rebuild's optional arms (a merge-commit grandparent's second token
+input, a split-commit grandparent's second proof output).
 -/
 
 set_option autoImplicit false
@@ -55,17 +56,18 @@ theorem rebuildA_fact0_eq (t0 : Bytes) (T : List Bytes) (w10 w11 w12 w13 w14 w17
       AnchorOK (if item T 145 = [37] then [1] else []) (item T 145) (encode (decode (item T 150)))
         (encode (decode (item T 151))) (encode (decode (item T 46))) (item T 61) := rfl
 
-/-- **`l3_rebuild`, a transfer or split settle with neither optional arm.** -/
-theorem l3_settle_00 {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} {S : List Bytes} {G : Tx}
+/-- **`l3_rebuild`, a transfer or split settle.** -/
+theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} {S : List Bytes} {G : Tx}
     {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes}
     (other : Option (Fields × Outpoint Bytes)) (ancB : Option Tx)
     (hwf : WF f) (hsc : sc a.pre = lockScript f) (hop : 104 ≤ a.pre.length)
     (hval : (List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre)).length = 8)
     (hnty : a.nty = [0x20] ∨ a.nty = [0x22])
     (hlen : a.nty = [0x22] → (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16)
-    (hp : HonestPiecesB a.psB) (h140 : decode a.psB.p3 = 0) (h182 : decode a.psB.p45 = 0)
+    (hp : HonestPiecesB a.psB)
     (h0 : rebuildA_fact0 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
     (h1 : rebuildA_fact1 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
+    (h2 : rebuildA_fact2 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
     (h3 : rebuildA_fact3 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
     (h5 : rebuildA_fact5 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
     (h6 : rebuildA_fact6 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
@@ -94,17 +96,17 @@ theorem l3_settle_00 {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Arg
     simp [outpointOf, hgp0] at hgp; exact hgp.symm
   subst hgpeq
   -- the grandparent is the parsed transaction
-  have hw := widthsA0_gate hwf hsc hop hval hnty hlen hp h3 h5 h6 h7 h8 h9 h11 h12
-  have hGeq := gp_eq_gpTxA0 h1 h140 h182 hw hG.wf hG.nsp hG.txid
+  have hw := widthsA_gate hwf hsc hop hval hnty hlen hp h2 h3 h5 h6 h7 h8 h9 h11 h12
+  have hGeq := gp_eq_gpTxA h1 hw hG.wf hG.nsp hG.txid
   have h15 : item (gateT f a S) 15 = 33 :: f.issuer := by rw [gateT_item15]; exact scPush_issuer hwf hsc
   have h14 : item (gateT f a S) 14 = SimpleMulti.suffix := by rw [gateT_item14]; exact scSuffix_of_sc hwf hsc
   have hl := lockWidthsA_gate (f := f) S hp
   obtain ⟨t, ht⟩ := hG.token
   have ht' := ht
   rw [hGeq] at ht'
-  obtain ⟨hv0, htt⟩ := gpTxA0_token hw hl hwf.issuer h15 h14 _ t ht'
+  obtain ⟨hv0, htt⟩ := gpTxA_token hw hl hwf.issuer h15 h14 _ t ht'
   -- the anchor: the grandparent token's balances are non-negative
-  have hlk : (gpTxA0 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs[0]? =
+  have hlk : (gpTxA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs[0]? =
       some (outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S))) := rfl
   have hmem0 : outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S)) ∈ G.outputs := by
     rw [hGeq]; exact List.mem_of_getElem? hlk

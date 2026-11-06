@@ -705,6 +705,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   Beyond `Residual` the theorem assumes `ResidualGp`: `GpRealF`, `HonestPiecesB`, and `i5` as four bytes reading
   as the parent's index plus one. Next: the optional arms (a second input, a second proof output), then the merge
   commit's two inputs and the merge settle, then the regression guards.
+- **M5, the rebuild's optional arms:** the grandparent of a transfer or split settle's token can be any commit,
+  so both of the first rebuild's optional arms occur in honest lineages: a split-commit grandparent has a second
+  proof output (the piece at depth 140 is its key hash, and the output count is four), a merge-commit grandparent a
+  second token input (the piece at depth 182 is its outpoint, with its own unlocking script `scA2`, and the input
+  count is three). `Rebuilt.lean` now lays the bytes out for all four combinations (`rebuiltA_00` … `rebuiltA_11`)
+  and reads them as one transaction with the optional input and output present when their flags are (`gpTxA`,
+  `decode_rebuiltA`, under `WidthsA`, whose arm fields are conditional on the flags); the run fixes the second
+  script's varint as well (`widthA_vi2`, fact 2), bounded through the pieces (`scA2_length_lt`).
+  `HonestPiecesB` gains the arms' widths, `gpTxA_token`, `widthsA_gate`, `gp_eq_gpTxA` and `l3_settle` replace
+  their base-case versions, and `simpleMulti_refines_settle_gp` no longer takes the flags as hypotheses.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
