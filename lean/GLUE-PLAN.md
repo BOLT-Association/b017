@@ -738,6 +738,19 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   model's. The theorem assumes, beyond both inputs' `Residual`, distinct outpoints for the two inputs (the
   consensus rule against duplicate inputs) and a preimage at the second input (§7's eighth question). Next: the
   merge settle (the second rebuild and `l3_merge`), then the regression guards.
+- **M5, `simpleMulti_refines_merge_settle` (the refinement's third stage, second part):** a merge settle of a token
+  with a grandparent satisfies `Accepts .fungible` of `spendOf` with both real ancestors (`RefineMergeSettle.lean`).
+  `l3_settle` now covers every settle type and takes the first rebuild's co-spent outpoint as a hypothesis, so each
+  caller reads it from its own `hashPrevouts` layout (`coSpent_second`, `coSpent_third`): a merge settle's names both
+  lineages' co-spent outpoints, the other lineage's first when the spent lock's index is not zero. The model's
+  `l3_merge` asks of the second lineage only the ancestor's id, its token output and a co-spent proof output, so the
+  second rebuild needs no parse: its hash check ties the co-spent outpoint's txid to `otherGrandparent`
+  (`RebuiltB.lean` names the hashed bytes), and `GpRealB` assumes the rest (the ancestor's id, its token at the
+  named index, a proof output at the index the fourth interop slot names). The merge settle without a grandparent
+  is not a case: a merge commit is refused at genesis, so every merged token has one. With this, the fungible
+  refinement covers every spend path: the commits (`simpleMulti_refines_basic`, `simpleMulti_refines_merge_commit`),
+  the settles (`simpleMulti_refines_basic`, `simpleMulti_refines_settle_gp`, `simpleMulti_refines_merge_settle`)
+  and the melt. Next: the regression guards (D6) for SimpleMulti.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under

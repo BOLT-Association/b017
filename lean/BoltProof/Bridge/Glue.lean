@@ -48,6 +48,8 @@ import BoltProof.Bridge.Glue.SimpleMulti.L3
 import BoltProof.Bridge.Glue.SimpleMulti.Refine
 import BoltProof.Bridge.Glue.SimpleMulti.RefineGp
 import BoltProof.Bridge.Glue.SimpleMulti.RefineMerge
+import BoltProof.Bridge.Glue.SimpleMulti.RebuiltB
+import BoltProof.Bridge.Glue.SimpleMulti.RefineMergeSettle
 
 /-!
 # BoltProof.Bridge.Glue
