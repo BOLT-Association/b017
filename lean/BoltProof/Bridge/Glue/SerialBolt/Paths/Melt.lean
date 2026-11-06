@@ -22,7 +22,7 @@ open BoltProof.Glue.MinSimple (reached_of_append)
 open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Gadget
 open BoltProof.Bridge.Generated
 
-/-- A melt of a commit-typed token at genesis: the issuer guard holds. -/
+/-- A melt of a type-`0x00` token at genesis: the issuer guard holds. -/
 theorem melt_commit_genesis {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hty : f.ty = [0x00]) (hpar : decode f.parent = 0) (hpre : castToBool a.pre = false)
@@ -35,7 +35,7 @@ theorem melt_commit_genesis {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut
   serial_norm h
   exact ⟨⟨(by fact), fun hp => absurd hpar hp, fun _ => (by fact), (by fact), (by fact), (by fact), (by fact)⟩, _, _, _, _, h⟩
 
-/-- A melt of a commit-typed token after genesis: no guard. -/
+/-- A melt of a type-`0x00` token after genesis: no guard. -/
 theorem melt_commit_later {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hty : f.ty = [0x00]) (hpar : ¬ decode f.parent = 0) (hpre : castToBool a.pre = false)
@@ -48,7 +48,7 @@ theorem melt_commit_later {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} 
   serial_norm h
   exact ⟨⟨(by fact), fun _ => (by fact), fun hG => absurd hG (not_guard_commit hty hpar), (by fact), (by fact), (by fact), (by fact)⟩, _, _, _, _, h⟩
 
-/-- A melt at genesis of a settle-typed token without a grandparent: the issuer guard holds. -/
+/-- A melt at genesis of a type-`0x21` token without a grandparent: the issuer guard holds. -/
 theorem melt_settle_noGp_genesis {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hty : f.ty = [0x21]) (hpar : decode f.parent = 0) (hgp : decode f.gp = 0) (hpre : castToBool a.pre = false)
@@ -61,7 +61,7 @@ theorem melt_settle_noGp_genesis {env : Env} (he : EnvOK env) {k t : Bytes} {r :
   serial_norm h
   exact ⟨⟨(by fact), fun hp => absurd hpar hp, fun _ => (by fact), (by fact), (by fact), (by fact), (by fact)⟩, _, _, _, _, h⟩
 
-/-- A melt after genesis of a settle-typed token without a grandparent: the issuer guard holds. -/
+/-- A melt after genesis of a type-`0x21` token without a grandparent: the issuer guard holds. -/
 theorem melt_settle_noGp_later {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hty : f.ty = [0x21]) (hpar : ¬ decode f.parent = 0) (hgp : decode f.gp = 0) (hpre : castToBool a.pre = false)
@@ -74,7 +74,7 @@ theorem melt_settle_noGp_later {env : Env} (he : EnvOK env) {k t : Bytes} {r : G
   serial_norm h
   exact ⟨⟨(by fact), fun _ => (by fact), fun _ => (by fact), (by fact), (by fact), (by fact), (by fact)⟩, _, _, _, _, h⟩
 
-/-- A melt of a settle-typed token at genesis with a grandparent: the issuer guard holds. -/
+/-- A melt of a type-`0x21` token at genesis with a grandparent: the issuer guard holds. -/
 theorem melt_settle_genesis {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hty : f.ty = [0x21]) (hpar : decode f.parent = 0) (hgp : ¬ decode f.gp = 0) (hpre : castToBool a.pre = false)
@@ -87,7 +87,7 @@ theorem melt_settle_genesis {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut
   serial_norm h
   exact ⟨⟨(by fact), fun hp => absurd hpar hp, fun _ => (by fact), (by fact), (by fact), (by fact), (by fact)⟩, _, _, _, _, h⟩
 
-/-- A melt of a settle-typed token after genesis with a grandparent: no guard. -/
+/-- A melt of a type-`0x21` token after genesis with a grandparent: no guard. -/
 theorem melt_settle_later {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f : Fields} {a : Args}
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (hty : f.ty = [0x21]) (hpar : ¬ decode f.parent = 0) (hgp : ¬ decode f.gp = 0) (hpre : castToBool a.pre = false)

@@ -1,9 +1,12 @@
 import BoltProof.Core
+import BoltProof.Bridge
 
 /-!
-Axiom audit for Layer 1. `lake env lean AxiomCheck.lean` prints the axioms each main theorem
+Axiom audit for Layer 1 and the glue. `lake env lean AxiomCheck.lean` prints the axioms each main theorem
 depends on; `scripts/lean-axiom-check.mjs` fails CI if anything beyond `propext`,
-`Classical.choice` and `Quot.sound` appears here.
+`Classical.choice` and `Quot.sound` appears here. The glue's theorems (`BoltProof.Glue.*`, below the protocol
+theorems) are symbolic and held to the same rule; the evaluator-trusted guards beside them
+(`BoltProof.Bridge.Glue.*`) are audited with the rest of Layer 2.
 -/
 
 open BoltProof
@@ -27,3 +30,36 @@ open BoltProof
 #print axioms Run.t5_proof_gating
 #print axioms Run.t5_balance_anchor
 #print axioms Run.t5_fabricated_hop_excluded
+
+-- The glue (`lean/GLUE-PLAN.md`): what each shipped suffix enforces on every input (`*_sound`), the proved fragments
+-- it reaches (`reaches_*`), and the refinement of a valid spend to `Accepts` (`*_refines`).
+#print axioms Glue.MinSimple.minSimple_sound
+#print axioms Glue.MinSimple.reaches_nftTypeSel
+#print axioms Glue.MinSimple.reaches_nullTail
+#print axioms Glue.MinSimple.minSimple_refines
+#print axioms Glue.MinSimple.accepts_of_real
+#print axioms Glue.MinSimple.real_presented
+#print axioms Glue.MinSimple.real_ownership
+#print axioms Glue.MinSimple.real_no_keyless_spend
+#print axioms Glue.MinSimple.real_state_machine
+#print axioms Glue.MinSimple.real_value_conserved
+#print axioms Glue.SimpleMulti.reaches_parityCheck
+#print axioms Glue.SimpleMulti.reaches_boundCheck_610
+#print axioms Glue.SimpleMulti.reaches_boundCheck_621
+#print axioms Glue.SimpleMulti.reaches_mergeGuard
+#print axioms Glue.SimpleMulti.reaches_splitGuard
+#print axioms Glue.SimpleMulti.reaches_mergeSettle
+#print axioms Glue.SimpleMulti.reaches_splitSettle
+#print axioms Glue.SimpleMulti.simpleMulti_sound
+#print axioms Glue.SimpleMulti.simpleMulti_refines_basic
+#print axioms Glue.SimpleMulti.simpleMulti_refines_settle_gp
+#print axioms Glue.SimpleMulti.simpleMulti_refines_merge_commit
+#print axioms Glue.SimpleMulti.simpleMulti_refines_merge_settle
+#print axioms Glue.AuthBolt.authBolt_sound
+#print axioms Glue.AuthBolt.reaches_nftTypeSel
+#print axioms Glue.AuthBolt.reaches_nullTail
+#print axioms Glue.AuthBolt.authBolt_refines
+#print axioms Glue.SerialBolt.serialBolt_sound
+#print axioms Glue.SerialBolt.reaches_nftTypeSel
+#print axioms Glue.SerialBolt.reaches_nullTail
+#print axioms Glue.SerialBolt.serialBolt_refines

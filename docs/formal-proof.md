@@ -130,7 +130,7 @@ exactly what they establish — no more.
 **Methodology.** What follows is a rigorous *hand* proof, paired with an executable test suite
 (§9) that builds real transactions and runs them through the actual `@bsv/sdk` Script
 interpreter, and with a **Lean 4 development** under [`lean/`](../lean/README.md) that
-machine-checks it in two layers:
+machine-checks it in two layers, the second of them two ways:
 
 1. **The theorems are proved from the covenant interface.** Lemmas 1–7 are stated in Lean as the
    constraints the covenant imposes on a spend (`Accepts`, `lean/BoltProof/Model/Covenant.lean`),
@@ -145,11 +145,23 @@ machine-checks it in two layers:
    reject at exactly the input these lemmas name — are registered with the kernel
    (`lean/BoltProof/Bridge/`, via `native_decide`). The covenant suffixes reasoned about are
    shown to hash to the scanner's fingerprints.
+3. **The shipped bytes are run symbolically, for every input.** For each of the four covenants the
+   Lean development runs the compiled suffix symbolically from the stack the unlocking script leaves
+   (`lean/BoltProof/Bridge/Glue/`, planned in `lean/GLUE-PLAN.md`): it proves what each suffix
+   enforces whenever it does not fail, that the run reaches each fragment proved at the byte level
+   with the stack that proof assumes, and that a spend the consensus rules judge valid satisfies the
+   interface once read into the model. These theorems use only the three standard axioms.
 
-What this does **not** establish: that the compiled covenant enforces the interface on *every*
-input. Layer 2 is evidence on the transactions it covers (138 inputs at the time of writing), not
-a symbolic proof over the 5 KB bytecode; that fidelity gap, and Assumption 4, remain the trusted
-part. `lean/README.md` states the boundary precisely. The tests remain strong evidence over the
+What this does **not** establish, precisely: the refinement in point 3 is per spend and rests on
+assumptions it states once. They are cryptographic (the OP_PUSH_TX signature binds the preimage,
+second-preimage freedom of what the spend hashes), the lineage link that the grandparent a token names
+is the real commit two steps back (which reading a chain of real spends as a run discharges, the open
+composition step), and three interface clauses the bytes do not enforce and that are not security
+properties (melt outputs, the change blob, the melt's version); the fungible family adds four more,
+each an open question in `lean/GLUE-PLAN.md` §7 (the six protocol next types, the rebuild's piece
+widths, the anchor index, a merge's other input presenting a preimage). Layer 2 remains evidence on the
+transactions it covers (148 inputs at the time of writing), and Assumption 4 is still trusted.
+`lean/README.md` states the boundary precisely. The tests remain strong evidence over the
 cases they cover (including raw-byte counterfeits that *must* be rejected), but a passing suite
 demonstrates the covered branches; it is not a proof of the absence of a covenant bug in an
 uncovered branch.
@@ -320,16 +332,22 @@ key must equal the embedded `issuerPubKey`.
 
 **Proof.** The covenant derives `isGenesis = (parentOutpoint == ∅)` - a token is a genesis iff it is
 **parentless** (`MSBolt.std.sx:93`, `SimpleMultiBolt.sx:297`) - and under it asserts
-`issuerPubKey == pubKey` (`SimpleMultiBolt.sx:298`). In the fungible `SimpleMultiBolt` this is the
-**only** issuer check, and it fires when the *spent* token is parentless, i.e. on the spend of `T(0)`,
-which **is** the first commit: the issuer must sign the first commit because the first commit spends
-the genesis, not because of a separate flag. (That first commit may not be a merge —
-`SimpleMultiBolt.sx:299`.) The NFT family additionally derives an `is2ndTx` flag and re-asserts the
-issuer on the first settle as well (`MinSimpleBolt.sx:83-88`). In both families the check is lifted thereafter, enabling ordinary
-transfers. ∎
+`issuerPubKey == pubKey` (`SimpleMultiBolt.sx:298`). It fires when the *spent* token is parentless,
+i.e. on the spend of `T(0)`, which **is** the first commit: the issuer must sign the first commit
+because the first commit spends the genesis. (That first commit may not be a merge —
+`SimpleMultiBolt.sx:299`.) Both families also re-assert the issuer on the first settle, the spend of a
+token without a grandparent: the NFT family through its `is2ndTx` flag (`MinSimpleBolt.sx:83-88`), the
+fungible `SimpleMultiBolt` by testing `parentOutpoint == ∅ ∨ grandparentOutpoint == ∅` (static suffix
+bytes 0–29, which also refuse a merge there). In both families the check is lifted thereafter, enabling
+ordinary transfers. ∎
 
 > **Correction (2026-09-02).** Earlier text described the `is2ndTx` flag as present in
 > `SimpleMultiBolt`; it is not. The conclusion of the lemma is unchanged for both families.
+>
+> **Correction (2026-11-06).** The 2026-09-02 correction was itself wrong: `SimpleMultiBolt` does
+> re-assert the issuer on the spend of a token without a grandparent, as above. The Lean development
+> proves this over the shipped bytes (`Enforced.issuer` in `simpleMulti_sound`,
+> `lean/BoltProof/Bridge/Glue/SimpleMulti/`). The conclusion of the lemma is unchanged.
 
 ### Lemma 6 (Balance Determinism, fungible)
 The output balance is a deterministic function of the input balance(s), computed with 16-byte
