@@ -26,6 +26,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.Regions
 import BoltProof.Bridge.Glue.SimpleMulti.Enforced
 import BoltProof.Bridge.Glue.SimpleMulti.Paths
 import BoltProof.Bridge.Glue.SimpleMulti.Settle
+import BoltProof.Bridge.Glue.SimpleMulti.Melt
 
 /-!
 # BoltProof.Bridge.Glue
