@@ -6,8 +6,8 @@ import BoltProof.Bridge.Glue.SimpleMulti.L3
 
 The second stage of the refinement (`lean/GLUE-PLAN.md`, M5): a transfer or split settle of a token with a
 grandparent that the shipped lock accepts is a spend `Accepts .fungible` admits, read through `spendOf` with the
-real grandparent as the first ancestor, for the rebuild with neither optional arm (the grandparent has one
-token input and no second proof output: the second piece set's flags at depths 3 and 45 are zero). Beyond the
+real grandparent as the first ancestor, whatever commit the grandparent was (a transfer, a split with its
+second proof output, a merge with its second token input: the rebuild's two optional arms). Beyond the
 first stage's `Residual` it assumes `ResidualGp`: the grandparent is real (`GpRealF`), the second piece set has
 the widths of the fields it stands for (`HonestPiecesB`), and the fifth interop slot is the parent's output
 index plus one as a 32-bit word (the anchor's index, §7's sixth question). `refine_run` is the run prefix both
@@ -86,7 +86,7 @@ theorem refine_run (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : A
   exact ⟨hse, hsig0, hpreimg, fun hpre => types_of_run he (by decide) hty hnty hpre (hvar hpre) hsuf hok0⟩
 
 /-- **`SimpleMultiBOLT` refines `Accepts`, second stage**: a transfer or split settle of a token with a
-grandparent, the rebuild with neither optional arm. -/
+grandparent. -/
 theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : Args)
     (S : List Bytes) (scriptSig : Bytes) (G : Tx) (hwf : WF f) (hA : ArgsWF a)
     (hty : SmbType f.ty) (hnty : SmbType a.nty) (hpre : castToBool a.pre = true)
@@ -96,7 +96,6 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
     (htx : TxWF tx) (hamt : amt < 2 ^ 64) (hi : i < tx.inputs.length)
     (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0)
     (hres : Residual P tx i amt f a) (hgr : ResidualGp P f a G)
-    (h140 : decode a.psB.p3 = 0) (h182 : decode a.psB.p45 = 0)
     (hS1 : ((evalScript Eval.opExec (mkEnv params (txContext tx i amt) params.flags.forkAdjust
       (some (lockScript f))) scriptSig [] 0).2).stack = a.stack ++ S)
     (hv : Eval.verifyScript params (txContext tx i amt) scriptSig (lockScript f) = .valid) :
@@ -141,11 +140,11 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
   have hlen : a.nty = [0x22] → (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16 := fun g =>
     padN16_length_of_range (henf.splitRem g) (by have := henf.balCommitLo (by rw [g]; decide); have := henf.balHi; omega)
   obtain ⟨w10, w11, w12, w13, w14, w17, w18, w19, w20, w23, w46, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
-    ⟨h0, h1, -, h3, -, h5, h6, h7, h8, h9, -, h11, h12⟩, -, -, hprevs⟩ := henf.rebuild
+    ⟨h0, h1, h2, h3, -, h5, h6, h7, h8, h9, -, h11, h12⟩, -, -, hprevs⟩ := henf.rebuild
   rw [gateT_item2 f a S hnty', castToBool_nil] at hprevs
   simp only [Bool.false_eq_true, ↓reduceIte] at hprevs
-  have hreb := l3_settle_00 (P := P) (tx := tx) (i := i) (G := G) none none hwf hsc hop hval8 hnty' hlen hgr.pieces
-    h140 h182 h0 h1 h3 h5 h6 h7 h8 h9 h11 h12 hprevs hprev hout htx h32 hres.prevouts hgr.gp hgr.i5len hgr.i5
+  have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none none hwf hsc hop hval8 hnty' hlen hgr.pieces
+    h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hprevs hprev hout htx h32 hres.prevouts hgr.gp hgr.i5len hgr.i5
     henf.balLo hpar
   refine accepts_of_facts P tx i f a none (some G) none hty hnty (fun _ h => absurd h hset) hgen hi hver
     (by rw [hres.agrees.h160]; exact henf.owner) hsig (by simp [hlast]) henf.issuer ?_

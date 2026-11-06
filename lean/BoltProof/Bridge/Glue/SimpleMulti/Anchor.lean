@@ -7,7 +7,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.Weld
 The first rebuild writes the grandparent's commit token as the pieces at depths 142–151 followed by the
 spend's own issuer push and suffix (`lkA`). With the pieces at their push widths (`LockWidthsA`) that is
 the fungible lock of `gpFieldsA` (`lkA_eq`), so the parsed grandparent's first output is that token, and
-its other two outputs, being short, are not tokens (`gpTxA0_token`). The anchor the run checks
+its other outputs, being short, are not tokens (`gpTxA_token`). The anchor the run checks
 (`AnchorOK`, suffix 2660) is then the model's `settledBalance` of that token at the index the unlock
 argument names, one below it (`anchorOK_settled`).
 -/
@@ -67,30 +67,45 @@ theorem outOf_short {o : TxOut} (h : o.scriptPubKey.length < 4946) (t : BoltProo
   split_ifs <;> simp
 
 /-- The parsed grandparent's token: its first output, and no other. -/
-theorem gpTxA0_token {t0 : Bytes} {T : List Bytes} {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes}
-    {issuer : Bytes} (hw : WidthsA0 t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (hl : LockWidthsA T)
+theorem gpTxA_token {t0 : Bytes} {T : List Bytes} {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes}
+    {issuer : Bytes} (hw : WidthsA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (hl : LockWidthsA T)
     (hi : issuer.length = 33) (h15 : item T 15 = 33 :: issuer) (h14 : item T 14 = SimpleMulti.suffix)
     (j : Nat) (t : BoltProof.Token Bytes)
-    (hj : ((gpTxA0 t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs.map outOf)[j]? = some (.token t)) :
+    (hj : ((gpTxA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs.map outOf)[j]? = some (.token t)) :
     j = 0 ∧ t = tokenOf (gpFieldsA T issuer) := by
   have h0 : outOf (outOfBytes (item T 30) (lkA T)) = .token (tokenOf (gpFieldsA T issuer)) := by
     simp only [outOf, outOfBytes, lkA_eq hl h15 h14, decodeLock_lockScript (gpFieldsA_wf hl hi)]
   have h1 := outOf_short (o := outOfBytes (item T 30) ((item T 12).drop 1 ++ (item T 141 ++ [136, 172])))
     (by simp [outOfBytes, hw.pt, hw.pkh])
-  have h2 := outOf_short (o := outOfBytes (item T 139) (item T 138)) (by simp [outOfBytes, hw.p2])
-  have houts : (gpTxA0 t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs =
-      [outOfBytes (item T 30) (lkA T), outOfBytes (item T 30) ((item T 12).drop 1 ++ (item T 141 ++ [136, 172])),
-        outOfBytes (item T 139) (item T 138)] := rfl
+  have h3 := outOf_short (o := outOfBytes (item T 139) (item T 138)) (by simp [outOfBytes, hw.p2])
+  have houts : (gpTxA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs =
+      outOfBytes (item T 30) (lkA T) ::
+      outOfBytes (item T 30) ((item T 12).drop 1 ++ (item T 141 ++ [136, 172])) ::
+      ((if decode (item T 140) = 0 then [] else
+        [outOfBytes ((t0 :: T)[31]?.getD []) (((t0 :: T)[13]?.getD []).drop 1 ++ ((t0 :: T)[141]?.getD [] ++ [136, 172]))]) ++
+        [outOfBytes (item T 139) (item T 138)]) := rfl
   rw [houts] at hj
-  rcases j with _ | _ | _ | j
+  rcases j with _ | _ | j
   · simp only [List.map_cons, List.getElem?_cons_zero, Option.some.injEq] at hj
     rw [h0] at hj
     exact ⟨rfl, (BoltProof.Out.token.inj hj).symm⟩
   · simp only [List.map_cons, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at hj
     exact absurd hj (h1 t)
-  · simp only [List.map_cons, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at hj
-    exact absurd hj (h2 t)
-  · simp at hj
+  · by_cases h140 : decode (item T 140) = 0
+    · simp only [h140, ↓reduceIte, List.nil_append, List.map_cons, List.map_nil, List.getElem?_cons_succ] at hj
+      rcases j with _ | j
+      · simp only [List.getElem?_cons_zero, Option.some.injEq] at hj; exact absurd hj (h3 t)
+      · simp at hj
+    · have hp2 : ((t0 :: T)[141]?.getD []).length = 20 := hw.pkh2 h140
+      have hpt : (t0 :: T)[13]?.getD [] = [29, 2, 176, 23, 136, 118, 169, 20] := hw.pt
+      have h2 := outOf_short (o := outOfBytes ((t0 :: T)[31]?.getD [])
+        (((t0 :: T)[13]?.getD []).drop 1 ++ ((t0 :: T)[141]?.getD [] ++ [136, 172])))
+        (by simp only [outOfBytes, hpt, List.length_append, hp2]; decide)
+      simp only [h140, ↓reduceIte, List.singleton_append, List.map_cons, List.map_nil, List.getElem?_cons_succ] at hj
+      rcases j with _ | _ | j
+      · simp only [List.getElem?_cons_zero, Option.some.injEq] at hj; exact absurd hj (h2 t)
+      · simp only [List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at hj; exact absurd hj (h3 t)
+      · simp at hj
 
 /-- **The anchor is the settled balance.** The run's `AnchorOK` on a commit token of type `ty` and balances
 `n2`, `n3` (the grandparent's) against the spent balance `bal` and the index argument `x` is the model's
