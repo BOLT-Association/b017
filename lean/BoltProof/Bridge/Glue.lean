@@ -26,7 +26,12 @@ import BoltProof.Bridge.Glue.SimpleMulti.Regions
 import BoltProof.Bridge.Glue.SimpleMulti.Enforced
 import BoltProof.Bridge.Glue.SimpleMulti.Paths
 import BoltProof.Bridge.Glue.SimpleMulti.Settle
+import BoltProof.Bridge.Glue.SimpleMulti.Settle.Transfer
+import BoltProof.Bridge.Glue.SimpleMulti.Settle.Split
+import BoltProof.Bridge.Glue.SimpleMulti.Settle.Merge
 import BoltProof.Bridge.Glue.SimpleMulti.Melt
+import BoltProof.Bridge.Glue.SimpleMulti.Refute
+import BoltProof.Bridge.Glue.SimpleMulti.Sound
 
 /-!
 # BoltProof.Bridge.Glue
@@ -49,5 +54,9 @@ rules; the few evaluator-trusted identities live in `BoltProof.Bridge` (`Bridge/
   `MinSimpleBOLT` vectors through the abstraction and applies the theorem to them.
 * `SimpleMulti/`: the fungible family (M5): `Spec.lean` names its eleven fields and the unlocking
   arguments, `PushTx.lean` abstracts its `OP_PUSH_TX` block, and `Reaches.lean` proves that the
-  run reaches each of the five proved fragments with the stack its lemma assumes.
+  run reaches each of the five proved fragments with the stack its lemma assumes. `Blocks.lean`,
+  `Arms.lean` and `Regions.lean` fold the loops, the rebuilds' arms and the rebuild phase into one-step
+  lemmas; `Enforced.lean`, `Settle.lean` and `Melt.lean` state what each spend shape enforces;
+  `Paths/`, `Settle/`, `Melt.lean` and `Refute.lean` are the path theorems and the refused type pairs;
+  `Sound.lean` assembles them into `simpleMulti_sound`.
 -/

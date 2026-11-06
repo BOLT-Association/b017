@@ -341,19 +341,13 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    SDK probe vector `smb_probe_type27_commit` (an honest-shaped transaction) fails with `SCRIPT_ERR_EQUALVERIFY`.
    Settling it needs the driver to split on an undecided condition and close the failing branches. Until then
    `simpleMulti_sound` covers the six protocol next types and states the restriction.
-5. Settle mode against commit type (M5, finding). `Accepts.settle_mode` says a settle's mode is the one the spent
-   commit type encodes, and the model's settle outputs follow that mode; the bytes build the settle outputs from
-   `nextTxoType` alone. Probing the six mismatched pairs (a commit-typed token settled into another mode's settled
-   type), every run reaches the end, with the outputs of the mode `nextTxoType` names. Without a grandparent the
-   issuer guard requires the issuer's signature, and the issuer can mint at will. With a grandparent, a merge
-   settle's second rebuild requires `hash256(rebuilt B) = take 32 ogp` (`rebuildB_k_fact1`), and a transfer or split
-   commit writes `ogp` as zeros, so settling either as a merge needs a transaction hashing to zero (excluded by
-   preimage resistance, which the plan's collision-resistance assumption does not cover). The remaining mismatches
-   lose value (a merge commit settled as a transfer or split drops the merged-in balance) or move it between the
-   owner's own recipients (a split commit settled as a transfer pays `com` everything); none creates value, and only
-   the owner can sign them. The refinement needs a decision as for Finding 1: a scope hypothesis that the settle
-   mode matches the commit type, a model change (settle outputs by `nextTxoType`, `settle_mode` dropped), or a
-   report as a covenant defect.
+5. Settle mode against commit type: retracted. An earlier probe of the six mismatched settle pairs (a commit-typed
+   token settled into another mode's settled type) reported every run reaching the end with the outputs of the mode
+   `nextTxoType` names. Those runs carried the parity check's `OP_EQUALVERIFY` fact `encode (nextTxoType + 1) =
+   txoType`, false for every mismatched pair, which the symbolic driver records as a fact without checking it. The
+   parity check does enforce `Accepts.settle_mode` (`parityCheck_refuses_commit`), and `SimpleMulti/Refute.lean`
+   proves the 24 refused type pairs fail. Every probe is now scanned for false literal facts: the split-flag,
+   merge-index, input-index and merge-commit findings carry none.
 3. The split settle's flags (§Progress, M5): with `pkh1` or `i2` non-empty the bytes accept a split settle whose
    two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
    whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
@@ -588,8 +582,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   and with the commit theorems, which never had one, they cover genesis tokens. The melt (`SimpleMulti/Melt.lean`)
   skips the spend arm and runs the melt branch, about a thousand instructions with the arm skipped; it reads no type,
   so one theorem `melt` covers every spent type, cased on the guard's two conditions, with `EnforcedMelt` (the
-  guard, the owner's key hash, the sighash byte, the encodings). Next for M5: the mismatched settle pairs (a commit
-  type settling into another mode's settled type), `simpleMulti_sound`, and the refinement.
+  guard, the owner's key hash, the sighash byte, the encodings).
+- **M5, `simpleMulti_sound`:** for a lock whose type is one of the six and a next type among them, a successful run
+  enforces `SpendEnforced` (`Sound.lean`): with a preimage, a commit of a settle-typed token (`Enforced`, the nine
+  commit paths), a settle of a commit-typed token into its own settle type (`EnforcedSettle` with a grandparent,
+  `EnforcedSettle0` without, `Settle/{Transfer,Split,Merge}.lean`), and the 24 other pairs refused by the parity
+  check (`Refute.lean`: the run carries an `OP_EQUALVERIFY` fact `decide` refutes, closed by `refuteLit`); without
+  one, the melt. The only hypothesis on an unlock argument is that the next type is one of the six (§7, question 4).
+  A lesson for the remaining families: the driver records `OP_EQUALVERIFY` and `OP_VERIFY` facts without checking
+  them, so a path theorem can be vacuous; every probe is scanned for false literal facts, and the soundness theorem's
+  case split shows each path's hypotheses are the ones a real run meets. Next for M5: the refinement to `Accepts`.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
