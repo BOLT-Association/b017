@@ -698,6 +698,13 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   where `GpRealF` puts the proof output; and the anchor is `settledBalance` at the parent's index. The lemma
   takes, beyond `GpRealF` and `HonestPiecesB`, the index assumption on `i5` (four bytes, the parent's index plus
   one) and that the spent token is not a genesis token, which the refinement has from `hgen`.
+- **M5, `simpleMulti_refines_settle_gp` (the refinement's second stage, first part):** a transfer or split settle
+  of a token with a grandparent that the shipped lock accepts is one `Accepts .fungible` admits, read through
+  `spendOf` with the real grandparent as the first ancestor, for the rebuild with neither optional arm (the second
+  piece set's flags at depths 3 and 45 zero) (`RefineGp.lean`). `refine_run` is the run prefix both stages share.
+  Beyond `Residual` the theorem assumes `ResidualGp`: `GpRealF`, `HonestPiecesB`, and `i5` as four bytes reading
+  as the parent's index plus one. Next: the optional arms (a second input, a second proof output), then the merge
+  commit's two inputs and the merge settle, then the regression guards.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
