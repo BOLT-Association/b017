@@ -538,9 +538,14 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   any case, but a settled token can carry an index byte that is not its output position. `settleOuts_22` now states
   the outputs for all four cases, and `settle_23`/`settle0_23` case on both flags instead of assuming them, so the
   split settle theorems take no flag hypotheses. Whether a token whose index byte disagrees with its position can
-  be spent again, and how the model's split settle should read such a spend, is §7's third open question. Next
-  for M5: the merge's other output-index case, the token at input 1, the genesis variants, the melt,
-  `simpleMulti_sound`, and the refinement.
+  be spent again, and how the model's split settle should read such a spend, is §7's third open question.
+- **M5, the merge settle's two cases:** with a grandparent the merge settle's second rebuild branches on the spent
+  lock's output index (`rebuildB`'s cases 1 and 2). `settle_25` now cases on it instead of assuming it zero. The
+  probe of case 2 corrected the statement: when the index is not zero the other lineage's input precedes this one,
+  so `hashPrevouts` runs over this outpoint, the other lineage's rebuilt outpoint, then this lineage's, then the
+  funding outpoint (`gpOutB_2 ++ gpOutA`), where case 1 has `gpOutA ++ gpOutB_1`. All six settle theorems now take
+  no flag or index hypotheses beyond the path's types, the grandparent's presence and the token's input index.
+  Next for M5: the token at input 1, the genesis variants, the melt, `simpleMulti_sound`, and the refinement.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
