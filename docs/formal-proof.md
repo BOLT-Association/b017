@@ -305,7 +305,8 @@ spent token's own fields, and under it assert `issuerPubKey == pubKey`:
 - **Fungible** (`SimpleMultiBolt`, and `FixedBolt` / `OpenBolt` after their leading pushes):
   `needsIssuerKey = isGenesis ∨ (grandparentOutpoint == ∅)`, with `isGenesis = (parentOutpoint == ∅)`
   (`SimpleMultiBolt.sx:297-299`; under `isGenesis` the first commit may additionally not be a merge).
-- **NFT** (`MinSimpleBolt`, `AuthBolt`): `needsIssuer = isGenesis ∨ is2ndTx`, with
+- **NFT** (`MinSimpleBolt`, `AuthBolt`, and `SerialBolt` after its leading pushes):
+  `needsIssuer = isGenesis ∨ is2ndTx`, with
   `is2ndTx = (grandparentOutpoint == ∅) ∧ (txoType ≠ 0)` (`MinSimpleBolt.sx:83-88`). In the NFT
   encoding `00` is the settled type, so `txoType ≠ 0` reads *the spent token is commit-typed*.
 

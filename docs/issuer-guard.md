@@ -4,7 +4,7 @@
 `is2ndTx` to the fungible contract".** It exists because the three things in the title keep being
 conflated, and an old sentence in [`formal-proof.md`](formal-proof.md) once made the confusion easy.
 
-> **TL;DR.** `is2ndTx` is an **NFT-family** flag (`MinSimpleBOLT`, `AuthBOLT`). It is not in
+> **TL;DR.** `is2ndTx` is an **NFT-family** flag (`MinSimpleBOLT`, `AuthBOLT`, `SerialBOLT`). It is not in
 > `SimpleMultiBOLT`, it never was, and it was **not** introduced for the fabricated hop: it is in the
 > NFT bytecode at this repository's first commit (2026-06-22), ten weeks before that bug was found.
 > The fungible family does not need it, because since the red-team release of 2026-09-07 it enforces
@@ -22,7 +22,7 @@ Both lock scripts open the same way: derive one boolean, *the issuer must sign t
 spent token's own fields, and under it assert `issuerPubKey == pubKey`. The two families derive that
 boolean differently.
 
-### NFT family: `MinSimpleBOLT`, `AuthBOLT`
+### NFT family: `MinSimpleBOLT`, `AuthBOLT`, `SerialBOLT`
 
 The first opcodes of `LOCK_SCRIPT_SUFFIX` in `src/tokens/templates/MinSimple.sx.template.ts` (and,
 byte for byte, `AuthBolt.sx.template.ts`):
@@ -37,7 +37,8 @@ OP_IF OP_3 OP_PICK OP_10 OP_PICK OP_EQUALVERIFY OP_ENDIF     needsIssuer => issu
 ```
 
 (The contract source is `MinSimpleBolt.sx:83-88` in the `sx` repository; this package ships only the
-compiled bytes.)
+compiled bytes.) `SerialBOLT` (`SerialBolt.sx.template.ts`) carries the identical sequence after the
+opcodes that handle its two leading pushes, `genesisOutpoint` and `mintData`.
 
 ### Fungible family: `SimpleMultiBOLT`
 
@@ -119,9 +120,10 @@ one F3 imposed. `test/lib/multiBoltIssuerGuard.test.ts` executes both shapes.
 The question comes up every time: the fungible contract got the balance anchor on 2026-09-05, so where
 is the NFT equivalent? There is none, for two reasons that together leave nothing to fix.
 
-1. **There is no balance to inflate.** `MinSimpleBOLT` is an identity token with no value field, and
+1. **There is no balance to inflate.** `MinSimpleBOLT` is an identity token with no value field,
    `AuthBOLT` adds only `authOrMiscData`, which the next settle authenticates by rebuilding the commit
-   that created it. The value-bearing NFT variants (`MinSimpleBalance`, `MinSimpleDiscount`) were
+   that created it, and `SerialBOLT`'s two extra fields are its mint outpoint and the mint's
+   `mintData`, neither of them a balance. The value-bearing NFT variants (`MinSimpleBalance`, `MinSimpleDiscount`) were
    removed in the `0.1.0` release commit, and even they spliced the token's **own** fields into the
    ancestor rebuild rather than accepting the ancestor's as unlock arguments, so an invented value sat
    inside the pre-image hashed against `grandparentOutpoint` and failed the hash. No split or merge

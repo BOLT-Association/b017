@@ -105,8 +105,8 @@ does refuse — so this is an **optimisation, not a fix**, and it sits on the lo
   orphan refused at its commit rather than its settle, and a few opcodes fewer in the prologue (the
   exact saving must be measured, not assumed: the NFT prologue's stack shuffle and its
   `hasGrandparent` are reused downstream).
-- **Cost:** new NFT bytecode, so a new fingerprint for `MinSimpleBOLT` and `AuthBOLT` and a
-  **reissue** of tokens on the current bytes; the prologue length shifts the rebuild's `signCtx`
+- **Cost:** new NFT bytecode, so a new fingerprint for `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT`
+  and a **reissue** of tokens on the current bytes; the prologue length shifts the rebuild's `signCtx`
   slice offset, which must be recounted (the F3 fix's 36 to 41 tripwire); the full lifecycle and
   attack suites re-run, with `minSimpleAttack` B1.0 flipped from "lone commit accepted" to "refused
   at the commit".
