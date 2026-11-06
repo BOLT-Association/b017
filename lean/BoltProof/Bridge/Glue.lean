@@ -12,6 +12,7 @@ import BoltProof.Bridge.Glue.MinSimple.Sound
 import BoltProof.Bridge.Glue.MinSimple.Abs
 import BoltProof.Bridge.Glue.Refine.Verify
 import BoltProof.Bridge.Glue.Refine.Serial
+import BoltProof.Bridge.Glue.Refine.Parse
 import BoltProof.Bridge.Glue.Refine.Facts
 import BoltProof.Bridge.Glue.Refine.Weld
 import BoltProof.Bridge.Glue.Refine.MinSimple
@@ -38,6 +39,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.Weld
 import BoltProof.Bridge.Glue.SimpleMulti.Facts
 import BoltProof.Bridge.Glue.SimpleMulti.Residual
 import BoltProof.Bridge.Glue.SimpleMulti.Outs
+import BoltProof.Bridge.Glue.SimpleMulti.Rebuilt
 import BoltProof.Bridge.Glue.SimpleMulti.Refine
 
 /-!
