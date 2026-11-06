@@ -306,7 +306,8 @@ spent token's own fields, and under it assert `issuerPubKey == pubKey`:
   `needsIssuerKey = isGenesis ∨ (grandparentOutpoint == ∅)`, with `isGenesis = (parentOutpoint == ∅)`
   (`SimpleMultiBolt.sx:297-299`; under `isGenesis` the first commit may additionally not be a merge).
 - **NFT** (`MinSimpleBolt`, `AuthBolt`): `needsIssuer = isGenesis ∨ is2ndTx`, with
-  `is2ndTx = (grandparentOutpoint == ∅) ∧ (txoType ≠ 0)` (`MinSimpleBolt.sx:83-88`).
+  `is2ndTx = (grandparentOutpoint == ∅) ∧ (txoType ≠ 0)` (`MinSimpleBolt.sx:83-88`). In the NFT
+  encoding `00` is the settled type, so `txoType ≠ 0` reads *the spent token is commit-typed*.
 
 The only honest tokens with an empty grandparent are `T(0)` (parentless, hence grandparentless) and
 `T(1)`, the first commit's output, whose parent is `T(0)` and whose grandparent is therefore `∅`;
@@ -315,12 +316,14 @@ both families the boolean is true on exactly the spend of `T(0)` (the first comm
 `T(1)` (the first settle), and false on every spend after. Both tokens are issuer-owned — a genesis
 can only be spent by the key that is both the issuer key and its owner hash, and a commit keeps the
 token with the sender — so requiring the issuer there refuses nothing honest. The two derivations
-differ only on a shape no honest chain produces: a token with a non-zero parent, an empty grandparent
-and `txoType = 0`. The fungible rule refuses its commit; the NFT rule lets that commit through and
-relies on the settle, which must rebuild the fabricating transaction as a genuine commit and cannot
-(Lemma 3; `test/lib/minSimpleAttack.test.ts` B1). The fungible rule is thus the stronger of the two,
-which a balance-bearing token needs: without the grandparent term a non-issuer could settle any
-balance out of nothing for one hop (F3, §8.1). ∎
+differ only on a shape no honest chain produces: a **settle-typed** token (`00` in the NFT encoding,
+`20` in the fungible one) with a non-zero parent and an empty grandparent. The fungible rule refuses
+its commit; the NFT rule lets that commit through and relies on the settle, which must rebuild the
+fabricating transaction as a genuine commit and cannot (Lemma 3; `test/lib/minSimpleAttack.test.ts`
+B1). The fungible rule is thus the broader of the two, but the breadth is not what F3 required. The
+F3 token was **commit-typed** with an empty grandparent, the shape on which both derivations agree,
+so what the fungible family lacked was a grandparent term, which either derivation provides (§8.1).
+Refusing the settle-typed orphan at its commit is a margin the fix chose, not one F3 imposed. ∎
 
 > **Provenance.** Until 2026-09-07 this lemma wrongly placed an `is2ndTx` flag in the fungible
 > contract; until 2026-11-04 it described the fungible guard as it stood before the F3 fix of
@@ -502,7 +505,7 @@ state permits skipping the cycle or an undefined type. ∎
 | Modify lineage fields | change parent/grandparent in output | `hashOutputs` locks all output bytes (Lemma 2) | Asm. 1 |
 | Modify contract suffix | swap in different bytecode | covenant appends its own bytes to the output; hash mismatch | Asm. 1 |
 | **Fabricated hop (cloned settle)** | a **past recipient** funds a sibling settle-typed output carrying any balance, then commits and settles it, co-spending a real proof they legitimately own and can sign | the settle reads `balance`, `balanceCommit` and `txoType` off the **rebuilt** ancestor and asserts `scriptCode.balance == transition(...)` (`SimpleMultiBolt.sx:688`, `:891`). Doctoring those fields to fit is not open either: they are inside the bytes hashed against `grandparentOutpoint` | Asm. 1 + 4 |
-| **Zero-grandparent escape (F3)** | a token with a garbage non-zero parent and a **zero** grandparent was neither genesis nor rebuilt: no issuer check, no anchor, no proof co-spend, so a **non-issuer** settled any balance out of nothing (contained to one hop: the next settle cannot rebuild the fabrication) | the issuer must sign whenever the grandparent is zero (`needsIssuerKey = isGenesis ∨ grandparent = ∅`, Lemma 5); the only honest zero-grandparent tokens, `T(0)` and `T(1)`, are issuer-owned. The NFT family's `is2ndTx` is the narrower analogue; [`issuer-guard.md`](issuer-guard.md) | Asm. 2 |
+| **Zero-grandparent escape (F3)** | a **commit-typed** token with a garbage non-zero parent and a **zero** grandparent (the first commit's shape) was neither genesis nor rebuilt: no issuer check, no anchor, no proof co-spend, so a **non-issuer** settled any balance out of nothing (contained to one hop: the next settle cannot rebuild the fabrication) | the issuer must sign whenever the grandparent is zero (`needsIssuerKey = isGenesis ∨ grandparent = ∅`, Lemma 5); the only honest zero-grandparent tokens, `T(0)` and `T(1)`, are issuer-owned. The NFT family's `is2ndTx` already covered this shape; the fungible rule is broader still (Lemma 5); [`issuer-guard.md`](issuer-guard.md) | Asm. 2 |
 
 > **Provenance of that last row, stated plainly.** It was not found by analysis. It was built and
 > broadcast: a regtest teranode running GoBDK consensus **accepted** the full forged chain against
@@ -573,7 +576,7 @@ interpreter (no mocks). Run `npm test`.
 | `test/scanner/parity.test.ts`, `events.test.ts`, `fingerprints.test.ts` | Scanner accept/reject **matches the on-chain contract** (parity); commit/settle event classification; fingerprint registry + p2Proof golden matching against tampered inputs (Theorems 1 & 4, §8.5). |
 | `test/lib/boltLib.test.ts`, `branches.test.ts`, `test/tokens/BOLT.test.ts`, `test/templates/pay2Proof.test.ts`, `test/releasable.test.ts` | Shared layout-agnostic primitives (`splitCtx`, outpoint/output serialisers, `verifyTx` guards), default-value/guard branches, the abstract base contract, the `pay2Proof` marker output, and the release gate. |
 | `test/helpers/counterfeit.ts` | Constructs counterfeits at the **raw-byte (on-wire)** level — exactly as an attacker would — so rejection is proven independent of SDK behaviour. |
-| `test/lib/multiBoltIssuerGuard.test.ts`, `test/lib/minSimpleAttack.test.ts` | **The issuer guard of each family on the shipped bytecode** (Lemma 5, §8.1). Fungible: a non-issuer's spend of an `is2ndTx`-shaped token (`21`, no grandparent) and of an F3-shaped token (`20`, no grandparent) is refused at the guard's own `OP_EQUALVERIFY`; the honest first settle, and the same bytes under the attacker's own issuer key, are accepted. NFT: B1 and B4 cover the tolerated orphan and `is2ndTx` re-arming the guard. See [`issuer-guard.md`](issuer-guard.md). |
+| `test/lib/multiBoltIssuerGuard.test.ts`, `test/lib/minSimpleAttack.test.ts` | **The issuer guard of each family on the shipped bytecode** (Lemma 5, §8.1). Fungible: a non-issuer's spend of the F3 / `is2ndTx` shape (`21`, no grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the fungible rule refuses at its commit is refused at the guard's own `OP_EQUALVERIFY`; the honest first settle, and the same bytes under the attacker's own issuer key, are accepted. NFT: B1 and B4 cover the tolerated orphan and `is2ndTx` re-arming the guard. See [`issuer-guard.md`](issuer-guard.md). |
 
 **Negative tests must fail; positive tests must hold.** All 126 pass, 0 skipped.
 

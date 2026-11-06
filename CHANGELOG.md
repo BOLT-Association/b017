@@ -13,11 +13,12 @@ All notable changes to **b017** are documented here. The format is based on
   fix of 2026-09-07, which is a strict superset. The document tells apart the three things that keep being
   conflated (the fabricated hop and its balance anchor; F3 and its zero-grandparent guard; `is2ndTx`, an NFT-only
   design feature that predates both), gives the timeline with commit ids, explains why the NFT family can tolerate
-  the zero-grandparent orphan at its commit and the fungible family cannot, and says why `is2ndTx` must **not** be
-  ported (it would close nothing, and the prologue length is the rebuild's `signCtx` slice offset).
-- **`test/lib/multiBoltIssuerGuard.test.ts`** pins the fungible guard on the bytes: a non-issuer's spend of an
-  `is2ndTx`-shaped token (`21`, no grandparent) and of an F3-shaped token (`20`, no grandparent), each naming the
-  victim issuer and carrying 2^100, is refused at the guard's own `OP_EQUALVERIFY` (lock opcode 24, asserted to be
+  the settle-typed zero-grandparent orphan at its commit and that F3 was the commit-typed shape both rules refuse,
+  and says why `is2ndTx` must **not** be ported (it would close nothing, and the prologue length is the rebuild's
+  `signCtx` slice offset).
+- **`test/lib/multiBoltIssuerGuard.test.ts`** pins the fungible guard on the bytes: a non-issuer's spend of the
+  F3 / `is2ndTx` shape (`21`, no grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the
+  fungible rule refuses at its commit, each naming the victim issuer and carrying 2^100, is refused at the guard's own `OP_EQUALVERIFY` (lock opcode 24, asserted to be
   the `OP_IF OP_13 OP_PICK OP_EQUALVERIFY` of the prologue); the honest first settle, and the same bytes under the
   attacker's own issuer key, are accepted. No existing test exercised this guard directly.
 - **`docs/ROADMAP.md`** records, as deferred work, aligning the NFT issuer guard with the fungible rule (drop the

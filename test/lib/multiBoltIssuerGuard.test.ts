@@ -86,7 +86,7 @@ async function attackerSpends(f: Transaction, prevTxs: Transaction[], isCommit: 
 }
 const victimMint = () => new SimpleMultiBOLT().mint(issuerKey, freshSource(issuerKey), '', bal(BigInt(1000)))
 
-describe('SimpleMultiBOLT: the zero-grandparent issuer guard covers both is2ndTx shapes', () => {
+describe('SimpleMultiBOLT: the zero-grandparent issuer guard refuses the F3 shape and the settle-typed orphan', () => {
   it('control: the honest first settle (the issuer spends commit1, whose grandparent is zero) is ACCEPTED', async () => {
     const tok = await victimMint()
     await tok.commit(userKey)
@@ -95,7 +95,7 @@ describe('SimpleMultiBOLT: the zero-grandparent issuer guard covers both is2ndTx
     expect(run(tok.tx!).ok).toBe(true)
   })
 
-  it('the is2ndTx shape (txoType 21, no grandparent, non-issuer owner, victim issuer): the SETTLE is REFUSED at the guard', async () => {
+  it('the F3 / is2ndTx shape (txoType 21, no grandparent, non-issuer owner, victim issuer): the SETTLE is REFUSED at the guard', async () => {
     const victim = await victimMint()
     const f = await fabricate(0x21, buildOutpoint(victim.tx!, 0), issuerPub)
     const r = run(await attackerSpends(f, [victim.tx!, f], false, issuerPub))
@@ -105,9 +105,9 @@ describe('SimpleMultiBOLT: the zero-grandparent issuer guard covers both is2ndTx
     expect(r.message).toMatch(/OP_EQUALVERIFY/)
   })
 
-  it('the F3 shape (txoType 20, no grandparent, non-issuer owner, victim issuer): the COMMIT is REFUSED at the same guard', async () => {
-    // The NFT family tolerates this shape at the commit (minSimpleAttack B1.0) because an NFT has no balance to
-    // inflate and its settle is refused anyway. A fungible token cannot afford the one hop.
+  it('the settle-typed orphan (txoType 20, no grandparent, non-issuer owner, victim issuer): the COMMIT is REFUSED at the same guard', async () => {
+    // Only the fungible rule refuses this at the commit. The NFT family's is2ndTx lets the analogous 00 token through
+    // (minSimpleAttack B1.0) and relies on the settle. F3 itself was the 21 shape above, which both rules refuse.
     const victim = await victimMint()
     const f = await fabricate(0x20, buildOutpoint(victim.tx!, 0), issuerPub)
     const r = run(await attackerSpends(f, [f], true, issuerPub))

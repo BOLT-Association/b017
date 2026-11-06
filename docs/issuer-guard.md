@@ -8,8 +8,9 @@ conflated, and an old sentence in [`formal-proof.md`](formal-proof.md) once made
 > `SimpleMultiBOLT`, it never was, and it was **not** introduced for the fabricated hop: it is in the
 > NFT bytecode at this repository's first commit (2026-06-22), ten weeks before that bug was found.
 > The fungible family does not need it, because since the red-team release of 2026-09-07 it enforces
-> a **strictly stronger** rule: the issuer must sign whenever the grandparent outpoint is zero,
-> whatever the `txoType`. That rule is the F3 fix. The fabricated hop was a different bug with a
+> a **strictly broader** rule: the issuer must sign whenever the grandparent outpoint is zero,
+> whatever the `txoType`. That rule is the F3 fix, though F3 itself was the commit-typed shape
+> `is2ndTx` already covers; the extra breadth is a margin, not a requirement. The fabricated hop was a different bug with a
 > different fix (the balance anchor, 2026-09-05). All of this is executed against the shipped
 > bytecode by `test/lib/multiBoltIssuerGuard.test.ts`.
 
@@ -61,7 +62,8 @@ the identical guard sequence after the opcodes that handle their two leading pus
 |---|---|---|
 | Issuer required when | parent is zero, **or** grandparent is zero **and** `txoType != 0` | parent is zero, **or** grandparent is zero |
 | Honest spends it covers | the first commit (spends `T(0)`) and the first settle (spends `T(1)`, a `21` token with no grandparent) | the same two |
-| The shape it leaves open | a resting `00` token with a non-zero parent and a zero grandparent: its **commit** is accepted, its **settle** is refused | none: that shape is refused at its commit |
+| Refuses F3 (a commit-typed `21` token, garbage parent, no grandparent) | yes | yes |
+| The shape it leaves open | a resting `00` token with a non-zero parent and a zero grandparent: its **commit** is accepted, its **settle** is refused | none: that shape (`20` in this encoding) is refused at its commit |
 
 Every token on which `is2ndTx` is true has a zero grandparent, so the fungible rule is a superset of
 the NFT rule. There is no spend the NFT flag refuses that the fungible guard accepts.
@@ -84,7 +86,7 @@ genesis rule applied one hop later, with no new field and no new argument.
 
 ---
 
-## 3. Why the NFT family can afford the narrower rule, and the fungible family cannot
+## 3. Why each family's rule is enough, and what F3 actually was
 
 **NFT.** A fabricated resting token (`txoType 00`, garbage non-zero parent, zero grandparent, victim's
 `issuerPubKey`, attacker's owner hash) dodges both the issuer guard and the ancestor rebuild at its own
@@ -96,14 +98,21 @@ meantime, and a value-neutral clone is tolerated by design. The suite documents 
 the grandparent reconstruction), B1.2 (a genesis shape re-arms the guard), B1.3 and B4.4 (**any**
 non-zero `txoType` re-arms the guard, which is `is2ndTx` doing its job).
 
-**Fungible.** The balance field is the thing worth forging, so one accepted hop is one hop too many.
-Before 2026-09-07 the fungible prologue tested `isGenesis` only, and the rebuild is gated on
-`hasBolt && hasGrandparent`. A `21`-typed token with a garbage parent and a zero grandparent was
-therefore neither genesis nor rebuilt: no issuer check, no ancestor, no balance anchor, no proof
-co-spend. A non-issuer could **settle any balance out of nothing**. The red team called this F3 and
-noted it was *contained to one hop* (the settle after that must rebuild the fabrication and cannot), but
-one hop is enough to pay an SPV recipient with a number nobody minted. The fix is the second line of the
-fungible prologue above.
+**Fungible.** Before 2026-09-07 the fungible prologue tested `isGenesis` only, with no grandparent
+term at all, and the rebuild is gated on `hasBolt && hasGrandparent`. A `21`-typed token with a
+garbage parent and a zero grandparent, the first commit's shape, was therefore neither genesis nor
+rebuilt: no issuer check, no ancestor, no balance anchor, no proof co-spend. A non-issuer could
+**settle any balance out of nothing**. The red team called this F3 and noted it was *contained to one
+hop* (the settle after that must rebuild the fabrication and cannot), but for a balance-bearing token
+one hop is enough to pay an SPV recipient with a number nobody minted. The fix is the second line of
+the fungible prologue above.
+
+**What F3 required, and what the fix chose.** The F3 token is commit-typed, which is exactly the shape
+`is2ndTx` covers: the NFT rule would have closed F3 too. What the fungible family lacked was a
+grandparent term, not the absence of a `txoType` term. The fix chose the broader form,
+`grandparent == 0` whatever the type, which also refuses the settle-typed orphan (`20` here, the
+analogue of the NFT family's tolerated `00` token) at its commit. That is a margin the fix took, not
+one F3 imposed. `test/lib/multiBoltIssuerGuard.test.ts` executes both shapes.
 
 ### Why the NFT family needed no fabricated-hop fix at all
 
@@ -200,9 +209,10 @@ Executed in this repository, on the shipped bytecode, with no mocks:
   an attacker's P2PKH, owned by the attacker, naming the victim as issuer, with a real non-zero parent,
   a zero grandparent and a balance of 2<sup>100</sup>:
   - control: the issuer's honest first settle (which spends a zero-grandparent commit) is **accepted**;
-  - the `is2ndTx` shape (`txoType 21`): the attacker's settle is **refused** at the issuer guard's
-    `OP_EQUALVERIFY`, lock opcode 24;
-  - the F3 shape (`txoType 20`): the attacker's commit is **refused** at the same opcode;
+  - the F3 / `is2ndTx` shape (`txoType 21`): the attacker's settle is **refused** at the issuer
+    guard's `OP_EQUALVERIFY`, lock opcode 24;
+  - the settle-typed orphan (`txoType 20`), which only the fungible rule refuses at its commit: the
+    attacker's commit is **refused** at the same opcode;
   - isolation: the identical `21`-shaped bytes naming the attacker as issuer are **accepted**, so the
     guard is the only thing refusing.
 - `test/lib/minSimpleAttack.test.ts` B1.0 to B1.3 and B4.4, NFT: the tolerated orphan, and `is2ndTx`
