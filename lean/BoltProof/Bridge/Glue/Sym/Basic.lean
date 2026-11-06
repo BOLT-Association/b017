@@ -160,6 +160,11 @@ length byte heads it). -/
 theorem castToBool_cons_of_ne (b : Nat) (bs : Bytes) (hb : b ≠ 0) (hb' : b ≠ 128) : castToBool (b :: bs) = true := by
   cases bs <;> simp [castToBool, hb, hb']
 
+/-- `OP_IF` after `OP_BIN2NUM`: the number's truth is its being non-zero (the token's input index). -/
+theorem castToBool_encode_decode (x : Bytes) : castToBool (encode (decode x)) = decide (decode x ≠ 0) := by
+  rw [castToBool_eq _ (encode_valid _), decode_encode]
+  cases hd : decide (decode x = 0) <;> simp_all [bne]
+
 @[simp] theorem castToBool_one : castToBool [1] = true := by decide
 @[simp] theorem castToBool_nil : castToBool [] = false := rfl
 
