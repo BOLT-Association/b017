@@ -333,6 +333,13 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    than assume it. For the fungible family (M5) the bytes do force it: `inputIndexN` is only an argument, and
    `hashPrevouts` begins with this outpoint on every path except a merge commit's second token input, where it
    begins with the other token's outpoint `i2` and this one follows (input 1).
+6. The anchor's index (M5, the refinement's second stage). The balance anchor (suffix 2660, `AnchorOK`) compares
+   the spent balance with the rebuilt ancestor token's settled balance at the index the unlock argument `i5`
+   names (`i5 - 1`); `Accepts.l3_rebuild` compares it at the spent token's parent's output index. The two agree
+   whenever `i5` is that index plus one, and for every real lineage under the split settle's honest flags (a
+   mismatch is possible only when the two pieces are equal, and then the balance is the same). The second stage
+   carries `i5 = parent.vout + 1` as a residual, like the split order; a model change would let the anchor quantify
+   over the co-spent proof output's index instead.
 4. Undefined next types off genesis (M5). The parity check only requires `nextTxoType` to flip the spent type's
    parity, so a settled token's spend may name any odd byte. Probing a commit to `0x27` or `0x29`, the run leaves
    the six protocol types' paths at the output builder (suffix 1112, where it tests the zero `ogp` push) and then
@@ -634,6 +641,12 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   non-merge token carries no other lineage, the balance is in range (a melt checks none), a split's second recipient
   is not the zero hash. Next: the settles with a grandparent (the rebuilds, the balance anchor, `GpReal`), then the
   merge commit's two-input argument and the merge settle, then the regression guards.
+- **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
+  sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
+  and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
+  `BoltProof.Bridge`, internal names excepted, enumerated by a `#eval` and reported unquoted. The count roughly
+  doubles (the declarations Lean derives, such as `injEq` and equation lemmas, are now checked too); Layer 1 is still
+  `AxiomCheck.lean`'s list. The reviewer's point is closed.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,
