@@ -48,12 +48,14 @@ The first opcodes of `LOCK_SCRIPT_SUFFIX` in `src/tokens/templates/SimpleMulti.s
 OP_2 OP_PICK OP_BIN2NUM OP_NOT                      isGenesis      = (parentOutpoint == 0)
 OP_2 OP_PICK OP_BIN2NUM OP_NOT OP_BOOLOR            needsIssuerKey = isGenesis || (grandparentOutpoint == 0)
 OP_TUCK OP_IF OP_13 OP_PICK OP_EQUALVERIFY          needsIssuerKey => issuerPubKey == pubKey
-  OP_15 OP_PICK OP_DUP 25 OP_EQUAL OP_NOT OP_VERIFY 27 OP_EQUAL OP_NOT OP_VERIFY   ... and not a merge commit
+  OP_15 OP_PICK OP_DUP 25 OP_EQUAL OP_NOT OP_VERIFY 27 OP_EQUAL OP_NOT OP_VERIFY   ... and nextTxoType is not 25 (merge commit) or 27
 OP_ELSE OP_DROP OP_ENDIF
 ```
 
 The second line is the F3 fix: five opcodes, added 2026-09-07. Before it the prologue read
-`OP_2 OP_PICK OP_BIN2NUM OP_NOT OP_TUCK OP_IF ...`, i.e. `isGenesis` alone. `FixedBOLT` and
+`OP_2 OP_PICK OP_BIN2NUM OP_NOT OP_TUCK OP_IF ...`, i.e. `isGenesis` alone. The merge check rides on
+the same flag, so since F3 it also runs at the first settle, where it never fires: a settle produces
+an even type, and the check only refuses `25` and `27`. `FixedBOLT` and
 `OpenBOLT` (the genesis family, `FixedMulti.sx.template.ts` and `OpenMulti.sx.template.ts`) carry
 the identical guard sequence after the opcodes that handle their two leading pushes.
 

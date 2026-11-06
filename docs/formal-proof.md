@@ -304,7 +304,9 @@ spent token's own fields, and under it assert `issuerPubKey == pubKey`:
 
 - **Fungible** (`SimpleMultiBolt`, and `FixedBolt` / `OpenBolt` after their leading pushes):
   `needsIssuerKey = isGenesis ∨ (grandparentOutpoint == ∅)`, with `isGenesis = (parentOutpoint == ∅)`
-  (`SimpleMultiBolt.sx:297-299`; under `isGenesis` the first commit may additionally not be a merge).
+  (`SimpleMultiBolt.sx:297-299`). Under the same flag the produced type `nextTxoType` may not be
+  `0x25` (merge-commit) or `0x27`. That bites only at the first commit, since a settle's produced
+  type is even (Lemma 7), so the first commit may not be a merge.
 - **NFT** (`MinSimpleBolt`, `AuthBolt`, and `SerialBolt` after its leading pushes):
   `needsIssuer = isGenesis ∨ is2ndTx`, with
   `is2ndTx = (grandparentOutpoint == ∅) ∧ (txoType ≠ 0)` (`MinSimpleBolt.sx:83-88`). In the NFT
