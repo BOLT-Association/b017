@@ -143,9 +143,19 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
     ⟨h0, h1, h2, h3, -, h5, h6, h7, h8, h9, -, h11, h12⟩, -, -, hprevs⟩ := henf.rebuild
   rw [gateT_item2 f a S hnty', castToBool_nil] at hprevs
   simp only [Bool.false_eq_true, ↓reduceIte] at hprevs
-  have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none none hwf hsc hop hval8 hnty' hlen hgr.pieces
-    h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hprevs hprev hout htx h32 hres.prevouts hgr.gp hgr.i5len hgr.i5
-    henf.balLo hpar
+  have hflatP : serOutPoint (inputAt tx i) ++
+      ((Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ a.i5) ++ a.fund) =
+        (tx.inputs.map serOutPoint).flatten := by
+    rw [← hout]
+    have := hres.prevouts (preOutpoint a.pre ++ (Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++
+      a.i5) ++ a.fund) (by rw [← gateT_item61 f a S, ← gpOutA_eq, hprevs, hprev]; rfl)
+    simpa only [List.append_assoc] using this
+  have hco := coSpent_second htx h32
+    (by rw [List.length_append, BoltProof.Glue.MinSimple.hash256_length, hgr.i5len]) hflatP
+  have hnty3 : a.nty = [0x20] ∨ a.nty = [0x22] ∨ a.nty = [0x24] := hnty'.elim Or.inl (fun h => Or.inr (Or.inl h))
+  have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none none hwf hsc hop hval8 hnty3 hlen
+    (fun h => absurd h (by rcases hnty' with h' | h' <;> rw [h'] <;> decide)) hgr.pieces
+    h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hco htx hgr.gp hgr.i5 henf.balLo hpar
   refine accepts_of_facts P tx i f a none (some G) none hty hnty (fun _ h => absurd h hset) hgen hi hver
     (by rw [hres.agrees.h160]; exact henf.owner) hsig (by simp [hlast]) henf.issuer ?_
     (fun h => absurd h (by rw [hk]; decide)) (balOf_le henf.balHi) (fun h => by rw [hk] at h; cases h)

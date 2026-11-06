@@ -273,14 +273,15 @@ theorem gateT_item2 (f : Fields) (a : Args) (S : List Bytes) (h : a.nty = [0x20]
   · rfl
   · rcases h with h | h <;> contradiction
 
-/-- The new token's lock-length varint on a transfer or split settle: the lock is 4946 bytes. -/
+/-- The new token's lock-length varint on a settle: the lock is 4946 bytes. -/
 theorem gateT_item0 {f : Fields} {a : Args} (S : List Bytes) (hwf : WF f) (hsc : sc a.pre = lockScript f)
-    (hop : 104 ≤ a.pre.length) (hnty : a.nty = [0x20] ∨ a.nty = [0x22])
-    (hlen : a.nty = [0x22] → (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16) :
+    (hop : 104 ≤ a.pre.length) (hnty : a.nty = [0x20] ∨ a.nty = [0x22] ∨ a.nty = [0x24])
+    (hlen : a.nty = [0x22] → (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16)
+    (hlen24 : a.nty = [0x24] → (padN 16 (encode (decode f.bal + decode f.balCommit))).length = 16) :
     item (gateT f a S) 0 = [253, 0x52, 0x13] := by
   have hsc' : List.take (decode (List.take 2 (List.drop 105 a.pre))).toNat (List.drop 107 a.pre) = lockScript f := hsc
   have hm : min 36 (a.pre.length - 68) = 36 := by omega
-  rcases hnty with h | h
+  rcases hnty with h | h | h
   · simp only [gateT, h, ↓reduceIte, gateT_20, item, List.getElem?_cons_zero, Option.getD_some, hsc']
     simp [lockScript, hwf.bal, hwf.balCommit, hwf.pkh, hwf.com, hwf.com2, hwf.ogp, hwf.ty, hwf.outIdx, hwf.parent,
       hwf.gp, hwf.issuer, List.take_left', suffix_length, hm]
@@ -290,5 +291,17 @@ theorem gateT_item0 {f : Fields} {a : Args} (S : List Bytes) (hwf : WF f) (hsc :
     simp [lockScript, hwf.bal, hwf.balCommit, hwf.pkh, hwf.com, hwf.com2, hwf.ogp, hwf.ty, hwf.outIdx, hwf.parent,
       hwf.gp, hwf.issuer, suffix_length, hlen h, hm]
     decide
+  · have h' : a.nty ≠ [0x20] := by rw [h]; decide
+    have h'' : a.nty ≠ [0x22] := by rw [h]; decide
+    simp only [gateT, h', h'', ↓reduceIte, gateT_24, item, List.getElem?_cons_zero, Option.getD_some, hsc']
+    simp [lockScript, hwf.bal, hwf.balCommit, hwf.pkh, hwf.com, hwf.com2, hwf.ogp, hwf.ty, hwf.outIdx, hwf.parent,
+      hwf.gp, hwf.issuer, suffix_length, hlen24 h, hm]
+    decide
+
+theorem gateT_item2_24 (f : Fields) (a : Args) (S : List Bytes) (h : a.nty = [0x24]) :
+    item (gateT f a S) 2 = [1] := by
+  have h' : a.nty ≠ [0x20] := by rw [h]; decide
+  have h'' : a.nty ≠ [0x22] := by rw [h]; decide
+  simp only [gateT, h', h'', ↓reduceIte]; rfl
 
 end BoltProof.Glue.SimpleMulti
