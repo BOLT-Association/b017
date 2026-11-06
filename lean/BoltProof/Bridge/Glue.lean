@@ -10,6 +10,10 @@ import BoltProof.Bridge.Glue.MinSimple.PushTx
 import BoltProof.Bridge.Glue.MinSimple.Paths
 import BoltProof.Bridge.Glue.MinSimple.Sound
 import BoltProof.Bridge.Glue.MinSimple.Abs
+import BoltProof.Bridge.Glue.AuthBolt.Spec
+import BoltProof.Bridge.Glue.AuthBolt.PushTx
+import BoltProof.Bridge.Glue.AuthBolt.Paths
+import BoltProof.Bridge.Glue.AuthBolt.Sound
 import BoltProof.Bridge.Glue.Refine.Verify
 import BoltProof.Bridge.Glue.Refine.Serial
 import BoltProof.Bridge.Glue.Refine.Parse

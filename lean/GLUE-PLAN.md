@@ -766,6 +766,19 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   conditional on the next type (and `i3` on the second token input); and the next type was asked to be one of the
   six on a melt, which does not read it, so `simpleMulti_sound`, `accepts_of_facts` and the first stage now ask it
   only with a preimage. M5 is complete.
+- **M6, AuthBOLT's soundness (`authBolt_sound`):** the `Layout` parameterisation §4.6 planned for M3 was not built,
+  so M6 reruns M3 and M4 per family; for AuthBOLT that is nearly mechanical. Its suffix has MinSimpleBOLT's 55
+  chunks in the same order at shifted offsets, and 49 of them are byte for byte the same, the `OP_PUSH_TX` block
+  (`pushTxBlock_same`, so its shape lemma is MinSimple's), the type selector and the null tail included. The six
+  that differ: the guard at 25 (`authOrMiscData`, the deepest unlock argument, is a direct push under 76 bytes),
+  the lock length (`0x0511`), the null check's depths, and the rebuild, whose grandparent unlocking script leads
+  with the grandparent commit's own `authOrMiscData` (a 27th piece) and 27 empty pushes. `AuthBolt/Spec.lean` is
+  MinSimple's vocabulary with those changes (`Enforced` and `EnforcedMelt` gain the `auth` clause), the eleven
+  paths come from MinSimple's generator over AuthBOLT's chunk names, and `authBolt_sound` with
+  `reaches_nftTypeSel` (543) and `reaches_nullTail` (1094) assembles them. A pitfall worth recording: AuthBOLT's
+  modules import MinSimple's spec, whose tactic syntax `enforced_norm` shadowed AuthBOLT's own of the same name, so
+  the 27 empty pushes were never normalised and the rebuild's `fact` search ran unbounded instead of failing; the
+  normaliser is now `auth_norm`. Next: AuthBOLT's refinement to `Accepts` and its guards.
 - **M7 item, done early: the audit enumerates the declarations.** `scripts/lean-axiom-check.mjs` no longer scans the
   sources for lines beginning `theorem` (which twice this milestone read a wrapped doc-comment line as a declaration
   and dropped three names ending in a prime): Layer 2 is every theorem Lean's environment holds from a module under
