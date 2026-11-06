@@ -13,42 +13,31 @@
 // Method (as minSimpleAttack.test.ts): every attack asserts WHICH opcode refuses (the guard's OP_EQUALVERIFY,
 // not something downstream), and ships a positive control built the same way that is ACCEPTED.
 import { describe, it, expect } from 'vitest'
-import { Hash, P2PKH, PrivateKey, Transaction, LockingScript, Script } from '@bsv/sdk'
+import { P2PKH, Transaction, LockingScript, Script } from '@bsv/sdk'
 import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
 import { FixedBOLT, OpenBOLT } from '../../src/tokens/GenesisMultiBOLT.js'
 import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
 import FixedMultiTemplate from '../../src/tokens/templates/FixedMulti.sx.template.js'
 import OpenMultiTemplate from '../../src/tokens/templates/OpenMulti.sx.template.js'
 import { buildOutpoint, toSigner } from '../../src/lib/boltLib.js'
-import * as nft from '../helpers/minSimpleChain.js'
+import {
+  issuerKey, attackerKey, userKey, issuerPub, aPkh, pub, ZERO20, ZERO36, p2pb,
+  mintToken, spendToken, buildChain, verifyChain, type Family,
+} from '../helpers/minSimpleChain.js'
+import { bal, freshSource } from '../helpers/fungible.js'
 import { minSimple } from '../helpers/minSimpleFamily.js'
 import { authBolt, tpl as authTpl } from '../helpers/authBoltFamily.js'
 import { serialBolt, tpl as serialTpl } from '../helpers/serialBoltFamily.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 
-const issuerKey = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000001', 'hex')
-const attackerKey = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000002', 'hex')
-const userKey = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000003', 'hex')
-const issuerPub = issuerKey.toPublicKey().encode(true) as number[]
-const attackerPub = attackerKey.toPublicKey().encode(true) as number[]
-const aPkh = Hash.hash160(attackerPub)
-const zeros = (n: number) => new Array(n).fill(0x00)
+// Every key, hash and zero field comes from the chain harness, so the fungible and NFT tables share one key set.
+const attackerPub = pub(attackerKey)
 const push = (d: number[]) => new Script().writeBin(d).chunks
-
-const MASK64 = (BigInt(1) << BigInt(64)) - BigInt(1)
-function bal(amount: bigint): number[] {
-  const buf = Buffer.alloc(16)
-  buf.writeBigUInt64LE(amount & MASK64, 0)
-  buf.writeBigUInt64LE((amount >> BigInt(64)) & MASK64, 8)
-  return Array.from(buf)
-}
-const INVENTED = bal(BigInt(1) << BigInt(100)) // 2^100: the balance of the fabricated-hop repro
-
-const freshSource = (key: PrivateKey) =>
-  new Transaction(1, [], [{ satoshis: 1000, change: true, lockingScript: new P2PKH().lock(Hash.hash160(key.toPublicKey().encode(true) as number[])) }])
+const INVENTED = bal(1n << 100n) // 2^100: the balance of the fabricated-hop repro
+const NO_COMMIT = bal(0n)        // a zero balanceCommit (a transfer commits no piece)
 
 /** Verify one tx on the Spend engine (the shared helper; `pc` and `context` locate a refusal). */
-const run = (tx: Transaction) => nft.verifyChain([tx])
+const run = (tx: Transaction) => verifyChain([tx])
 
 /** Lock-chunk index of the issuer guard's OP_EQUALVERIFY, found from the guard's own flag rather than by position:
  *  the first OP_BOOLOR followed by OP_IF (fungible: OP_BOOLOR OP_TUCK OP_IF OP_13 OP_PICK; NFT: OP_BOOLOR OP_IF OP_3
@@ -78,11 +67,11 @@ const FUNGIBLE: Fungible[] = [
  *  leads with the genesis outpoint (the mint outpoint it names as parent, as the first commit's output carries) and
  *  an empty mintData (the mint alone carries one). */
 function fabricatedLock(fam: Fungible, txoType: number, parent: number[], issuer: number[]): LockingScript {
-  const pkhCommit = txoType === 0x21 ? aPkh : zeros(20)
+  const pkhCommit = txoType === 0x21 ? aPkh : ZERO20
   return new LockingScript([
     ...(fam.leading ? [...push(parent), ...push([])] : []),
-    ...push(INVENTED), ...push(zeros(16)), ...push(aPkh), ...push(pkhCommit), ...push(zeros(20)), ...push(zeros(36)),
-    ...push([txoType]), ...push([0x00]), ...push(parent), ...push(zeros(36)), ...push(issuer),
+    ...push(INVENTED), ...push(NO_COMMIT), ...push(aPkh), ...push(pkhCommit), ...push(ZERO20), ...push(ZERO36),
+    ...push([txoType]), ...push([0x00]), ...push(parent), ...push(ZERO36), ...push(issuer),
     ...fam.tpl.staticSuffix().chunks,
   ])
 }
@@ -102,17 +91,17 @@ async function attackerSpends(fam: Fungible, f: Transaction, prevTxs: Transactio
   t.skipVerify = true
   t.tx = f; t.voutIdx = 0; t.prevTxs = prevTxs
   t.pubKey = attackerPub; t.pubKeyHash = aPkh; t.issuerPubKey = issuer; t.signer = toSigner(attackerKey)
-  t.balance = INVENTED; t.balanceCommit = zeros(16)
+  t.balance = INVENTED; t.balanceCommit = NO_COMMIT
   await (isCommit ? t.commit(attackerKey) : t.settle(attackerKey))
   return t.tx!
 }
-const victimMint = (fam: Fungible) => fam.make().mint(issuerKey, freshSource(issuerKey), '', bal(BigInt(1000)))
+const victimMint = (fam: Fungible) => fam.make().mint(issuerKey, freshSource(issuerKey), '', bal(1000n))
 
 describe.each(FUNGIBLE.map((f) => [f.name, f] as const))('%s: the zero-grandparent issuer guard refuses the F3 shape and the settle-typed orphan', (_name, fam) => {
   it('control: the honest first settle (the issuer spends commit1, whose grandparent is zero) is ACCEPTED', async () => {
     const tok = await victimMint(fam)
     await tok.commit(userKey)
-    expect(tok.tx!.outputs[0].lockingScript.chunks[9 + fam.leading].data).toEqual(zeros(36)) // grandparent == 0 at the first commit
+    expect(tok.tx!.outputs[0].lockingScript.chunks[9 + fam.leading].data).toEqual(ZERO36) // grandparent == 0 at the first commit
     await tok.settle(userKey)
     expect(run(tok.tx!).ok).toBe(true)
   })
@@ -149,12 +138,12 @@ describe.each(FUNGIBLE.map((f) => [f.name, f] as const))('%s: the zero-grandpare
 })
 
 // -- the NFT family: MinSimpleBOLT, AuthBOLT and SerialBOLT (is2ndTx) ------------------------------------------
-// Built on the NFT chain harness, with the harness's own keys. Outputs are built with each template directly so the
+// Built on the NFT chain harness. Outputs are built with each template directly so the
 // issuer key (and SerialBOLT's genesis field) are explicit; the family adapter supplies the mint and the unlocker.
 const minSimpleTpl = new MinSimpleTemplate()
 interface Nft {
   name: string
-  fam: nft.Family
+  fam: Family
   /** owner, issuer, commitment, txoType, parent, grandparent; `root` is SerialBOLT's genesis field. */
   lock: (owner: number[], issuer: number[], commitment: number[], txoType: number, parent: number[], gp: number[], root: number[]) => Script
 }
@@ -167,36 +156,36 @@ const NFTS: Nft[] = [
 /** An NFT-shaped output the attacker funds from their own P2PKH, its parent the victim's real mint outpoint and its
  *  grandparent zero (SerialBOLT carries that outpoint as its genesis field, as the first commit's output does). */
 async function fabricateNft(n: Nft, txoType: number, issuer: number[]): Promise<{ txs: Transaction[]; parent: number[] }> {
-  const [victim] = await nft.mintToken(n.fam)
+  const [victim] = await mintToken(n.fam)
   const parent = buildOutpoint(victim, 0)
-  const funding = new Transaction(1, [], [{ satoshis: 5000, lockingScript: new P2PKH().lock(nft.aPkh) }])
+  const funding = new Transaction(1, [], [{ satoshis: 5000, lockingScript: new P2PKH().lock(aPkh) }])
   const f = new Transaction(); f.version = 2
-  f.addInput({ sourceTransaction: funding, sourceOutputIndex: 0, unlockingScriptTemplate: new P2PKH().unlock(nft.attackerKey), sequence: 0xffffffff })
-  const commitment = txoType === 0x21 ? nft.aPkh : nft.ZERO20
-  f.addOutput({ satoshis: 1, lockingScript: n.lock(nft.aPkh, issuer, commitment, txoType, parent, nft.ZERO36, parent) })
-  f.addOutput({ satoshis: 4000, lockingScript: new P2PKH().lock(nft.aPkh) })
+  f.addInput({ sourceTransaction: funding, sourceOutputIndex: 0, unlockingScriptTemplate: new P2PKH().unlock(attackerKey), sequence: 0xffffffff })
+  const commitment = txoType === 0x21 ? aPkh : ZERO20
+  f.addOutput({ satoshis: 1, lockingScript: n.lock(aPkh, issuer, commitment, txoType, parent, ZERO36, parent) })
+  f.addOutput({ satoshis: 4000, lockingScript: new P2PKH().lock(aPkh) })
   await f.sign()
   return { txs: [victim, f], parent }
 }
 /** The attacker spends the fabrication at txs[1]: a commit (spending 00) emits a 21 token and its proof; a settle
  *  (spending 21) emits the 00 token paid to the committed owner. No grandparent, so nothing is rebuilt. */
 const attackerSpendsNft = (n: Nft, txs: Transaction[], parent: number[], issuer: number[], isCommit: boolean) =>
-  nft.spendToken({
-    fam: n.fam, txs, from: { tx: 1, vout: 0 }, actor: nft.attackerKey, beneficiary: nft.aPkh,
-    fund: { tx: 1, vout: 1 }, change: true, fundKey: nft.attackerKey,
+  spendToken({
+    fam: n.fam, txs, from: { tx: 1, vout: 0 }, actor: attackerKey, beneficiary: aPkh,
+    fund: { tx: 1, vout: 1 }, change: true, fundKey: attackerKey,
     outputs: isCommit
-      ? [n.lock(nft.aPkh, issuer, nft.aPkh, 0x21, buildOutpoint(txs[1], 0), parent, parent), nft.p2pb(nft.aPkh)]
-      : [n.lock(nft.aPkh, issuer, nft.ZERO20, 0x00, buildOutpoint(txs[1], 0), parent, parent)],
+      ? [n.lock(aPkh, issuer, aPkh, 0x21, buildOutpoint(txs[1], 0), parent, parent), p2pb(aPkh)]
+      : [n.lock(aPkh, issuer, ZERO20, 0x00, buildOutpoint(txs[1], 0), parent, parent)],
   })
 
 describe.each(NFTS.map((n) => [n.name, n] as const))('%s: the NFT issuer guard (is2ndTx)', (_name, n) => {
   it('control: the honest lifecycle (mint -> commit -> settle) is ACCEPTED', async () => {
-    expect(nft.verifyChain(await nft.buildChain(n.fam, {}, 3)).ok).toBe(true)
+    expect(verifyChain(await buildChain(n.fam, {}, 3)).ok).toBe(true)
   })
 
   it('the is2ndTx shape (txoType 21, no grandparent, non-issuer owner, victim issuer): the SETTLE is REFUSED at the guard', async () => {
-    const { txs, parent } = await fabricateNft(n, 0x21, nft.issuerPub)
-    const r = run(await attackerSpendsNft(n, txs, parent, nft.issuerPub, false))
+    const { txs, parent } = await fabricateNft(n, 0x21, issuerPub)
+    const r = run(await attackerSpendsNft(n, txs, parent, issuerPub, false))
     expect(r.ok).toBe(false)
     expect(r.context).toBe('LockingScript')
     expect(r.pc).toBe(issuerGuardPc(txs[1].outputs[0].lockingScript))
@@ -204,16 +193,16 @@ describe.each(NFTS.map((n) => [n.name, n] as const))('%s: the NFT issuer guard (
   })
 
   it('isolation: the SAME is2ndTx-shaped bytes naming the attacker as issuer are ACCEPTED (only the guard refuses)', async () => {
-    const { txs, parent } = await fabricateNft(n, 0x21, nft.pub(nft.attackerKey))
-    const r = run(await attackerSpendsNft(n, txs, parent, nft.pub(nft.attackerKey), false))
+    const { txs, parent } = await fabricateNft(n, 0x21, pub(attackerKey))
+    const r = run(await attackerSpendsNft(n, txs, parent, pub(attackerKey), false))
     expect(r.ok, r.message).toBe(true)
   })
 
   it('the narrower NFT rule: a resting 00 orphan with no grandparent is COMMITTED without the issuer (as minSimpleAttack B1.0)', async () => {
     // is2ndTx is false for a 00 token, so the guard does not fire and the lone commit is accepted; the settle after
     // it must rebuild the fabrication and cannot. Aligning the NFT rule with the fungible one (docs/ROADMAP.md) flips this.
-    const { txs, parent } = await fabricateNft(n, 0x00, nft.issuerPub)
-    const r = run(await attackerSpendsNft(n, txs, parent, nft.issuerPub, true))
+    const { txs, parent } = await fabricateNft(n, 0x00, issuerPub)
+    const r = run(await attackerSpendsNft(n, txs, parent, issuerPub, true))
     expect(r.ok, r.message).toBe(true)
   })
 })
