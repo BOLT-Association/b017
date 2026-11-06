@@ -201,6 +201,21 @@ theorem check_smb_extra_output_settle : smb_extra_output_settle.check params = t
 /-- §8.2 the genesis spent with a key whose hash160 is not the owner: refused (Lemma 1) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e)] -/
 theorem check_smb_wrong_key_commit : smb_wrong_key_commit.check params = true := by native_decide
 
+/-- GLUE-PLAN probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes [sdk: 0:valid 1:valid] -/
+theorem check_nft_probe_melt_token_output : nft_probe_melt_token_output.check params = true := by native_decide
+
+/-- GLUE-PLAN probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes [sdk: 0:valid 1:valid] -/
+theorem check_nft_probe_change_blob_token : nft_probe_change_blob_token.check params = true := by native_decide
+
+/-- GLUE-PLAN probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script? [sdk: 0:valid 1:valid] -/
+theorem check_nft_probe_change_single_token : nft_probe_change_single_token.check params = true := by native_decide
+
+/-- GLUE-PLAN probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count? [sdk: 0:valid 1:valid] -/
+theorem check_nft_probe_change_two_p2pkh : nft_probe_change_two_p2pkh.check params = true := by native_decide
+
+/-- GLUE-PLAN probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid] -/
+theorem check_smb_probe_type27_commit : smb_probe_type27_commit.check params = true := by native_decide
+
 /-- test/fixtures/fabricated-hop-chain.json mintTx_#0: the historical chain a regtest Teranode ACCEPTED against the pre-fix covenant; valid here reproduces that acceptance in Lean [sdk: ] -/
 theorem check_fabhop_prefix_mintTx_0 : fabhop_prefix_mintTx_0.check params = true := by native_decide
 

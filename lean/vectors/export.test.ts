@@ -18,10 +18,10 @@ import { it, expect } from 'vitest'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { Hash, P2PKH, PrivateKey, Spend, Transaction } from '@bsv/sdk'
+import { Hash, LockingScript, P2PKH, PrivateKey, Script, Spend, Transaction } from '@bsv/sdk'
 import {
   buildChain, meltToken, spendToken, p2pb, issuerKey, userKey, bucketKey, attackerKey,
-  iPkh, uPkh, aPkh, ZERO20, ZERO36, pub, type Family,
+  iPkh, uPkh, aPkh, bPkh, ZERO20, ZERO36, pub, type Family,
 } from '../../test/helpers/minSimpleChain.js'
 import { minSimple } from '../../test/helpers/minSimpleFamily.js'
 import { authBolt } from '../../test/helpers/authBoltFamily.js'
@@ -30,12 +30,13 @@ import { fabricate, commitFabricated, settleFabricated, commitWith } from '../..
 import { appendOutput } from '../../test/helpers/counterfeit.js'
 import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
 import { REGISTRY } from '../../src/lib/scanner/fingerprints.js'
-import { buildOutpoint } from '../../src/lib/boltLib.js'
+import { buildOutpoint, buildChangeOutput } from '../../src/lib/boltLib.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 import AuthBoltTemplate from '../../src/tokens/templates/AuthBolt.sx.template.js'
 import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
 import SerialBoltTemplate from '../../src/tokens/templates/SerialBolt.sx.template.js'
-import { emitBytes, emitTheorems, emitVectors, type Expect, type Vec } from './leanEmit.js'
+import { emitBytes, emitChunks, emitTheorems, emitVectors, type Expect, type Vec } from './leanEmit.js'
+import { cutSections, EXTRA_CUTS, LANDMARKS } from './sections.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..')
@@ -67,10 +68,12 @@ const PINNED: Record<string, string> = {
   'smb_merge_overflow_settle#0': 'SCRIPT_ERR_VERIFY',
   'smb_cross_issuer_merge_commit#1': 'SCRIPT_ERR_EQUALVERIFY', // the OTHER token's covenant pins its issuer
   'smb_cross_issuer_merge_settle#0': 'SCRIPT_ERR_EQUALVERIFY',
-  'smb_extra_output_settle#0': 'SCRIPT_ERR_CHECKSIGVERIFY', // the OP_PUSH_TX preimage no longer matches
+  'smb_extra_output_settle#0': 'SCRIPT_ERR_CHECKSIGVERIFY', // the unlocking script's own OP_PUSH_TX (before the lock runs): its preimage no longer matches
   'smb_extra_output_settle#1': 'SCRIPT_ERR_EVAL_FALSE', // the funding P2PKH signature covered the outputs
-  'smb_wrong_key_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // hash160(pubKey) == pubKeyHash
+  'smb_wrong_key_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the prologue's issuer guard (suffix 13): at genesis the signer must be the issuer
   'smb_wrong_key_commit#1': 'SCRIPT_ERR_EQUALVERIFY',
+  // the glue plan's probes (lean/GLUE-PLAN.md, M1)
+  'smb_probe_type27_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the written type is derived from the mode flags, not copied
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -310,6 +313,78 @@ it('exports the Lean vectors', async () => {
     add('smb_wrong_key_commit', 'SimpleMultiBOLT', t.prevTxs[1], '§8.2 the genesis spent with a key whose hash160 is not the owner: refused (Lemma 1)')
   }
 
+  // ---- The glue plan's probes (lean/GLUE-PLAN.md §2 Finding 1 and §4.1): what the bytes do NOT enforce -------
+  {
+    // A melt whose transaction also carries a covenant-shaped output. The melt branch checks only the owner key
+    // (singleSpend.ts: "a null CTX takes the lock's melt branch, which checks only the owner's signature and
+    // pubKey"), so the interface clause `l2_melt` (melt outputs are P2PKH-only) is not enforced by the bytes.
+    const txs = await buildChain(minSimple, {}, 3)
+    const tx = new Transaction()
+    tx.version = 2
+    tx.addInput({ sourceTransaction: txs[2], sourceOutputIndex: 0, unlockingScriptTemplate: minSimple.melt(userKey), sequence: 0xffffffff })
+    tx.addInput({ sourceTransaction: txs[2], sourceOutputIndex: 1, unlockingScriptTemplate: new P2PKH().unlock(issuerKey), sequence: 0xffffffff })
+    const sats = (txs[2].outputs[0].satoshis as number) + (txs[2].outputs[1].satoshis as number) - 10
+    tx.addOutput({ satoshis: sats - 1, lockingScript: new P2PKH().lock(uPkh) })
+    tx.addOutput({ satoshis: 1, lockingScript: minSimple.lock(aPkh, ZERO20, [0x00], op(txs, 2, 0), op(txs, 1, 0)) })
+    await tx.sign()
+    add('nft_probe_melt_token_output', type, tx, 'GLUE-PLAN probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes')
+  }
+  {
+    // A commit whose `changeOutput` argument carries TWO serialised outputs, one of them covenant-shaped. The
+    // covenant concatenates the blob into the hashOutputs preimage unparsed, so the "change carries no token" half
+    // of the interface clause `l2_outs` is not enforced by the bytes. Built honestly, then the unlock's change
+    // argument (index 27 of the MinSimple layout) is widened to cover both trailing outputs; the owner signature
+    // does not cover the unlocking script, so it stays valid.
+    const txs = await buildChain(minSimple, {}, 3)
+    const tx = await spendToken({
+      fam: minSimple, txs, from: { tx: 2, vout: 0 }, actor: userKey, beneficiary: bPkh, fund: { tx: 2, vout: 1 }, change: true,
+      outputs: [minSimple.lock(uPkh, bPkh, [0x21], op(txs, 2, 0), op(txs, 1, 0)), p2pb(bPkh),
+        minSimple.lock(aPkh, ZERO20, [0x00], op(txs, 2, 0), op(txs, 1, 0))],
+    })
+    const blob = [...buildChangeOutput(tx, 2), ...buildChangeOutput(tx, 3)]
+    const chunks = tx.inputs[0].unlockingScript!.chunks
+    if (chunks[27].data!.length !== buildChangeOutput(tx, 2).length) throw new Error('unexpected unlock layout for the change blob probe')
+    chunks[27] = new Script().writeBin(blob).chunks[0] // a PUSHDATA push: the blob is longer than 75 bytes
+    add('nft_probe_change_blob_token', type, tx, 'GLUE-PLAN probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes')
+  }
+  {
+    // Variants that pin down what the covenant checks about the change slot: (a) the single change output is
+    // covenant-shaped (honest unlock, no patch); (b) the blob carries two P2PKH outputs.
+    const txs = await buildChain(minSimple, {}, 3)
+    const single = await spendToken({
+      fam: minSimple, txs, from: { tx: 2, vout: 0 }, actor: userKey, beneficiary: bPkh, fund: { tx: 2, vout: 1 }, change: false,
+      outputs: [minSimple.lock(uPkh, bPkh, [0x21], op(txs, 2, 0), op(txs, 1, 0)), p2pb(bPkh),
+        minSimple.lock(aPkh, ZERO20, [0x00], op(txs, 2, 0), op(txs, 1, 0))],
+    })
+    add('nft_probe_change_single_token', type, single, 'GLUE-PLAN probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script?')
+    const two = await spendToken({
+      fam: minSimple, txs, from: { tx: 2, vout: 0 }, actor: userKey, beneficiary: bPkh, fund: { tx: 2, vout: 1 }, change: true,
+      outputs: [minSimple.lock(uPkh, bPkh, [0x21], op(txs, 2, 0), op(txs, 1, 0)), p2pb(bPkh), new P2PKH().lock(aPkh)],
+    })
+    const blob2 = [...buildChangeOutput(two, 2), ...buildChangeOutput(two, 3)]
+    two.inputs[0].unlockingScript!.chunks[27] = new Script().writeBin(blob2).chunks[0]
+    add('nft_probe_change_two_p2pkh', type, two, 'GLUE-PLAN probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count?')
+  }
+  {
+    // A fungible transfer commit asking for nextTxoType 0x27 (undefined) off-genesis: refused, because the written
+    // type comes from the mode flags, not from the byte (GLUE-PLAN §2 Finding 3). Pinned as a regression.
+    const patchLock = (lock: Script, patches: Record<number, number[]>): LockingScript =>
+      new LockingScript(lock.chunks.map((c, i) => (patches[i] ? { op: patches[i].length, data: patches[i] } : c)))
+    let t = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+    t = await t.transfer(child(smbIssuer, '1'))
+    const to = child(smbIssuer, '2')
+    const inputs = (t as any).createTransferInputs(to, '', true, false, undefined, false)
+    inputs[0].unlockingScriptTemplate = (t as any).template().unlock((t as any).signer, to.toPublicKey().encode(true) as number[], t.prevTxs, false, false, [], [0x27], [0x00], [], [])
+    const outputs = (t as any).createTransferOutputs(to, true, false)
+    outputs[0].lockingScript = patchLock(outputs[0].lockingScript, { 6: [0x27] })
+    const commit = new Transaction(2, inputs, outputs)
+    await commit.fee(0)
+    await commit.sign()
+    const parsed = Transaction.fromHex(commit.toHex())
+    commit.inputs.forEach((inp, i) => { parsed.inputs[i].sourceTransaction = inp.sourceTransaction })
+    add('smb_probe_type27_commit', 'SimpleMultiBOLT', parsed, 'GLUE-PLAN probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags')
+  }
+
   // ---- History: the fabricated-hop chain against the PRE-FIX bytes --------------------------------
   {
     const fx = JSON.parse(readFileSync(join(ROOT, 'test', 'fixtures', 'fabricated-hop-chain.json'), 'utf8')) as {
@@ -341,6 +416,12 @@ it('exports the Lean vectors', async () => {
   writeFileSync(join(GENERATED, 'Vectors.lean'), emitVectors(vectors))
   writeFileSync(join(GENERATED, 'VectorTheorems.lean'), emitTheorems(vectors))
   writeFileSync(join(GENERATED, 'Bytes.lean'), emitBytes(entries))
+  const NAMESPACE: Record<string, string> = { simpleMulti: 'SimpleMulti', minSimple: 'MinSimple', authBolt: 'AuthBolt', serialBolt: 'SerialBolt' }
+  const chunkEntries = entries.map((e) => {
+    const bytes = Array.from(Buffer.from(e.suffixHex, 'hex'))
+    return { ident: e.ident, type: e.type, namespace: `BoltProof.Bridge.Generated.${NAMESPACE[e.ident]}`, bytes, sections: cutSections(bytes, LANDMARKS[e.ident], EXTRA_CUTS[e.ident]) }
+  })
+  writeFileSync(join(GENERATED, 'Chunks.lean'), emitChunks(chunkEntries))
   writeFileSync(join(__dirname, 'vectors.json'), JSON.stringify({ vectors, suffixes: entries }, null, 1))
   expect(vectors.length).toBeGreaterThan(40)
   console.log(`exported ${vectors.length} vectors`)

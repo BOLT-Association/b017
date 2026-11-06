@@ -33,9 +33,8 @@ All notable changes to **b017** are documented here. The format is based on
   defined type bytes this is the Lean model's `Fam.edge .fungible` relation (`parityCheck_edge_iff`). Step lemmas
   for the conditionals (`OP_IF`, `OP_ELSE`, `OP_ENDIF`, skipped instructions) and the arithmetic added.
 - **Lemma 7 for the NFT family proved over the bytecode** (`Gadgets/NftType.lean`): the NFT covenants write the
-  produced type rather than check it — the prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` flag is `txoType ≠ 0`, and
-  the selector `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` of `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT`
-  appends type `0x00` to a commit-typed token's successor and `0x21` to a settle-typed one's, for every input; on
+  produced type rather than check it — the selector `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` of
+  `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT` appends type `0x00` to a commit-typed token's successor and `0x21` to a settle-typed one's, for every input; on
   the family's type bytes this is the model's `Fam.edge .nft` relation (`nftTypeSel_edge`).
 - **Lemma 6's bounds and settle-side re-checks proved over the bytecode** (`Gadgets/BalanceBounds.lean`): the
   balance bound check (`0 ≤ balance ≤ 2¹²⁷−1`, offsets 610 and 621), the merge settle's sum re-check (offset 781)
@@ -45,11 +44,32 @@ All notable changes to **b017** are documented here. The format is based on
 - **Theorem 5, proof gating** (`lean/BoltProof/Theorems/ProofGating.lean`): the §8.1 fabricated-hop exclusion at the
   ledger level — under the UTXO no-double-spend rule a commit's proof output admits at most one settle, and under
   collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.
+- **The bytes proved to enforce the interface on every input** (`lean/BoltProof/Bridge/Glue/`, planned and recorded
+  in `lean/GLUE-PLAN.md`). A symbolic run of each shipped suffix from the stack the unlocking script leaves, built
+  from one inversion lemma per opcode and the `sym_all` driver over the suffixes cut into named chunks
+  (`lean/vectors/sections.ts` → `Generated/Chunks.lean`). For each of the four covenants, `*_sound` states what the
+  suffix enforces whenever it does not fail and the `reaches_*` theorems show the run reaches every fragment proved
+  in `Gadgets/` with the stack its lemma assumes; `minSimple_refines`, `simpleMulti_refines_{basic,settle_gp,
+  merge_commit,merge_settle}`, `authBolt_refines` and `serialBolt_refines` prove that a spend the consensus rules judge
+  valid satisfies `Accepts` once read into the model, under the residual assumptions each states once
+  (cryptographic, the lineage link, and the model's scope clauses the bytes do not enforce; the fungible family's
+  further residuals are open questions in the plan). Only the three standard axioms; the `Regress.lean` guards apply
+  each theorem to the real honest spends (`native_decide`). Two probe vectors exercise the clauses the bytes do not
+  enforce. The axiom audit now has Lean enumerate Layer 2's declarations, and `AxiomCheck.lean` lists the glue's
+  theorems. The generators of the glue's regular files are under `lean/scripts/`.
+
+### Fixed
+- Documentation corrected by what the glue found: the NFT prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` runs on the
+  grandparent outpoint (`gp ≠ 0`), not the type (`Gadgets/NftType.lean`, `lean/README.md`); the fungible
+  `SimpleMultiBOLT` does re-assert the issuer on the spend of a token without a grandparent, so the 2026-09-02
+  correction in `docs/formal-proof.md` and the README's `is2ndTx` note were wrong; and two rejected vectors fail
+  where the exporter's comments now say (`smb_wrong_key_commit#0` at the prologue's issuer guard,
+  `smb_extra_output_settle#0` in the unlocking script's own OP_PUSH_TX).
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
   `SCRIPT_ERR_SIG_PUSHONLY` (the unlocking script carries OP_PUSH_TX opcodes after `OP_CODESEPARATOR`); under
-  Chronicle rules all 69 vectors (138 inputs) verify or fail exactly as `docs/formal-proof.md` predicts. The
+  Chronicle rules all 74 vectors (148 inputs) verify or fail exactly as `docs/formal-proof.md` predicts. The
   security claims hold for Chronicle consensus; on a pre-Chronicle node the transactions are invalid.
 - **A cross-issuer merge is refused by the other token's covenant** (input 1 of the merge commit,
   `SCRIPT_ERR_EQUALVERIFY`): both covenants pin the output's `issuerPubKey` to their own, as the interface clause

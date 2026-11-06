@@ -53,7 +53,7 @@ def o1 : Outpoint Nat := ⟨1, 0⟩
 
 /-- settle1 (tx 2): signed by the issuer (`is2ndTx`), ownership moves to the user. -/
 def t2 : Token Nat :=
-  { owner := uPk, commitment := [], commitment2 := [], txoType := 0x00, parent := some o1,
+  { owner := uPk, commitment := zeroPKH, commitment2 := [], txoType := 0x00, parent := some o1,
     grandparent := some o0, otherGrandparent := none, issuer := iPk, balance := 0,
     balanceCommit := 0 }
 
@@ -86,7 +86,7 @@ def o3 : Outpoint Nat := ⟨3, 0⟩
 
 /-- settle2 (tx 4): rebuilds commit1 (the grandparent) and co-spends its proof `(1, 1)`. -/
 def t4 : Token Nat :=
-  { owner := bPk, commitment := [], commitment2 := [], txoType := 0x00, parent := some o3,
+  { owner := bPk, commitment := zeroPKH, commitment2 := [], txoType := 0x00, parent := some o3,
     grandparent := some o2, otherGrandparent := none, issuer := iPk, balance := 0,
     balanceCommit := 0 }
 
