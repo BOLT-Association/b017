@@ -141,7 +141,7 @@ the old issuer push otherwise. -/
 abbrev issuerPush (f : Fields) (a : Args) : Bytes :=
   if decode f.parent = 0 then 33 :: a.pk else scIssuerPush a.pre
 
-/-- A commit spend's outputs: the settle-typed token (`pkh`, the beneficiary hash as the
+/-- A commit spend's outputs: the commit-typed token (`pkh`, the beneficiary hash as the
 commitment, type `0x21`, this outpoint as parent, the old parent as grandparent, the issuer, the
 suffix) with the spent value, then the pay-to-proof output `02 b017 88 76 a9 14 <ben> 88 ac`. -/
 abbrev commitOuts (f : Fields) (a : Args) : Bytes :=
@@ -149,7 +149,7 @@ abbrev commitOuts (f : Fields) (a : Args) : Bytes :=
     scParentPush a.pre ++ issuerPush f a ++ scSuffix a.pre) ++
   (preValue a.pre ++ [29, 2, 176, 23, 136, 118, 169, 20] ++ a.ben ++ [136, 172])
 
-/-- A settle spend's output: the commit-typed token owned by the committed hash (`com` as the
+/-- A settle spend's output: the settle-typed token owned by the committed hash (`com` as the
 owner, twenty zero bytes as the commitment, type `0x00`, this outpoint as parent, the old parent
 as grandparent, the issuer, the suffix) with the spent value. -/
 abbrev settleOuts (f : Fields) (a : Args) : Bytes :=

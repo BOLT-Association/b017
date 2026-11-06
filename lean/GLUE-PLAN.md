@@ -1,6 +1,6 @@
 # Closing the glue gap: a plan for a symbolic proof that the covenant bytes enforce `Accepts`
 
-Status: **M1–M6 delivered, M7 open** (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
+Status: **M1–M7 delivered** (the open questions of §7 remain) (see "Progress" at the end). Written against branch `lean-proof` at `3e4880f` (PR #7) and
 bsv-script-lean v1.2.0 (`6139161c`). Everything marked *(trace)* comes from a symbolic trace of the shipped
 suffix bytes in `BoltProof/Bridge/Generated/Bytes.lean` and is confirmed by execution or by a block lemma
 before it is relied on; everything else was checked against the source.
@@ -815,6 +815,25 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   `BoltProof.Bridge`, internal names excepted, enumerated by a `#eval` and reported unquoted. The count roughly
   doubles (the declarations Lean derives, such as `injEq` and equation lemmas, are now checked too); Layer 1 is still
   `AxiomCheck.lean`'s list. The reviewer's point is closed.
+- **M7, documentation and audit:** `AxiomCheck.lean` lists the glue's top-level theorems (each family's `*_sound`,
+  `reaches_*` and `*_refines`, and MinSimpleBOLT's end-to-end corollaries) beside Layer 1's, all on the three
+  standard axioms. `lean/README.md` states the glue in its Layout table and the trust table (proved for all four
+  covenants per spend, under each `Residual`; the fungible family's four open questions named), `docs/formal-proof.md`
+  §1.6 adds the symbolic layer and states what it rests on, `lean-proof-todo.md` ticks the glue item, and the
+  CHANGELOG records it. The Findings 2–4 corrections are applied: `Gadgets/NftType.lean` and the README now say the
+  prologue's `76 81 92` runs on the grandparent outpoint and the selector reads the raw type byte; the README's issuer
+  note and `formal-proof.md` (a new correction after the 2026-09-02 one) say the fungible family has the second-spend
+  guard; and the exporter's comments name where `smb_wrong_key_commit#0` (the prologue's issuer guard, a genesis
+  spend by a non-issuer) and `smb_extra_output_settle#0` (phase 1, the unlocking script's own OP_PUSH_TX) fail, both
+  checked by evaluating the vectors. The NFT specs' docstrings now use the model's names for the token types
+  (`0x21` commit-typed). The generators and the probe harness are under `lean/scripts/` (with a README; paths are
+  computed from the script's location, probe outputs go to `$GLUE_WORK`); rerun, they reproduce the committed
+  path, sound, melt, refute, lock, gate and rebuild files byte for byte.
+  A risk for CI, measured on the full rebuild these docstring changes forced (4 cores, 15 GB): the glue takes about
+  30 minutes of wall time, the heaviest modules (`SimpleMulti/Settle/Split.lean` at about 8 GB) run in parallel,
+  and one (`SimpleMulti/Refute.lean`) was killed for memory and built on a second `lake build`. The CI runner has
+  the same shape and a 90-minute limit, and this Lake has no job limit, so a cold CI build may need the
+  `BoltProofGlue` library and CI step §6 planned, or a retry of `lake build`.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,

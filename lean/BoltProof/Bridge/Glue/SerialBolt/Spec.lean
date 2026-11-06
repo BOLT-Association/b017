@@ -159,7 +159,7 @@ are copied from the scriptCode. -/
 /-- The pay-to-proof output of a commit: `02 b017 88 76 a9 14 <ben> 88 ac` with the spent value. -/
 abbrev proofOut (a : Args) : Bytes := preValue a.pre ++ [29, 2, 176, 23, 136, 118, 169, 20] ++ a.ben ++ [136, 172]
 
-/-- A commit spend's outputs: the settle-typed token (`pkh`, the beneficiary hash as the commitment, type `0x21`,
+/-- A commit spend's outputs: the commit-typed token (`pkh`, the beneficiary hash as the commitment, type `0x21`,
 this outpoint as parent, the old parent as grandparent) with the spent value, then the pay-to-proof output. -/
 abbrev commitOuts (f : Fields) (a : Args) : Bytes :=
   if decode f.parent = 0 then
@@ -169,7 +169,7 @@ abbrev commitOuts (f : Fields) (a : Args) : Bytes :=
     preValue a.pre ++ [253, 193, 5] ++ (scGenesisPush a ++ [0] ++ 20 :: (f.pkh ++ 20 :: a.ben ++ [1, 33] ++
       36 :: preOutpoint a.pre ++ scParentPushS f a ++ scIssuerPushS f a ++ scSuffixS f a)) ++ proofOut a
 
-/-- A settle spend's output: the commit-typed token owned by the committed hash (`com` as the owner, twenty zero
+/-- A settle spend's output: the settle-typed token owned by the committed hash (`com` as the owner, twenty zero
 bytes as the commitment, type `0x00`, this outpoint as parent, the old parent as grandparent) with the spent value. -/
 abbrev settleOuts (f : Fields) (a : Args) : Bytes :=
   if decode f.parent = 0 then

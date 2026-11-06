@@ -68,9 +68,9 @@ const PINNED: Record<string, string> = {
   'smb_merge_overflow_settle#0': 'SCRIPT_ERR_VERIFY',
   'smb_cross_issuer_merge_commit#1': 'SCRIPT_ERR_EQUALVERIFY', // the OTHER token's covenant pins its issuer
   'smb_cross_issuer_merge_settle#0': 'SCRIPT_ERR_EQUALVERIFY',
-  'smb_extra_output_settle#0': 'SCRIPT_ERR_CHECKSIGVERIFY', // the OP_PUSH_TX preimage no longer matches
+  'smb_extra_output_settle#0': 'SCRIPT_ERR_CHECKSIGVERIFY', // the unlocking script's own OP_PUSH_TX (before the lock runs): its preimage no longer matches
   'smb_extra_output_settle#1': 'SCRIPT_ERR_EVAL_FALSE', // the funding P2PKH signature covered the outputs
-  'smb_wrong_key_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // hash160(pubKey) == pubKeyHash
+  'smb_wrong_key_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the prologue's issuer guard (suffix 13): at genesis the signer must be the issuer
   'smb_wrong_key_commit#1': 'SCRIPT_ERR_EQUALVERIFY',
   // the glue plan's probes (lean/GLUE-PLAN.md, M1)
   'smb_probe_type27_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the written type is derived from the mode flags, not copied
