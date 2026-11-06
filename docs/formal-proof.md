@@ -331,8 +331,8 @@ Refusing the settle-typed orphan at its commit is a margin the fix chose, not on
 > **Provenance.** Until 2026-09-07 this lemma wrongly placed an `is2ndTx` flag in the fungible
 > contract; until 2026-11-04 it described the fungible guard as it stood before the F3 fix of
 > 2026-09-07, as `isGenesis` alone. Both prologues are decoded opcode by opcode in
-> [`issuer-guard.md`](issuer-guard.md); `test/lib/multiBoltIssuerGuard.test.ts` executes the fungible
-> rule on the shipped bytecode.
+> [`issuer-guard.md`](issuer-guard.md); `test/lib/multiBoltIssuerGuard.test.ts` executes both rules
+> on the shipped bytecode of every contract that carries them.
 
 ### Lemma 6 (Balance Determinism, fungible)
 The output balance is a deterministic function of the input balance(s), computed with 16-byte
@@ -581,7 +581,7 @@ not every file.
 | `test/scanner/redteam2.test.ts`, `unauthenticatedMint.test.ts`, `events.test.ts`, `fingerprints.test.ts` | Scanner accept/reject **follows the on-chain contract**: the scanner executes every supplied input on the Spend engine, so a forged commit or a tampered input is refused on execution; commit/settle event classification; fingerprint registry + p2Proof golden matching against tampered inputs (Theorems 1 & 4, §8.5). |
 | `test/lib/boltLib.test.ts`, `branches.test.ts`, `test/tokens/BOLT.test.ts`, `test/templates/pay2Proof.test.ts`, `test/releasable.test.ts` | Shared layout-agnostic primitives (`splitCtx`, outpoint/output serialisers, `verifyTx` guards), default-value/guard branches, the abstract base contract, the `pay2Proof` marker output, and the release gate. |
 | `test/helpers/counterfeit.ts` | Constructs counterfeits at the **raw-byte (on-wire)** level — exactly as an attacker would — so rejection is proven independent of SDK behaviour. |
-| `test/lib/multiBoltIssuerGuard.test.ts`, `test/lib/minSimpleAttack.test.ts` | **The issuer guard of each family on the shipped bytecode** (Lemma 5, §8.1). Fungible: a non-issuer's spend of the F3 / `is2ndTx` shape (`21`, no grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the fungible rule refuses at its commit is refused at the guard's own `OP_EQUALVERIFY`; the honest first settle, and the same bytes under the attacker's own issuer key, are accepted. NFT: B1 and B4 cover the tolerated orphan and `is2ndTx` re-arming the guard. See [`issuer-guard.md`](issuer-guard.md). |
+| `test/lib/multiBoltIssuerGuard.test.ts`, `test/lib/minSimpleAttack.test.ts` | **The issuer guard on the shipped bytecode of every contract that carries it** (Lemma 5, §8.1). Fungible (`SimpleMultiBOLT`, `FixedBOLT`, `OpenBOLT`): a non-issuer's spend of the F3 / `is2ndTx` shape (`21`, no grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the fungible rule refuses at its commit is refused at the guard's own `OP_EQUALVERIFY`; the honest first settle, and the same bytes under the attacker's own issuer key, are accepted. NFT (`MinSimpleBOLT`, `AuthBOLT`, `SerialBOLT`): the `is2ndTx` shape is refused at the guard, the same bytes under the attacker's key are accepted, and the resting `00` orphan's lone commit is accepted (the narrower rule); `minSimpleAttack` B1 and B4 add the refused settle and `is2ndTx` re-arming the guard on any non-zero `txoType`. See [`issuer-guard.md`](issuer-guard.md). |
 
 **Negative tests must fail; positive tests must hold.** None is skipped, and `vitest.config.ts` holds
 coverage at 100% on every metric, so a new uncovered branch fails the run.

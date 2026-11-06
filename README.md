@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 > **Status: `0.1.0`.** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
-> (771/771 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `1.0.0`. See
+> (791/791 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `1.0.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
 Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
@@ -40,7 +40,7 @@ independent genesis tokens — reserve/cap trust is an issuer matter) or **netwo
 ```
 npm install
 npm run build          # clean + tsc -> dist/ (JS + .d.ts)
-npm test               # vitest (771 tests)
+npm test               # vitest (791 tests)
 npm run test:coverage  # vitest + v8 coverage -> coverage/ (text + HTML report)
 ```
 
@@ -209,7 +209,7 @@ by concern (`test/tokens`, `test/templates`, `test/lib`, `test/scanner`), with s
 fixtures in `test/fixtures` and helpers in `test/helpers`.
 
 ```
-npm test               # 771 tests across 42 files
+npm test               # 791 tests across 42 files
 npm run test:coverage  # the same suite + a v8 coverage report (text to stdout, HTML in coverage/)
 ```
 

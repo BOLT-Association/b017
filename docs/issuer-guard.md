@@ -57,7 +57,9 @@ The second line is the F3 fix: five opcodes, added 2026-09-07. Before it the pro
 the same flag, so since F3 it also runs at the first settle, where it never fires: a settle produces
 an even type, and the check only refuses `25` and `27`. `FixedBOLT` and
 `OpenBOLT` (the genesis family, `FixedMulti.sx.template.ts` and `OpenMulti.sx.template.ts`) carry
-the identical guard sequence after the opcodes that handle their two leading pushes.
+the identical guard sequence after the opcodes that handle their two leading pushes. The guard is
+executed on every one of these contracts, and on the three NFT carriers, by
+`test/lib/multiBoltIssuerGuard.test.ts` (section 7).
 
 ### Side by side
 
@@ -209,16 +211,32 @@ folded into the next NFT bytecode rebuild.
 
 Executed in this repository, on the shipped bytecode, with no mocks:
 
-- `test/lib/multiBoltIssuerGuard.test.ts`, fungible. Fabricated `SimpleMultiBOLT` tokens funded from
-  an attacker's P2PKH, owned by the attacker, naming the victim as issuer, with a real non-zero parent,
-  a zero grandparent and a balance of 2<sup>100</sup>:
+- `test/lib/multiBoltIssuerGuard.test.ts`, every carrier of the guard. Fabricated tokens funded from
+  an attacker's P2PKH, owned by the attacker, naming the victim as issuer, with a real non-zero parent
+  and a zero grandparent. Each refusal is asserted at the guard's own `OP_EQUALVERIFY`, found from its
+  flag, which sits at a different opcode in each contract:
+
+  | Contract | Guard at lock opcode |
+  |---|---|
+  | `SimpleMultiBOLT` | 24 |
+  | `FixedBOLT`, `OpenBOLT` | 56 |
+  | `MinSimpleBOLT`, `AuthBOLT` | 29 |
+  | `SerialBOLT` | 61 |
+
+  On `SimpleMultiBOLT`, `FixedBOLT` and `OpenBOLT`, with a balance of 2<sup>100</sup>:
   - control: the issuer's honest first settle (which spends a zero-grandparent commit) is **accepted**;
-  - the F3 / `is2ndTx` shape (`txoType 21`): the attacker's settle is **refused** at the issuer
-    guard's `OP_EQUALVERIFY`, lock opcode 24;
+  - the F3 / `is2ndTx` shape (`txoType 21`): the attacker's settle is **refused** at the guard;
   - the settle-typed orphan (`txoType 20`), which only the fungible rule refuses at its commit: the
-    attacker's commit is **refused** at the same opcode;
+    attacker's commit is **refused** at the guard;
   - isolation: the identical `21`-shaped bytes naming the attacker as issuer are **accepted**, so the
     guard is the only thing refusing.
+
+  On `MinSimpleBOLT`, `AuthBOLT` and `SerialBOLT`:
+  - control: the honest mint, commit and settle are **accepted**;
+  - the `is2ndTx` shape (`txoType 21`): the attacker's settle is **refused** at the guard;
+  - isolation: the same bytes naming the attacker as issuer are **accepted**;
+  - the narrower NFT rule: the resting `00` orphan's lone commit is **accepted** without the issuer.
+    This is the case the deferred alignment in [`ROADMAP.md`](ROADMAP.md) would flip.
 - `test/lib/minSimpleAttack.test.ts` B1.0 to B1.3 and B4.4, NFT: the tolerated orphan, and `is2ndTx`
   re-arming the guard on any non-zero `txoType`.
 - `test/repro-fabricated-hop.test.ts`: the pre-fix fabricated-hop chain, frozen as the record of what a

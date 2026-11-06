@@ -16,11 +16,16 @@ All notable changes to **b017** are documented here. The format is based on
   the settle-typed zero-grandparent orphan at its commit and that F3 was the commit-typed shape both rules refuse,
   and says why `is2ndTx` must **not** be ported (it would close nothing, and the prologue length is the rebuild's
   `signCtx` slice offset).
-- **`test/lib/multiBoltIssuerGuard.test.ts`** pins the fungible guard on the bytes: a non-issuer's spend of the
-  F3 / `is2ndTx` shape (`21`, no grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the
-  fungible rule refuses at its commit, each naming the victim issuer and carrying 2^100, is refused at the guard's own `OP_EQUALVERIFY` (lock opcode 24, asserted to be
-  the `OP_IF OP_13 OP_PICK OP_EQUALVERIFY` of the prologue); the honest first settle, and the same bytes under the
-  attacker's own issuer key, are accepted. No existing test exercised this guard directly.
+- **`test/lib/multiBoltIssuerGuard.test.ts`** pins the issuer guard on the bytes of every contract that carries it.
+  Fungible (`SimpleMultiBOLT`, `FixedBOLT`, `OpenBOLT`): a non-issuer's spend of the F3 / `is2ndTx` shape (`21`, no
+  grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the fungible rule refuses at its
+  commit, each naming the victim issuer and carrying 2^100, is refused at the guard's own `OP_EQUALVERIFY`; the
+  honest first settle, and the same bytes under the attacker's own issuer key, are accepted. NFT (`MinSimpleBOLT`,
+  `AuthBOLT`, `SerialBOLT`): the `is2ndTx` shape is refused at the guard, the attacker-issuer control is accepted,
+  and the resting `00` orphan's lone commit is accepted, pinning the narrower NFT rule. The guard is located from
+  its own flag (`OP_BOOLOR`, then `OP_IF`), not by position, since the genesis contracts run an earlier
+  `OP_EQUALVERIFY` on `mintData`. No existing test exercised the guard's grandparent branch on any contract but
+  MinSimpleBOLT.
 - **`docs/ROADMAP.md`** records, as deferred work, aligning the NFT issuer guard with the fungible rule (drop the
   `txoType` term from `is2ndTx`): an optimisation, not a fix, to be folded into the next NFT bytecode rebuild since
   it changes the fingerprint and needs a reissue.
