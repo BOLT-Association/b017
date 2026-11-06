@@ -612,9 +612,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   resistance nothing is lost against computing the rebuilt bytes as the NFT family's `rebuiltOf` does.
   `SimpleMulti/Weld.lean` reads each push off the scriptCode as the spent lock's field (`scPush_*`, once
   `sc pre = lockScript f`) and proves the commit lock the covenant builds is the fungible lock of `commitFields`.
-  Next: the settled tokens' fields and the outputs' serialisation, the facts that assemble `Accepts`, the residual,
-  and `simpleMulti_refines` (first for the commits, the settles and the melt at the primary input, then the merge
-  commit's two-input argument).
+  Then the outputs: the token and pay-to-proof outputs the covenant builds are serialised outputs
+  (`tokenOut_eq`, `proofOut_eq`); the commits' and settles' outputs are those of the new tokens' fields
+  (`commitOuts_*`, `settleOuts_20_eq`, `splitOutA_eq`, `splitOutB_eq`, `settleOuts_24_eq`, with
+  `decode_append_zeros` for the padded balances), and those tokens are the model's `commitToken` and
+  `settleToken` (`tokenOf_commit_*`, `tokenOf_settle_*`). `SimpleMulti/Facts.lean` assembles `Accepts` from
+  clause-level facts (`accepts_of_facts`), deriving the type, mode and issuer clauses. Two lock-data conditions the
+  bytes do not check surface as hypotheses: a genesis token is settled-typed (`decode parent = 0 → settledTy ty`,
+  without which the issuer could settle a genesis-minted merge commit, which `l5_no_merge_at_genesis` forbids),
+  and a split's second recipient is not the zero hash (the model reads the zero hash as no commitment). Next: the
+  residual, the per-path discharge of the clause facts, and `simpleMulti_refines`.
 - **The model's output clauses (decision for Finding 1):** the melt-output clause `l2_melt`, the "change carries
   no token" half of `l2_outs`, and the version test on a melt are not enforced by the bytes and are not security
   properties: anyone can create a token-shaped output in any transaction, and the lineage check at spend time,

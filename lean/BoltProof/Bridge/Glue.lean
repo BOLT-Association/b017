@@ -35,6 +35,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.Sound
 import BoltProof.Bridge.Glue.SimpleMulti.Lock
 import BoltProof.Bridge.Glue.SimpleMulti.Abs
 import BoltProof.Bridge.Glue.SimpleMulti.Weld
+import BoltProof.Bridge.Glue.SimpleMulti.Facts
 
 /-!
 # BoltProof.Bridge.Glue
