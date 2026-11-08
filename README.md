@@ -28,9 +28,10 @@ for the argument and the forgery tests that demonstrate it, and
 [`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
 full attack-vector analysis), and [`lean/README.md`](lean/README.md) for the **machine-checked**
 version: the theorems proved in Lean 4 from the covenant's lemmas, and the shipped covenant bytes
-run on the test suite's real transactions inside Lean with the bsv-script-lean consensus semantics.
+run on the test suite's real transactions inside Lean with the bsv-script-lean consensus semantics, under
+the Chronicle rules (that file states exactly what is proved and what is still trusted).
 [`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard
-of each family, the NFT-only `is2ndTx` flag, and why the fungible family does not carry it.
+of each family: the NFT-only `is2ndTx` flag, and the broader zero-grandparent rule the fungible family carries instead.
 
 This is **third-party per-token unforgeability**: each unit is internally well-formed and traces
 to an issuer-signed mint. It is *not* a claim about **supply-honesty** (an issuer can mint many

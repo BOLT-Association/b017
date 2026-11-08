@@ -13,9 +13,10 @@ real bytecode twice. On 74 real transactions their verdicts are registered with 
 and for each of the four shipped covenants a symbolic run of the compiled suffix proves, for
 *every* input, what the bytes enforce, and that a spend the consensus rules judge valid satisfies
 the interface once read into the model, under residual assumptions each refinement states once
-(`BoltProof/Bridge/Glue/`, "What is still trusted" below). The run model admits only covenant-created tokens:
-the fabricated-hop attack is covered at the ledger level by Theorem 5, and a recipient's off-chain lineage checks
-are not formalized.
+(`BoltProof/Bridge/Glue/`, "What is still trusted" below). Everything at the bytecode level is judged under
+the Chronicle consensus rules BSV runs (`Bridge/Params.lean`); nothing is claimed under the pre-Chronicle rules.
+The run model admits only covenant-created tokens: the fabricated-hop attack is covered at the ledger level by
+Theorem 5, and a recipient's off-chain lineage checks (`docs/verification-scaling.md`) are not formalized.
 
 ## Layout
 
@@ -198,6 +199,7 @@ end test), with only the three standard axioms, in the style of their `Gadget/Ha
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
+| The consensus rules | **Chronicle only.** Layer 2 judges every vector, and the glue states every theorem, under the post-Chronicle mainnet parameters of `Bridge/Params.lean` (the block path: no `MINIMALIF`, FORKID signatures, the `codeSep ++ lock` scriptCode that b017's OP_PUSH_TX signs). Nothing is claimed under the pre-Chronicle rules; `paramsPreChronicle` is a negative control, printed beside the judged verdict by `lake exe boltvectors`. |
 | The native evaluator (`native_decide`'s per-theorem axiom) | Layer 2 only. Layer 1 never uses it. |
 
 ## The issuer guards

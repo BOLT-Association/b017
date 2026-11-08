@@ -141,7 +141,8 @@ machine-checks it in two layers, the second of them two ways:
 2. **The shipped bytes are run on real transactions inside Lean.** With the Lean specification
    of BSV consensus, [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean) v1.2.0 (real
    SHA-256, RIPEMD-160 and secp256k1 as Lean functions), the honest lifecycles of §9 and every
-   adversarial transaction of the red-team suites are evaluated, and their verdicts — accept, or
+   adversarial transaction of the red-team suites are evaluated under the Chronicle rules BSV runs, and
+   their verdicts — accept, or
    reject at exactly the input these lemmas name — are registered with the kernel
    (`lean/BoltProof/Bridge/`, via `native_decide`). The covenant suffixes reasoned about are
    shown to hash to the scanner's fingerprints.
@@ -161,7 +162,12 @@ properties (melt outputs, the change blob, the melt's version); the fungible fam
 each an open question in `lean/GLUE-PLAN.md` §7 (the six protocol next types, the rebuild's piece
 widths, the anchor index, a merge's other input presenting a preimage). Layer 2 remains evidence on the
 transactions it covers (148 inputs at the time of writing), and Assumption 4 is still trusted.
-`lean/README.md` states the boundary precisely. The tests remain strong evidence over the
+Every bytecode-level statement (points 2 and 3) is made under the post-Chronicle consensus parameters;
+nothing is claimed under the pre-Chronicle rules. The Lean development also states a fifth, ledger-level
+theorem for the §8.1 fabricated-hop defence (`lean/BoltProof/Theorems/ProofGating.lean`); its run model
+admits only covenant-created tokens, so the attack's own non-covenant transactions are outside it, and the
+off-chain lineage checks of [`verification-scaling.md`](verification-scaling.md) that protect a recipient
+are not formalized. `lean/README.md` states the boundary precisely. The tests remain strong evidence over the
 cases they cover (including raw-byte counterfeits that *must* be rejected), but a passing suite
 demonstrates the covered branches; it is not a proof of the absence of a covenant bug in an
 uncovered branch.

@@ -34,7 +34,8 @@ All notable changes to **b017** are documented here. The format is based on
   as hypotheses and only Lean's three standard axioms; a concrete NFT lifecycle is proved a valid run. Layer 2
   runs the shipped covenant bytes on the test suite's real transactions — the honest lifecycles and every
   red-team attack, plus the historical fabricated-hop chain against its pre-fix bytes — inside Lean with the
-  bsv-script-lean v1.2.0 consensus semantics and registers each verdict with the kernel (`native_decide`), and
+  bsv-script-lean v1.2.0 consensus semantics under the Chronicle rules BSV runs (the pre-Chronicle rules are a
+  negative control only) and registers each verdict with the kernel (`native_decide`), and
   recomputes the scanner's suffix fingerprints. `npm run lean:vectors` regenerates the vectors deterministically;
   the new CI job `lean-proof` builds the proof, runs every vector, audits axioms and fails on vector drift.
   `docs/formal-proof.md` §1.6 states the remaining trust boundary (bytecode-to-interface fidelity beyond the
@@ -66,6 +67,8 @@ All notable changes to **b017** are documented here. The format is based on
 - **Theorem 5, proof gating** (`lean/BoltProof/Theorems/ProofGating.lean`): the §8.1 fabricated-hop exclusion at the
   ledger level — under the UTXO no-double-spend rule a commit's proof output admits at most one settle, and under
   collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.
+  The run model admits only covenant-created tokens, so the attack's own non-covenant transactions are outside it;
+  a recipient's off-chain lineage checks (`docs/verification-scaling.md`) are not formalized.
 - **The bytes proved to enforce the interface on every input** (`lean/BoltProof/Bridge/Glue/`, planned and recorded
   in `lean/GLUE-PLAN.md`). A symbolic run of each shipped suffix from the stack the unlocking script leaves, built
   from one inversion lemma per opcode and the `sym_all` driver over the suffixes cut into named chunks
