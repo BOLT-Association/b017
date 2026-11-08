@@ -6,6 +6,41 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- **`docs/issuer-guard.md`: the issuer guard of each family, decoded from the shipped bytecode.** The NFT
+  prologue derives `is2ndTx = (grandparent == 0 && txoType != 0)` and requires the issuer under
+  `isGenesis || is2ndTx`; the fungible prologue requires the issuer under `isGenesis || grandparent == 0`, the F3
+  fix of 2026-09-07, which is a strict superset. The document tells apart the three things that keep being
+  conflated (the fabricated hop and its balance anchor; F3 and its zero-grandparent guard; `is2ndTx`, an NFT-only
+  design feature that predates both), gives the timeline with commit ids, explains why the NFT family can tolerate
+  the settle-typed zero-grandparent orphan at its commit and that F3 was the commit-typed shape both rules refuse,
+  and says why `is2ndTx` must **not** be ported (it would close nothing, and the prologue length is the rebuild's
+  `signCtx` slice offset).
+- **`test/lib/multiBoltIssuerGuard.test.ts`** pins the issuer guard on the bytes of every contract that carries it.
+  Fungible (`SimpleMultiBOLT`, `FixedBOLT`, `OpenBOLT`): a non-issuer's spend of the F3 / `is2ndTx` shape (`21`, no
+  grandparent) and of the settle-typed orphan (`20`, no grandparent) that only the fungible rule refuses at its
+  commit, each naming the victim issuer and carrying 2^100, is refused at the guard's own `OP_EQUALVERIFY`; the
+  honest first settle, and the same bytes under the attacker's own issuer key, are accepted. NFT (`MinSimpleBOLT`,
+  `AuthBOLT`, `SerialBOLT`): the `is2ndTx` shape is refused at the guard, the attacker-issuer control is accepted,
+  and the resting `00` orphan's lone commit is accepted, pinning the narrower NFT rule. The guard is located from
+  its own flag (`OP_BOOLOR`, then `OP_IF`), not by position, since the genesis contracts run an earlier
+  `OP_EQUALVERIFY` on `mintData`. No existing test exercised the guard's grandparent branch on any contract but
+  MinSimpleBOLT.
+- **`docs/ROADMAP.md`** records, as deferred work, aligning the NFT issuer guard with the fungible rule (drop the
+  `txoType` term from `is2ndTx`): an optimisation, not a fix, to be folded into the next NFT bytecode rebuild since
+  it changes the fingerprint and needs a reissue.
+
+### Fixed
+- **Docs: `formal-proof.md` Lemma 5 still described the pre-F3 fungible guard** ("the only issuer check ...
+  fires when the spent token is parentless"). The lemma now states the shipped rule for both families inline,
+  with a two-line provenance note in place of stacked corrections; §8.1 gains the F3 row and §9 the new suite; the
+  README links the new document and notes that both families demand the issuer at the first settle too.
+- **Docs: `formal-proof.md` §9 and `unforgeability.md` §7 had gone stale.** Both quoted "126 tests across 18
+  files", cited suites removed in `ab95827` (`parity.test.ts`, `singleAncestor.test.ts`, `singleCoupon.test.ts`)
+  and said the scanner accepts a lone genesis mint, which it has refused as unauthenticated since `110ff77`. The
+  rows now cite the suites that carry each property, and the counts point at the README, where
+  `npm run coverage:readme` generates them, instead of being copied.
+
 ## [0.1.0] - 2026-10-11
 
 ### Changed
