@@ -209,24 +209,17 @@ transactions are simply invalid. The P2PKH and proof inputs are valid in both er
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
 | The native evaluator (`native_decide`'s per-theorem axiom) | Layer 2 only. Layer 1 never uses it. |
 
-## An observation on the issuer guards (recorded, no action taken)
+## The issuer guards
 
-Both families re-assert the issuer beyond the genesis spend. The NFT covenants require the signer to be the
-issuer when the spent token is parentless, or is spent by a settle and has no grandparent (`is2ndTx`); the fungible
-`SimpleMultiBOLT` does the same when the spent token is parentless or has no grandparent, and also refuses a merge
-there (suffix 0–29: `parent = 0 ∨ gp = 0 → issuer = pubKey ∧ nextTxoType ∉ {0x25, 0x27}`). Both are proved over
-the bytes (`Enforced.issuer` in each family's `*_sound`). *Correction:* this section, and the 2026-09-02
-correction in `docs/formal-proof.md`, said the fungible family lacks the guard; it does not.
-
-Every covenant hard-codes that a commit's token output stays owned by the current holder
-(`owner := spent.owner`, the recipient is only *named*), so Lemma 1 already forces the holder to
-sign the settle. On a chain built from a real genesis the first commit's output is owned by the
-issuer, so the issuer signs the first settle whether or not the guard exists: on honest chains
-it is redundant. It only bites on a *fabricated* first-commit shape whose owner field an
-attacker chose (then L1 asks for the attacker's key and the guard for the issuer's). It is
-therefore either superfluous or security hardening, in both families alike. The model's L5
-clause for the fungible family asks the issuer at genesis only, which is weaker than the bytes, so
-the refinement derives it; for the NFT family it states the guard exactly as the bytes have it.
+Both families require the issuer's signature at the first settle as well as the first commit.
+[`docs/issuer-guard.md`](../docs/issuer-guard.md) decodes both prologues and gives the history: `is2ndTx` is the
+NFT family's flag, the fungible rule (the F3 fix) is broader, and porting `is2ndTx` would close nothing. The glue
+proves both rules from the shipped bytes for every input, `Enforced.issuer` in each family's `*_sound`: NFT
+`parent = 0 ∨ (gp = 0 ∧ txoType = 0x21) → issuer = pubKey`, fungible
+`parent = 0 ∨ gp = 0 → issuer = pubKey ∧ nextTxoType ∉ {0x25, 0x27}` (suffix 0–29). The model's L5 clause for the
+fungible family asks the issuer at genesis only, which is weaker than the bytes, so the refinement derives it; for
+the NFT family it states the guard exactly as the bytes have it. *Correction:* an earlier version of this section
+said the fungible family lacks the guard; it does not.
 
 ## Building
 

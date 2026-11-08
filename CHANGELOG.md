@@ -80,14 +80,6 @@ All notable changes to **b017** are documented here. The format is based on
   enforce. The axiom audit now has Lean enumerate Layer 2's declarations, and `AxiomCheck.lean` lists the glue's
   theorems. The generators of the glue's regular files are under `lean/scripts/`.
 
-### Fixed
-- Documentation corrected by what the glue found: the NFT prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` runs on the
-  grandparent outpoint (`gp ≠ 0`), not the type (`Gadgets/NftType.lean`, `lean/README.md`); the fungible
-  `SimpleMultiBOLT` does re-assert the issuer on the spend of a token without a grandparent, so the 2026-09-02
-  correction in `docs/formal-proof.md` and the README's `is2ndTx` note were wrong; and two rejected vectors fail
-  where the exporter's comments now say (`smb_wrong_key_commit#0` at the prologue's issuer guard,
-  `smb_extra_output_settle#0` in the unlocking script's own OP_PUSH_TX).
-
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
   `SCRIPT_ERR_SIG_PUSHONLY` (the unlocking script carries OP_PUSH_TX opcodes after `OP_CODESEPARATOR`); under
@@ -107,6 +99,12 @@ All notable changes to **b017** are documented here. The format is based on
   and said the scanner accepts a lone genesis mint, which it has refused as unauthenticated since `110ff77`. The
   rows now cite the suites that carry each property, and the counts point at the README, where
   `npm run coverage:readme` generates them, instead of being copied.
+- Documentation corrected by what the Lean glue found: the NFT prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` runs
+  on the grandparent outpoint (`gp ≠ 0`), not the type (`Gadgets/NftType.lean`, `lean/README.md`); `lean/README.md`'s
+  issuer-guard note said the fungible family lacks the second-spend guard, which `docs/issuer-guard.md` and the
+  glue's `Enforced.issuer` both show it has; and two rejected vectors fail where the exporter's comments now say
+  (`smb_wrong_key_commit#0` at the prologue's issuer guard, `smb_extra_output_settle#0` in the unlocking script's
+  own OP_PUSH_TX).
 
 ## [0.1.0] - 2026-10-11
 

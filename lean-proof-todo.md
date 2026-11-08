@@ -41,5 +41,6 @@ Follow-ups (the residual trust boundary, in order of value):
       commit — the fabricated-hop exclusion stated above the single-spend interface
       (`lean/BoltProof/Theorems/ProofGating.lean`: `t5_proof_gating`, `t5_balance_anchor`,
       `t5_fabricated_hop_excluded`; hypotheses: the UTXO no-double-spend rule and collision-freeness).
-- [ ] Decide the issuer-guard question recorded in `lean/README.md` (redundant on honest chains vs hardening;
-      the glue showed both families have the guard, so the question no longer distinguishes them).
+- [x] Decide the issuer-guard question: decided in `docs/issuer-guard.md`. Both families have the second-spend
+      guard (the glue proves it from the bytes); `is2ndTx` is not to be ported; aligning the NFT rule with the
+      fungible one is deferred to the next NFT bytecode rebuild (`docs/ROADMAP.md`).
