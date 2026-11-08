@@ -27,9 +27,11 @@ a token would require breaking SHA-256 or ECDSA. See [`docs/unforgeability.md`](
 for the argument and the forgery tests that demonstrate it, and
 [`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
 full attack-vector analysis), and [`lean/README.md`](lean/README.md) for the **machine-checked**
-version: the theorems proved in Lean 4 from the covenant's lemmas, and the shipped covenant bytes
-run on the test suite's real transactions inside Lean with the bsv-script-lean consensus semantics, under
-the Chronicle rules (that file states exactly what is proved and what is still trusted).
+version: Theorems 1–5 proved in Lean 4 over the protocol model, and, for every shipped covenant, a proof
+that each hop of a lineage is what the covenant wrote from the token it spent and that a parentless token
+moves only under the issuer's key, per spend, under stated assumptions and the Chronicle consensus rules,
+with the bsv-script-lean semantics; composing the hops of a real chain is the open step. That file states
+exactly what is proved and what is still trusted.
 [`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard
 of each family: the NFT-only `is2ndTx` flag, and the broader zero-grandparent rule the fungible family carries instead.
 

@@ -36,7 +36,8 @@ Follow-ups (the residual trust boundary, in order of value):
         `Fam.edge .nft` successor type; step lemmas for a two-byte push, OP_CAT, OP_BIN2NUM and OP_0NOTEQUAL
         added. The prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL`, once read as the type flag, runs on the
         grandparent outpoint: the glue found it and the file now says so).
-- [ ] Pin the exact `ScriptError` of every rejected vector (`PINNED` in `lean/vectors/export.test.ts`).
+- [x] Pin the exact `ScriptError` of every rejected vector (`PINNED` in `lean/vectors/export.test.ts`). Done: all
+      27 rejected inputs in `lean/vectors/vectors.json` carry a pinned code; none is `anyInvalid`.
 - [x] A ledger-level theorem (T5) that every settle with a grandparent consumes the proof of a unique real
       commit — the fabricated-hop exclusion stated above the single-spend interface
       (`lean/BoltProof/Theorems/ProofGating.lean`: `t5_proof_gating`, `t5_balance_anchor`,

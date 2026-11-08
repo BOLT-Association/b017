@@ -8,9 +8,10 @@ under, and secured by the network's proof-of-work.
 
 The argument below is the accessible form. For the rigorous treatment — formal model,
 hardness assumptions, 4 theorems, 7 lemmas, and an enumerated attack-vector analysis — see
-[`formal-proof.md`](formal-proof.md); for the machine-checked version — the four theorems proved
-in Lean 4 from the covenant's lemmas, and the shipped covenant bytes run on the real transactions
-of the test suite inside Lean — see [`lean/README.md`](../lean/README.md). This file is written to
+[`formal-proof.md`](formal-proof.md); for the machine-checked version — Theorems 1–5 proved in Lean 4
+over the protocol model, and for every shipped covenant a proof, per spend and under stated assumptions,
+that each hop of a lineage is what the covenant wrote from the token it spent — see
+[`lean/README.md`](../lean/README.md). This file is written to
 stand on its own for a reader of *this* library.
 
 > **Scope.** "Cannot be counterfeited" means: you cannot create a token that *appears* to

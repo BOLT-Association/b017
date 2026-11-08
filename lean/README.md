@@ -17,6 +17,8 @@ the interface once read into the model, under residual assumptions each refineme
 the Chronicle consensus rules BSV runs (`Bridge/Params.lean`); nothing is claimed under the pre-Chronicle rules.
 The run model admits only covenant-created tokens: the fabricated-hop attack is covered at the ledger level by
 Theorem 5, and a recipient's off-chain lineage checks (`docs/verification-scaling.md`) are not formalized.
+Composing the hops of a real chain into a model run, which lifts the per-spend results to Theorems 1 and 5
+for real tokens, is the open step.
 
 ## Layout
 

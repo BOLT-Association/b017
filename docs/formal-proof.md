@@ -660,9 +660,11 @@ is reducible to breaking SHA-256 or ECDSA. ∎
 
 These four results are the whole claim. They establish **third-party per-token unforgeability**;
 they do **not** establish issuer supply-honesty or network-level security. The theorems are
-machine-checked in Lean from the covenant interface, and the shipped bytes are checked against
-that interface on real transactions; the fidelity of the bytes to the interface on every other
-input is the part still taken on trust — see §1.6 and `lean/README.md` for the exact boundary.
+machine-checked in Lean from the covenant interface; for every shipped covenant the bytes are proved to
+enforce that interface on every input, per spend and under stated assumptions, and checked against it on
+real transactions; composing the hops of a real chain into a model run, which lifts the per-spend results
+to Theorems 1 and 5 for real tokens, is the open step — see §1.6 and `lean/README.md` for the exact
+boundary.
 
 ---
 
