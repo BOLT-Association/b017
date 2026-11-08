@@ -7,22 +7,31 @@ import BoltProof.Bridge.Gadgets.Parity
 In the NFT family (`MinSimpleBOLT`, `AuthBOLT`, `SerialBOLT`) the produced token's type is not
 *checked* but *written* by the covenant: the serialized output it welds into `hashOutputs`
 (Lemma 2) carries the type field `01 00` (type `0x00`, settle-typed) when the spent token is
-commit-typed and `01 21` (type `0x21`, commit-typed) otherwise. Two fragments do this:
+commit-typed and `01 21` (type `0x21`, commit-typed) otherwise. Two fragments were read as doing this:
 
-* the prologue derives the flag from the spent `txoType` field — `OP_DUP OP_BIN2NUM
-  OP_0NOTEQUAL` (`76 81 92`, offset 6 of the `MinSimpleBOLT` and `AuthBOLT` suffixes, 39 of
-  `SerialBOLT`'s), i.e. `txoType ≠ 0`;
-* the selector reads that flag back and appends the type field to the output being built —
+* the prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` (`76 81 92`, offset 6 of the `MinSimpleBOLT` and
+  `AuthBOLT` suffixes, 39 of `SerialBOLT`'s), `nftFlag`. *Correction (the glue, `lean/GLUE-PLAN.md`
+  Finding 2):* in the shipped suffixes this fragment runs on the grandparent outpoint field, not on
+  `txoType` (the prologue before it is `2 OP_PICK OP_BIN2NUM OP_NOT OP_SWAP OP_2SWAP`), so it computes
+  `gp ≠ 0`, the flag that decides whether a settle rebuilds an ancestor. `nftFlag_run` is true as stated
+  for whatever item is on top; that item is not the type;
+* the selector appends the type field to the output being built —
   `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT` (`01 d 79 63 02 01 00 67 02 01 21 68 7e`,
   with the depth `d = 0x17` at offset 534 of `MinSimpleBOLT` and 543 of `AuthBOLT`, `d = 0x18`
-  at offset 589 of `SerialBOLT`).
+  at offset 589 of `SerialBOLT`). The item it picks is the raw spent type byte (`[0x00]` or `[0x21]`:
+  `reaches_nftTypeSel` in `Glue/*/Sound.lean`), which `OP_IF` reads by its truth value (with
+  `MINIMALIF` off, as post-Chronicle): `[0x21]` takes the `01 00` arm, `[0x00]` the `01 21` arm.
 
-This module proves both over bsv-script-lean's own loop: `nftFlag_run` (the flag is the
-boolean `txoType ≠ 0`), `nftTypeSel_run_commit` / `nftTypeSel_run_settle` (the selector appends
-exactly the type byte Lemma 7 dictates and changes nothing else), and `nftTypeSel_edge` (on the
-family's two defined type bytes the written type is a `Fam.edge .nft` successor of the spent
-one). Since the serialized outputs are bound by `hashOutputs`, the NFT family's state machine
-holds by construction: no spender input participates in the choice.
+This module proves both over bsv-script-lean's own loop: `nftFlag_run` (the flag is the boolean
+`x ≠ 0` of the item on top), `nftTypeSel_run_commit` / `nftTypeSel_run_settle` (with the canonical
+booleans `[1]` and `[]` at the selector's depth, it appends exactly the type field Lemma 7 dictates and
+changes nothing else), and `nftTypeSel_edge` (on the family's two defined type bytes the written type
+is a `Fam.edge .nft` successor of the spent one). The real stack carries the raw type byte at that
+depth rather than the canonical boolean, so these lemmas do not apply to it literally; the glue's path
+theorems (`Glue/MinSimple/Paths/`, `Glue/AuthBolt/Paths/`, `Glue/SerialBolt/Paths/`) run the selector
+on the raw byte, and their outputs carry the type field these lemmas name. Since the serialized outputs
+are bound by `hashOutputs`, the NFT family's state machine holds by construction: no spender input
+participates in the choice.
 -/
 
 set_option autoImplicit false
@@ -31,7 +40,8 @@ namespace BoltProof.Gadgets
 
 open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Gadget
 
-/-- The prologue's flag: `OP_DUP OP_BIN2NUM OP_0NOTEQUAL`, `txoType ≠ 0` above the type. -/
+/-- `OP_DUP OP_BIN2NUM OP_0NOTEQUAL`: the boolean `x ≠ 0` of the top item, above it. In the shipped NFT
+suffixes it runs on the grandparent outpoint (`gp ≠ 0`), not on the type (module header). -/
 def nftFlag : Bytes := [Op.OP_DUP, Op.OP_BIN2NUM, Op.OP_0NOTEQUAL]
 
 /-- The type selector at depth byte `d`: `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT`. -/
@@ -53,8 +63,9 @@ theorem decode_18 : decode [0x18] = 24 := by decide
 
 /-! ## The flag -/
 
-/-- `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` from a stack whose top is the spent type `ty`: the
-boolean `ty ≠ 0` (as a script number, `[1]` or `[]`) pushed above it, three opcodes charged. -/
+/-- `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` from a stack whose top is `ty`: the boolean `ty ≠ 0` (as a script
+number, `[1]` or `[]`) pushed above it, three opcodes charged. (The name is the original reading; in the
+shipped suffixes the top item here is the grandparent outpoint, module header.) -/
 theorem nftFlag_run (env : Env) (t : Bytes) (st : State) (ty : Bytes) (rest : List Bytes)
     (hstk : st.stack = ty :: rest) (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 3 ≤ env.params.limits.maxOpsPerScript)
@@ -93,8 +104,9 @@ theorem nftFlag_run (env : Env) (t : Bytes) (st : State) (ty : Bytes) (rest : Li
 
 /-! ## The selector -/
 
-/-- The selector with the flag `[1]` (the spent token is commit-typed): the type field `01 00`
-is appended to the output being built on top, five opcodes charged. -/
+/-- The selector with the canonical true flag `[1]` at its depth (the spent token is commit-typed; the
+real stack holds the raw type `[0x21]` there, which `OP_IF` reads alike): the type field `01 00` is appended
+to the output being built on top, five opcodes charged. -/
 theorem nftTypeSel_run_commit (env : Env) (t : Bytes) (st : State) (s : List Bytes) (acc : Bytes)
     (d n : Nat) (hd : decode [d] = n + 1)
     (hstk : st.stack = acc :: s) (hf : s.getD n [] = [1]) (hlen : n < s.length)
@@ -181,8 +193,9 @@ theorem nftTypeSel_run_commit (env : Env) (t : Bytes) (st : State) (s : List Byt
   rw [h8]
   state_congr
 
-/-- The selector with the flag `[]` (the spent token is settle-typed): the type field `01 21`
-is appended to the output being built on top, five opcodes charged. -/
+/-- The selector with the canonical false flag `[]` at its depth (the spent token is settle-typed; the
+real stack holds the raw type `[0x00]` there, which `OP_IF` reads alike): the type field `01 21` is appended
+to the output being built on top, five opcodes charged. -/
 theorem nftTypeSel_run_settle (env : Env) (t : Bytes) (st : State) (s : List Bytes) (acc : Bytes)
     (d n : Nat) (hd : decode [d] = n + 1)
     (hstk : st.stack = acc :: s) (hf : s.getD n [] = []) (hlen : n < s.length)
@@ -261,9 +274,10 @@ theorem nftTypeSel_run_settle (env : Env) (t : Bytes) (st : State) (s : List Byt
   rw [h8]
   state_congr
 
-/-- **Lemma 7 for the NFT family, by construction.** With the flag the prologue derives from a
-spent type byte `a` of the family (`0x00` or `0x21`; `nftFlag_run`), the selector writes a type
-byte `b` with `Fam.edge .nft a b` and changes nothing else. -/
+/-- **Lemma 7 for the NFT family, by construction.** With the truth value of a spent type byte `a` of
+the family (`0x00` or `0x21`) at its depth, as the canonical boolean, the selector writes a type byte `b`
+with `Fam.edge .nft a b` and changes nothing else. (The real stack holds the raw byte there; the glue's
+path theorems run the selector on it.) -/
 theorem nftTypeSel_edge (env : Env) (t : Bytes) (st : State) (s : List Bytes) (acc : Bytes)
     (d n a : Nat) (hd : decode [d] = n + 1)
     (ha : a ∈ Fam.nft.settleTypes ∨ a ∈ Fam.nft.commitTypes)
