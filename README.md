@@ -24,16 +24,15 @@ authenticity & provenance by a multistep inspection.
 **Why these tokens can't be counterfeited:** the token state (issuer, lineage, owner, balance)
 is bound into a self-validating Bitcoin Script covenant via a dual hash-commitment, so forging
 a token would require breaking SHA-256 or ECDSA. See [`docs/unforgeability.md`](docs/unforgeability.md)
-for the argument and the forgery tests that demonstrate it, and
-[`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
-full attack-vector analysis), and [`lean/README.md`](lean/README.md) for the **machine-checked**
-version: Theorems 1–5 proved in Lean 4 over the protocol model, and, for every shipped covenant, a proof
-that each hop of a lineage is what the covenant wrote from the token it spent and that a parentless token
-moves only under the issuer's key, per input, under stated assumptions and the Chronicle consensus rules,
-with the bsv-script-lean semantics; composing the hops of a real chain is the open step. That file states
-exactly what is proved and what is still trusted.
-[`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard
-of each family: the NFT-only `is2ndTx` flag, and the broader zero-grandparent rule the fungible family carries instead.
+for the argument and the forgery tests, [`docs/formal-proof.md`](docs/formal-proof.md) for the
+rigorous treatment (4 theorems, 7 lemmas, full attack-vector analysis), and
+[`lean/README.md`](lean/README.md) for the **machine-checked** version: Theorems 1–5 proved in Lean 4
+of the protocol model, and, for every shipped script, a proof that each token is built by the script
+from the one before it and that a genesis moves only under the issuer's key. The script proofs hold per
+input, under listed assumptions and today's BSV rules; chaining them along a token's whole history is
+the open step. That file states exactly what is proved and what is still trusted.
+[`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard of each family: the NFT-only
+`is2ndTx` flag, and the broader zero-grandparent rule the fungible family carries instead.
 
 This is **third-party per-token unforgeability**: each unit is internally well-formed and traces
 to an issuer-signed mint. It is *not* a claim about **supply-honesty** (an issuer can mint many

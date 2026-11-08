@@ -29,28 +29,24 @@ All notable changes to **b017** are documented here. The format is based on
 - **`docs/ROADMAP.md`** records, as deferred work, aligning the NFT issuer guard with the fungible rule (drop the
   `txoType` term from `is2ndTx`): an optimisation, not a fix, to be folded into the next NFT bytecode rebuild since
   it changes the fingerprint and needs a reissue.
-- **A machine-checked proof** (`lean/`, Lean 4). Layer 1 states Lemmas 1–7 of `docs/formal-proof.md` as the
-  covenant interface and proves Theorems 1–4 from it for both families over arbitrary runs, with Assumptions 1–2
-  as hypotheses and only Lean's three standard axioms; a concrete NFT lifecycle is proved a valid run. Layer 2
-  runs the shipped covenant bytes on the test suite's real transactions — the honest lifecycles and every
-  red-team attack, plus the historical fabricated-hop chain against its pre-fix bytes — inside Lean with the
-  bsv-script-lean v1.2.0 consensus semantics under the Chronicle rules BSV runs (the pre-Chronicle rules are a
-  negative control only) and registers each verdict with the kernel (`native_decide`), and
-  recomputes the scanner's suffix fingerprints. `npm run lean:vectors` regenerates the vectors deterministically;
-  the new CI job `lean-proof` builds the proof, runs every vector, audits axioms and fails on vector drift.
-  `docs/formal-proof.md` §1.6 states the remaining trust boundary (bytecode-to-interface fidelity beyond the
-  covered inputs; A3; A4).
+- **A machine-checked proof** (`lean/`, Lean 4). Terms: the *model* is Lemmas 1–7 of `docs/formal-proof.md` written
+  in Lean as `Accepts`; the *script* is each covenant's compiled bytecode as shipped. Layer 1 proves Theorems 1–4 of
+  the model for both families over arbitrary runs, with Assumptions 1–2 as hypotheses and only Lean's three standard
+  axioms; a concrete NFT lifecycle is proved a valid run. Layer 2 runs the script inside Lean, with bsv-script-lean
+  v1.2.0 under today's BSV rules (post-Chronicle; the old rules are a control only), on the test suite's real
+  transactions: the honest lifecycles, every red-team attack and the historical fabricated-hop chain against its
+  pre-fix script. Each verdict is registered with the kernel (`native_decide`) and the scanner's fingerprints are
+  recomputed. `npm run lean:vectors` regenerates the vectors deterministically; the CI job `lean-proof` builds the
+  proof, runs every vector, audits axioms and fails on vector drift. `docs/formal-proof.md` §1.6 states what is
+  still trusted.
 - `test/helpers/minSimpleAttacks.ts`: the NFT red-team builders, shared by the suite and the exporter.
-- **Theorem 1 per transition** (`t1_step`, `t1_genesis_signer`, `lean/BoltProof/Theorems/Authenticity.lean`): every
-  token an accepted spend produces carries the spent token's issuer and names the spent outpoint as its parent, and a
-  genesis moves only under the issuer's key. Stated of the shipped bytes, for every valid input, by
-  `real_issuer_carried` and `real_genesis_needs_issuer` in `Glue/Refine/EndToEnd.lean` (MinSimpleBOLT) and the new
-  `Glue/SimpleMulti/EndToEnd.lean` (SimpleMultiBOLT): one hop of a lineage is what the covenant wrote from the token
-  it spent.
-- **`lean/BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`**: the fungible family's end-to-end statement. Each
-  refinement stage's hypotheses are one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`,
-  `RealMergeSettle`), and Lemma 1, Theorems 2, 3 and 4 per step and Theorem 1 per hop are stated of any
-  `SimpleMultiBOLT` spend read from the bytes.
+- **Theorem 1 per hop** (`t1_step`, `t1_genesis_signer`, `lean/BoltProof/Theorems/Authenticity.lean`): every token
+  a spend produces is built from the one it spent, same issuer, that token as parent; a genesis moves only under the
+  issuer's key. Stated of the script for every valid input by `real_issuer_carried` and `real_genesis_needs_issuer`
+  in `Glue/Refine/EndToEnd.lean` (MinSimpleBOLT) and `Glue/SimpleMulti/EndToEnd.lean` (SimpleMultiBOLT).
+- **`lean/BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`**: the fungible end-to-end statement. Each proof stage's
+  hypotheses are one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`, `RealMergeSettle`); Lemma 1,
+  Theorems 2, 3 and 4 per step and Theorem 1 per hop are stated of any `SimpleMultiBOLT` spend the script accepts.
 - **Lemma 4 proved over the bytecode** (`lean/BoltProof/Bridge/Gadgets/`): the null-ancestor check's tail
   `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY` passes exactly when the concatenated ancestor arguments are empty and
   fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input, over bsv-script-lean's own instruction loop and
@@ -79,33 +75,30 @@ All notable changes to **b017** are documented here. The format is based on
   collision resistance a settle's balance is exactly the settle result of the real commit its grandparent names.
   The run model admits only covenant-created tokens, so the attack's own non-covenant transactions are outside it;
   a recipient's off-chain lineage checks (`docs/verification-scaling.md`) are not formalized.
-- **The bytes proved to enforce the interface on every input** (`lean/BoltProof/Bridge/Glue/`, planned and recorded
-  in `lean/GLUE-PLAN.md`). A symbolic run of each shipped suffix from the stack the unlocking script leaves, built
-  from one inversion lemma per opcode and the `sym_all` driver over the suffixes cut into named chunks
-  (`lean/vectors/sections.ts` → `Generated/Chunks.lean`). For each of the four covenants, `*_sound` states what the
-  suffix enforces whenever it does not fail and the `reaches_*` theorems show the run reaches every fragment proved
-  in `Gadgets/` with the stack its lemma assumes; `minSimple_refines`, `simpleMulti_refines_{basic,settle_gp,
-  merge_commit,merge_settle}`, `authBolt_refines` and `serialBolt_refines` prove that a spend the consensus rules judge
-  valid satisfies `Accepts` once read into the model, under the residual assumptions each states once
-  (cryptographic, the lineage link, and the model's scope clauses the bytes do not enforce; the fungible family's
-  further residuals are open questions in the plan). Only the three standard axioms; the `Regress.lean` guards apply
-  each theorem to the real honest spends (`native_decide`). Two probe vectors exercise the clauses the bytes do not
-  enforce. The axiom audit now has Lean enumerate Layer 2's declarations, and `AxiomCheck.lean` lists the glue's
-  theorems. The generators of the glue's regular files are under `lean/scripts/`.
+- **The script proved to enforce the model, per input** (`lean/BoltProof/Bridge/Glue/`, planned and recorded in
+  `lean/GLUE-PLAN.md`). A symbolic execution of each of the four scripts from the stack the unlocking script leaves,
+  built from one inversion lemma per opcode and the `sym_all` driver over the scripts cut into named chunks
+  (`lean/vectors/sections.ts` → `Generated/Chunks.lean`). Per script, `*_sound` states what it enforces whenever it
+  does not fail, `reaches_*` shows the run reaches every fragment proved in `Gadgets/` with the stack its lemma
+  assumes, and `*_refines` (one per NFT script, four stages for `SimpleMultiBOLT`) shows that any spend the network
+  accepts is one the model accepts, under assumptions listed once per script: OP_PUSH_TX binds the preimage and
+  nothing the spend hashes has a second preimage; the grandparent a token names is the real commit two steps back;
+  three model rules the script does not check; and, fungible only, the plan's open questions. Standard axioms only;
+  `Regress.lean` applies each theorem to the real honest spends (`native_decide`). The axiom audit now has Lean
+  enumerate Layer 2's declarations, and `AxiomCheck.lean` lists the glue's theorems. The generators of the glue's
+  regular files are under `lean/scripts/`.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
-- **A merge commit's carried balance is anchored at the settle, not the commit** (`lean/GLUE-PLAN.md` §7 Q8, probed
-  by `smb_probe_q8_melt_other_{honest_balance,inflated}_{commit,settle}`). A merge commit whose other token input
-  takes the melt branch is accepted on every input, whatever balance the first input's `nbc` argument claims for the
-  other token; the settle of the honestly-claimed one is accepted, the settle of one claiming 1,000,000 for a token
-  of balance 1 is refused at the merged token's input (`SCRIPT_ERR_EQUALVERIFY`). An inflated merge-commit token can
-  exist but cannot be settled; no settled token carries value nobody minted. The refinement keeps the hypothesis
-  that the other input presents a preimage, and a `0x25` token's `balanceCommit` is unanchored until its settle.
-- **A split settle's output order is the spender's** (§7 Q3, probed by `smb_probe_q3_swapped_split_settle` and
-  `smb_probe_q3_swapped_respend_{commit,settle}`). With `pkh1` non-empty the bytes accept the settle with its two
-  tokens swapped, each index byte off its position; both tokens remain spendable with the committed recipients and
-  balances. An output-order quirk the model's `l2_outs` does not admit, kept as the refinement's `splitFlags`
-  hypothesis; the index byte is not the output's position.
+- **A merge's carried balance is checked at the settle, not the commit** (`lean/GLUE-PLAN.md` §7 Q8; vectors
+  `smb_probe_q8_melt_other_*`). A merge commit whose partner input takes the melt branch is accepted whatever balance
+  it claims for the partner. The settle with the honest balance passes; the settle claiming 1,000,000 for a token of
+  balance 1 is refused (`SCRIPT_ERR_EQUALVERIFY`). An inflated merge commit can exist but never settles; no settled
+  token carries value nobody minted. The proofs keep the assumption that the partner presents a preimage, and a
+  `0x25` token's `balanceCommit` is unchecked until its settle.
+- **A split settle's output order is the spender's** (§7 Q3; vectors `smb_probe_q3_*`). With `pkh1` set, the script
+  accepts the settle with its two tokens swapped, each index byte off its position; both stay spendable with the
+  committed recipients and balances. Harmless to value; the model fixes the order, so this stays the `splitFlags`
+  assumption. The index byte is not the output's position.
 - **A cross-issuer merge is refused by the other token's covenant** (input 1 of the merge commit,
   `SCRIPT_ERR_EQUALVERIFY`): both covenants pin the output's `issuerPubKey` to their own, as the interface clause
   `l_merge_same_issuer` states.

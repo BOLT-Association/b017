@@ -2,23 +2,29 @@
 
 A Lean 4 development that checks the security argument of the BOLT token protocol as shipped
 in this package: the fungible `SimpleMultiBOLT` and the identity NFT family (`MinSimpleBOLT`,
-`AuthBOLT`, `SerialBOLT`). It uses the Lean verifier of BSV consensus,
-[bsv-script-lean](https://github.com/Calhooon/bsv-script-lean) (v1.2.0), to run the shipped
-covenant bytes on real transactions inside Lean.
+`AuthBOLT`, `SerialBOLT`). It uses [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean)
+v1.2.0, a Lean specification of BSV consensus, to run the real covenant scripts on real
+transactions inside Lean.
 
-Read this file for **exactly** what is machine-checked and what is still trusted. The short
-version: the theorems of the hand proof are proved from the covenant *interface* (Lemmas 1–7 as
-the definition of "the covenant accepts a spend"); that interface is then confronted with the
-real bytecode twice. On 74 real transactions their verdicts are registered with the Lean kernel;
-and for each of the four shipped covenants a symbolic run of the compiled suffix proves, for
-*every* input, what the bytes enforce, and that a spend the consensus rules judge valid satisfies
-the interface once read into the model, under residual assumptions each refinement states once
-(`BoltProof/Bridge/Glue/`, "What is still trusted" below). Everything at the bytecode level is judged under
-the Chronicle consensus rules BSV runs (`Bridge/Params.lean`); nothing is claimed under the pre-Chronicle rules.
-The run model admits only covenant-created tokens: the fabricated-hop attack is covered at the ledger level by
-Theorem 5, and a recipient's off-chain lineage checks (`docs/verification-scaling.md`) are not formalized.
-Composing the hops of a real chain into a model run, which lifts the per-input results to Theorems 1 and 5
-for real tokens, is the open step.
+Three terms are used throughout. The **model** is the hand proof's seven rules (Lemmas 1–7)
+written in Lean as `Accepts`, "the covenant accepts this spend". The **script** is each covenant's
+compiled bytecode as shipped. A result holds **per input** when it is proved of one token spend at a
+time, not yet of a token's whole history.
+
+Read this file for **exactly** what is machine-checked and what is still trusted. In short:
+
+* Theorems 1–5 of the hand proof are proved of the model (Layer 1).
+* The script is run inside Lean on 81 real transactions and each verdict is registered with the
+  kernel (Layer 2).
+* For each of the four scripts, a symbolic execution proves what it enforces on every possible
+  input, and that any spend the network accepts is one the model accepts, under assumptions listed
+  once per script (`BoltProof/Bridge/Glue/`, "What is still trusted" below).
+
+Scope. Everything about the script is under today's BSV rules (post-Chronicle, `Bridge/Params.lean`);
+nothing is claimed for the old rules. The model contains only tokens the script created, so the
+fabricated-hop attack is covered by Theorem 5 at the ledger level and the off-chain checks a recipient
+runs (`docs/verification-scaling.md`) are not modelled. Chaining the per-input results along a real
+token's history, which would give Theorems 1 and 5 for real tokens, is the open step.
 
 ## Layout
 
@@ -27,7 +33,7 @@ for real tokens, is the open step.
 | `BoltProof/Model/*.lean` | 1 | core Lean only | The protocol model: tokens, spends, the covenant interface `Accepts`, runs. |
 | `BoltProof/Theorems/*.lean` | 1 | core Lean only | Theorems 1–4, plus a concrete valid run (`Example.lean`) showing the interface is satisfiable. |
 | `BoltProof/Bridge/Params.lean` | 2 | bsv-script-lean | Evaluate one input of a real transaction under post-Chronicle mainnet consensus parameters. |
-| `BoltProof/Bridge/Generated/*.lean` | 2 | generated | The covenant suffixes (whole and chunked), 74 real transactions with prevouts and expectations, one theorem per transaction. **Do not hand-edit**: `npm run lean:vectors`. |
+| `BoltProof/Bridge/Generated/*.lean` | 2 | generated | The covenant suffixes (whole and chunked), 81 real transactions with prevouts and expectations, one theorem per transaction. **Do not hand-edit**: `npm run lean:vectors`. |
 | `BoltProof/Bridge/Bytes.lean` | 2 | bsv-script-lean | The suffix fingerprints (`REGISTRY`) recomputed with bsv-script-lean's SHA-256. |
 | `BoltProof/Bridge/VectorsMain.lean` | 2 | bsv-script-lean | `lake exe boltvectors`: runs every vector natively and prints a verdict table. |
 | `BoltProof/Bridge/Gadgets/*.lean` | 2 | bsv-script-lean `Gadget` | Fragment-level proofs over the loop itself: per-instruction step lemmas (`Steps.lean`) and the covenant fragments proved from them. |
@@ -98,16 +104,16 @@ Every Layer-1 theorem depends on at most `propext`, `Classical.choice` and `Quot
 (`lake env lean AxiomCheck.lean`, after `lake build`: the file also lists the glue's theorems, held to the
 same rule).
 
-## Layer 2 — the shipped bytes on real transactions
+## Layer 2 — the script on real transactions
 
-Layer 1 says nothing about whether the compiled covenant enforces `Accepts`. Layer 2 confronts
+Layer 1 says nothing about whether the script enforces the model. Layer 2 confronts
 the two on concrete inputs with bsv-script-lean's consensus semantics
 (`BsvScript.Eval.verifyScript`, which runs real SHA-256, RIPEMD-160 and secp256k1 ECDSA as Lean
 functions):
 
 * `Bytes.lean`: the static suffix of each shipped covenant hashes to the fingerprint the
   scanner's `REGISTRY` recognises it by — the bytes reasoned about are the bytes shipped.
-* `Generated/VectorTheorems.lean`: for each of 74 real transactions (148 inputs judged), every
+* `Generated/VectorTheorems.lean`: for each of 81 real transactions (170 inputs judged), every
   input's verdict is the expected one: the honest lifecycles of both families (`buildChain`,
   `SimpleMultiBOLT` mint → transfer → split / merge → melt) verify; every adversarial
   transaction of the red-team suites (`test/lib/minSimpleAttack.test.ts` B1–B4, the fungible
@@ -198,11 +204,11 @@ end test), with only the three standard axioms, in the style of their `Gadget/Ha
 
 | Item | Status |
 |---|---|
-| That the compiled covenant enforces `Accepts` on *every* input (A4 + L1–L7 fidelity) | **Proved for all four covenants, per input, under stated residuals.** `BoltProof/Bridge/Glue/` runs each shipped suffix symbolically over every input (`lean/GLUE-PLAN.md`): `minSimple_sound`, `simpleMulti_sound`, `authBolt_sound` and `serialBolt_sound` state what each suffix enforces whenever it does not fail, and the `reaches_*` theorems show the run reaches every proved fragment of `Gadgets/` with the stack its lemma assumes. The refinements `minSimple_refines`, `authBolt_refines`, `serialBolt_refines` and the fungible family's four stages (`simpleMulti_refines_basic`, `_settle_gp`, `_merge_commit`, `_merge_settle`) prove that a spend the consensus rules judge valid satisfies `Accepts` once read into the model, so Theorems 1–5 hold of what the bytes let through (`Glue/Refine/EndToEnd.lean` and `Glue/SimpleMulti/EndToEnd.lean` state the per-input consequences for MinSimpleBOLT and SimpleMultiBOLT, Theorem 1's hop included; reading a chain of real spends as a model `Run` is the open composition step). Their assumptions, stated in each `Residual`, are the cryptographic ones (OP_PUSH_TX soundness, second-preimage freedom of what the spend hashes), the lineage link (`GpReal`: the grandparent the token names is the real commit two steps back, which the composition step discharges), and the model's scope assumptions `HonestOutputs`/`HonestMelt` for three clauses the bytes do not enforce (melt outputs, the change blob, the melt's version: anyone can create a token-shaped output in any transaction, so these are not security properties; the lineage check at spend time, which is proved, carries the security, and the run model admits only covenant-built token outputs). The fungible family carries more, each recorded as an open question in `GLUE-PLAN.md` §7: the six protocol next types only (Q4), the widths of the rebuild's pieces (`HonestPiecesB`, Q7), the anchor index `i5` (Q6), and a merge's other token input presenting a preimage (Q8). Two are probed on the engine, and the vectors judged in Lean (`smb_probe_q8_*`, `smb_probe_q3_*`): a merge commit whose other token input takes the melt branch is accepted, and its carried balance is anchored only at the settle, whose second rebuild refuses an inflated one, so Q8 is an unsettleable commit, not a spendable token; a split settle with `pkh1` non-empty is accepted with its two tokens swapped, and both stay spendable with the committed balances, so Q3 is an output-order quirk the model's `l2_outs` does not admit. The `Regress.lean` files apply every refinement to the real honest spends with each decidable hypothesis discharged, so the residuals are what remains. Layer 2 still evidences all four families on 148 inputs. |
+| That the script enforces the model on *every* input (A4 + L1–L7 fidelity) | **Proved for all four scripts, per input, under listed assumptions** (`BoltProof/Bridge/Glue/`, `lean/GLUE-PLAN.md`). `*_sound` states what each script enforces whenever it does not fail; `reaches_*` shows each run reaches every proved fragment of `Gadgets/` with the stack its lemma assumes; `*_refines` (one per NFT script, four stages for the fungible one) shows that any spend the network accepts is one the model accepts. `Glue/Refine/EndToEnd.lean` and `Glue/SimpleMulti/EndToEnd.lean` state the consequences for MinSimpleBOLT and SimpleMultiBOLT, Theorem 1's hop included; chaining real spends into a model `Run` is the open step. The assumptions, one `Residual` per script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; `GpReal`, the grandparent a token names is the real commit two steps back (the chaining step would prove it); `HonestOutputs`/`HonestMelt` for three model rules the script does not check and that are not security properties (melt outputs, the change blob, the melt's version: anyone can create a token-shaped output anywhere; the lineage check at spend time, which is proved, carries the security). SimpleMultiBOLT adds four, each an open question in `GLUE-PLAN.md` §7: the six protocol types only (Q4), the rebuild's piece widths (`HonestPiecesB`, Q7), the anchor index `i5` (Q6), the merge partner presenting a preimage (Q8). Two are probed on the engine and judged in Lean (`smb_probe_q8_*`, `smb_probe_q3_*`): a merge whose partner input takes the melt branch is accepted, but its carried balance is checked at the settle, which refuses an inflated one (Q8: an unsettleable commit, not a spendable token); a split settle with `pkh1` set comes out with its two tokens swapped, both spendable with the committed balances (Q3: an output-order quirk the model's `l2_outs` does not admit). `Regress.lean` applies every `*_refines` to the real honest spends with each decidable hypothesis discharged. Layer 2 still evidences all four on 170 inputs. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
-| The consensus rules | **Chronicle only.** Layer 2 judges every vector, and the glue states every theorem, under the post-Chronicle mainnet parameters of `Bridge/Params.lean` (the block path: no `MINIMALIF`, FORKID signatures, the `codeSep ++ lock` scriptCode that b017's OP_PUSH_TX signs). Nothing is claimed under the pre-Chronicle rules; `paramsPreChronicle` is a negative control, printed beside the judged verdict by `lake exe boltvectors`. |
+| The judging rules | **Today's BSV rules only** (post-Chronicle, `Bridge/Params.lean`: the block path, no `MINIMALIF`, FORKID signatures, the `codeSep ++ lock` scriptCode b017's OP_PUSH_TX signs). Nothing is claimed for the old rules; `paramsPreChronicle` is a control, printed beside each verdict by `lake exe boltvectors`. |
 | The native evaluator (`native_decide`'s per-theorem axiom) | Layer 2 only. Layer 1 never uses it. |
 
 ## The issuer guards

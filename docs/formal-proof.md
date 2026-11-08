@@ -130,45 +130,38 @@ exactly what they establish — no more.
 **Methodology.** What follows is a rigorous *hand* proof, paired with an executable test suite
 (§9) that builds real transactions and runs them through the actual `@bsv/sdk` Script
 interpreter, and with a **Lean 4 development** under [`lean/`](../lean/README.md) that
-machine-checks it in two layers, the second of them two ways:
+machine-checks it. Three terms: the **model** is Lemmas 1–7 written in Lean as `Accepts`
+(`lean/BoltProof/Model/Covenant.lean`); the **script** is each covenant's compiled bytecode as
+shipped; a result holds **per input** when it is proved of one token spend at a time.
 
-1. **The theorems are proved from the covenant interface.** Lemmas 1–7 are stated in Lean as the
-   constraints the covenant imposes on a spend (`Accepts`, `lean/BoltProof/Model/Covenant.lean`),
-   and Theorems 1–4 are proved from them for both families over arbitrary runs
-   (`lean/BoltProof/Theorems/`). Assumptions 1 and 2 enter as hypotheses of the theorems that
-   need them (Theorem 1's ancestor soundness and Theorem 2), never as axioms; Theorems 3 and 4
-   are unconditional. Every Layer-1 theorem depends only on Lean's three standard axioms.
-2. **The shipped bytes are run on real transactions inside Lean.** With the Lean specification
-   of BSV consensus, [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean) v1.2.0 (real
-   SHA-256, RIPEMD-160 and secp256k1 as Lean functions), the honest lifecycles of §9 and every
-   adversarial transaction of the red-team suites are evaluated under the Chronicle rules BSV runs, and
-   their verdicts — accept, or
-   reject at exactly the input these lemmas name — are registered with the kernel
-   (`lean/BoltProof/Bridge/`, via `native_decide`). The covenant suffixes reasoned about are
-   shown to hash to the scanner's fingerprints.
-3. **The shipped bytes are run symbolically, for every input.** For each of the four covenants the
-   Lean development runs the compiled suffix symbolically from the stack the unlocking script leaves
-   (`lean/BoltProof/Bridge/Glue/`, planned in `lean/GLUE-PLAN.md`): it proves what each suffix
-   enforces whenever it does not fail, that the run reaches each fragment proved at the byte level
-   with the stack that proof assumes, and that a spend the consensus rules judge valid satisfies the
-   interface once read into the model. These theorems use only the three standard axioms.
+1. **Theorems 1–4 are proved of the model**, for both families over arbitrary runs
+   (`lean/BoltProof/Theorems/`), plus Theorem 5, the §8.1 fabricated-hop defence at the ledger
+   level, which exists only in Lean. Assumptions 1 and 2 enter as hypotheses of the theorems that
+   need them, never as axioms. Every theorem here depends only on Lean's three standard axioms.
+2. **The script is run inside Lean** on the honest lifecycles of §9 and every adversarial
+   transaction of the red-team suites, with [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean)
+   v1.2.0 (real SHA-256, RIPEMD-160 and secp256k1 as Lean functions) under today's BSV rules. Each
+   verdict, accept or reject at exactly the input these lemmas name, is registered with the kernel
+   (`lean/BoltProof/Bridge/`, via `native_decide`). The scripts reasoned about hash to the scanner's
+   fingerprints.
+3. **The script is proved to enforce the model, per input.** For each of the four scripts a symbolic
+   execution (`lean/BoltProof/Bridge/Glue/`, planned in `lean/GLUE-PLAN.md`) proves what it enforces
+   on every possible input, that it reaches each fragment proved at the byte level with the stack that
+   proof assumes, and that any spend the network accepts is one the model accepts. Standard axioms only.
 
-What this does **not** establish, precisely: the refinement in point 3 is per input and rests on
-assumptions it states once. They are cryptographic (the OP_PUSH_TX signature binds the preimage,
-second-preimage freedom of what the spend hashes), the lineage link that the grandparent a token names
-is the real commit two steps back (which reading a chain of real spends as a run discharges, the open
-composition step), and three interface clauses the bytes do not enforce and that are not security
-properties (melt outputs, the change blob, the melt's version); the fungible family adds four more,
-each an open question in `lean/GLUE-PLAN.md` §7 (the six protocol next types, the rebuild's piece
-widths, the anchor index, a merge's other input presenting a preimage; the last, and the split settle's output
-order, are probed on the engine and judged in Lean, see `lean/GLUE-PLAN.md` §7). Layer 2 remains evidence on the
-transactions it covers (148 inputs at the time of writing), and Assumption 4 is still trusted.
-Every bytecode-level statement (points 2 and 3) is made under the post-Chronicle consensus parameters;
-nothing is claimed under the pre-Chronicle rules. The Lean development also states a fifth, ledger-level
-theorem for the §8.1 fabricated-hop defence (`lean/BoltProof/Theorems/ProofGating.lean`); its run model
-admits only covenant-created tokens, so the attack's own non-covenant transactions are outside it, and the
-off-chain lineage checks of [`verification-scaling.md`](verification-scaling.md) that protect a recipient
-are not formalized. `lean/README.md` states the boundary precisely. The tests remain strong evidence over the
+What this does **not** establish. Point 3 is per input and rests on assumptions listed once per
+script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; the
+grandparent a token names is the real commit two steps back (chaining real spends into a run would
+prove it, the open step); and three model rules the script does not check and that are not security
+properties (melt outputs, the change blob, the melt's version). The fungible script adds four, each an
+open question in `lean/GLUE-PLAN.md` §7 (the six protocol types, the rebuild's piece widths, the anchor
+index, the merge partner presenting a preimage); the last, and the split settle's output order, are
+probed on the engine and judged in Lean. Layer 2 remains evidence on the transactions it covers (170
+inputs at the time of writing), and Assumption 4 is still trusted. Everything about the script is under
+today's BSV rules (post-Chronicle); nothing is claimed for the old rules. The model contains only
+tokens the script created, so the fabricated-hop attack's own transactions are outside it and the
+off-chain checks of [`verification-scaling.md`](verification-scaling.md) that protect a recipient are
+not modelled. `lean/README.md` states the boundary precisely. The tests remain strong evidence over the
 cases they cover (including raw-byte counterfeits that *must* be rejected), but a passing suite
 demonstrates the covered branches; it is not a proof of the absence of a covenant bug in an
 uncovered branch.
@@ -661,11 +654,10 @@ is reducible to breaking SHA-256 or ECDSA. ∎
 
 These four results are the whole claim. They establish **third-party per-token unforgeability**;
 they do **not** establish issuer supply-honesty or network-level security. The theorems are
-machine-checked in Lean from the covenant interface; for every shipped covenant the bytes are proved to
-enforce that interface on every input, per input and under stated assumptions, and checked against it on
-real transactions; composing the hops of a real chain into a model run, which lifts the per-input results
-to Theorems 1 and 5 for real tokens, is the open step — see §1.6 and `lean/README.md` for the exact
-boundary.
+machine-checked in Lean of the model; for every shipped script, the script is proved to enforce the
+model per input, under listed assumptions, and checked against it on real transactions; chaining the
+per-input results along a real token's history, which would give Theorems 1 and 5 for real tokens, is
+the open step — see §1.6 and `lean/README.md` for the exact boundary.
 
 ---
 
