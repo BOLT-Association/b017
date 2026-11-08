@@ -274,4 +274,22 @@ theorem t1_rebuild_sound (hc : CollisionFree P) (hv : r.Valid P fam) {k j : Nat}
 
 end Run
 
+/-! ## Theorem 1, one transition at a time
+
+The per-hop form of authenticity, stated of a single accepted spend so that the bytecode refinements
+(`Bridge/Glue/*/EndToEnd.lean`) can state it of the shipped bytes: what a lineage verifier checks at each hop
+is that the token it holds was written by the covenant from the token it spent. -/
+
+/-- **Theorem 1, per transition.** Every token an accepted spend produces carries the spent token's issuer and
+names the spent outpoint as its parent: one hop of a lineage is what the covenant wrote from the token it spent. -/
+theorem t1_step {P : Prims Txid} {fam : Fam} {s : Spend Txid} (h : Accepts P fam s) :
+    ∀ t ∈ s.tx.tokens, t.issuer = s.spent.issuer ∧ t.parent = some s.spentOutpoint := by
+  intro t ht
+  rcases Spend.mem_tokens_cases h ht with ⟨_, rfl⟩ | ⟨_, rfl | ⟨_, rfl⟩⟩ <;> exact ⟨rfl, rfl⟩
+
+/-- **Lemma 5, per transition.** A parentless token, the genesis, moves only under the issuer's key. -/
+theorem t1_genesis_signer {P : Prims Txid} {fam : Fam} {s : Spend Txid} (h : Accepts P fam s)
+    (hg : s.spent.isGenesis) : s.signer = s.spent.issuer :=
+  h.l5_issuer (Or.inl hg)
+
 end BoltProof

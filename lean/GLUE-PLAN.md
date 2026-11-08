@@ -363,13 +363,28 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    other token's balance and parent from interop arguments and relies on the second token input's covenant, which
    builds the same merged token from its own fields, to vouch for them. That holds when the second input runs its
    covenant's spend path; the refinement assumes the second input presents a preimage. Whether the bytes exclude the
-   other case (the second input spent through the melt branch, which constrains no outputs), for instance through
-   the merge settle's second rebuild, is open; a probe vector will settle it.
+   other case (the second input spent through the melt branch, which constrains no outputs) is answered by the probes
+   `smb_probe_q8_melt_other_{honest_balance,inflated}_{commit,settle}`: they do not. A merge commit whose other token
+   input takes the melt branch is accepted on every input, with `nbc` the other token's real balance and with
+   `nbc = 1,000,000` for a token of balance 1 alike; the settle of the honest one is accepted, the settle of the
+   inflated one is refused at the merged token's input (`SCRIPT_ERR_EQUALVERIFY`: the carried balance against the
+   other lineage's rebuilt ancestor). So the carried balance is anchored at the settle, not the commit: an inflated
+   merge-commit token can exist but cannot be settled, and no settled token carries value nobody minted. The
+   refinement keeps the hypothesis that the second input presents a preimage, since the commit-level clauses
+   `l6_merge` and `other_settle_typed` are stronger than the bytes; a model that checked the sum at the settle would
+   drop it. A reader of a `0x25` token's `balanceCommit` as value in flight should know it is unanchored until the
+   settle.
 3. The split settle's flags (§Progress, M5): with `pkh1` or `i2` non-empty the bytes accept a split settle whose
    two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
    whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
    and whether the refinement maps these spends to the model's split settle, needs a hypothesis, or should be
-   reported as a covenant defect with a probe vector.
+   reported as a covenant defect with a probe vector. Probed (`smb_probe_q3_swapped_split_settle`,
+   `smb_probe_q3_swapped_respend_{commit,settle}`): the swapped settle is accepted, and the first token, at output 1
+   with index byte 0, is spent again by the honest builder, its commit and its settle (which rebuilds the swapped
+   settle as the grandparent) both accepted. The recipients and balances are the committed ones in every case, so
+   this is an output-order quirk, not a value defect. The model's `l2_outs` fixes the order, so the refinement keeps
+   `splitFlags` as a hypothesis; admitting either order in the model's split settle would discharge it. A reader of
+   the index byte should not take it for the output's position.
 
 ## 8. Milestones and effort
 
@@ -818,7 +833,7 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
 - **M7, documentation and audit:** `AxiomCheck.lean` lists the glue's top-level theorems (each family's `*_sound`,
   `reaches_*` and `*_refines`, and MinSimpleBOLT's end-to-end corollaries) beside Layer 1's, all on the three
   standard axioms. `lean/README.md` states the glue in its Layout table and the trust table (proved for all four
-  covenants per spend, under each `Residual`; the fungible family's four open questions named), `docs/formal-proof.md`
+  covenants per input, under each `Residual`; the fungible family's four open questions named), `docs/formal-proof.md`
   §1.6 adds the symbolic layer and states what it rests on, `lean-proof-todo.md` ticks the glue item, and the
   CHANGELOG records it. The Findings 2–4 corrections are applied: `Gadgets/NftType.lean` and the README now say the
   prologue's `76 81 92` runs on the grandparent outpoint and the selector reads the raw type byte; the README's issuer
@@ -848,3 +863,10 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   theorems are proved with them, and moving `Spend.produced` onto `expectedOuts` would touch five theorem files
   for no change in what is proved. `Residual` therefore reads: the cryptographic assumptions, the lineage link,
   and the scope assumptions.
+- **After M7, the per-input consequences and two probes:** `Theorems/Authenticity.lean` gains Theorem 1 per
+  transition (`t1_step`: every produced token carries the spent token's issuer and names the spent outpoint as
+  parent; `t1_genesis_signer`: a genesis moves only under the issuer's key), stated of the shipped bytes in
+  `Refine/EndToEnd.lean` and in the new `SimpleMulti/EndToEnd.lean`, which packs each fungible refinement stage's
+  hypotheses into one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`, `RealMergeSettle`) and states
+  Lemma 1, Theorems 2, 3 and 4 per step and Theorem 1 per hop of any spend read from the bytes. The probes of §7
+  Q8 and Q3 are in the vectors (`smb_probe_q8_*`, `smb_probe_q3_*`), with the findings recorded there.

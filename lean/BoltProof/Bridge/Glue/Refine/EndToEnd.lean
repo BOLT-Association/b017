@@ -2,15 +2,18 @@ import BoltProof.Bridge.Glue.Refine.MinSimple
 import BoltProof.Theorems.Ownership
 import BoltProof.Theorems.StateMachine
 import BoltProof.Theorems.Balance
+import BoltProof.Theorems.Authenticity
 
 /-!
 # `MinSimpleBOLT`: what is proved end to end
 
-The refinement (`Refine/MinSimple.lean`) composed with Layer 1's per-spend theorems, so the
+The refinement (`Refine/MinSimple.lean`) composed with Layer 1's per-input theorems, so the
 claim is explicit: a spend of a `MinSimpleBOLT` token that the consensus rules judge valid is a
 spend `Accepts` admits, hence Lemma 1 (the owner signed this transaction), Theorem 2
 (ownership, under A2), Theorem 4's step (every token output is typed by an edge of the NFT
-machine) and Theorem 3's step (value is conserved) hold of the shipped bytes. The hypotheses are
+machine), Theorem 3's step (value is conserved) and Theorem 1's step (every token output carries the
+spent token's issuer and names the spent outpoint as its parent; a genesis moves only under the issuer's
+key) hold of the shipped bytes. The hypotheses are
 `RealSpend`: the spend's well-formedness, its verdict, and `Residual` (the cryptographic
 assumptions, the lineage link, and the clauses the bytes do not enforce, as
 `Refine/MinSimple.lean` lays them out). The run-level theorems (Theorem 1's authenticity over a
@@ -90,5 +93,19 @@ theorem real_value_conserved (h : RealSpend P tx i amt f a S scriptSig) :
     ((absTx tx).tokens.map Token.value).sum + (if kindOf f a = .melt then (tokenOf f).value else 0) =
       (tokenOf f).value + 0 :=
   Spend.value_conserved (accepts_of_real h)
+
+/-- **Theorem 1's step of the shipped bytes.** Every token output of a valid spend carries the spent
+token's issuer and names the spent outpoint as its parent: one hop of a lineage is what the covenant
+wrote from the token it spent. -/
+theorem real_issuer_carried (h : RealSpend P tx i amt f a S scriptSig) :
+    ∀ t ∈ (absTx tx).tokens, t.issuer = (tokenOf f).issuer ∧
+      t.parent = some ⟨(inputAt tx i).prevHash, (inputAt tx i).prevIndex⟩ :=
+  t1_step (accepts_of_real h)
+
+/-- **Lemma 5 of the shipped bytes.** A parentless token, the genesis, moves only under the issuer's
+key: the key presented is the issuer's. -/
+theorem real_genesis_needs_issuer (h : RealSpend P tx i amt f a S scriptSig) (hg : (tokenOf f).isGenesis) :
+    a.pk = (tokenOf f).issuer :=
+  t1_genesis_signer (accepts_of_real h) hg
 
 end BoltProof.Glue.MinSimple

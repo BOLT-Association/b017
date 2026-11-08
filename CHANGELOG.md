@@ -41,6 +41,16 @@ All notable changes to **b017** are documented here. The format is based on
   `docs/formal-proof.md` §1.6 states the remaining trust boundary (bytecode-to-interface fidelity beyond the
   covered inputs; A3; A4).
 - `test/helpers/minSimpleAttacks.ts`: the NFT red-team builders, shared by the suite and the exporter.
+- **Theorem 1 per transition** (`t1_step`, `t1_genesis_signer`, `lean/BoltProof/Theorems/Authenticity.lean`): every
+  token an accepted spend produces carries the spent token's issuer and names the spent outpoint as its parent, and a
+  genesis moves only under the issuer's key. Stated of the shipped bytes, for every valid input, by
+  `real_issuer_carried` and `real_genesis_needs_issuer` in `Glue/Refine/EndToEnd.lean` (MinSimpleBOLT) and the new
+  `Glue/SimpleMulti/EndToEnd.lean` (SimpleMultiBOLT): one hop of a lineage is what the covenant wrote from the token
+  it spent.
+- **`lean/BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`**: the fungible family's end-to-end statement. Each
+  refinement stage's hypotheses are one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`,
+  `RealMergeSettle`), and Lemma 1, Theorems 2, 3 and 4 per step and Theorem 1 per hop are stated of any
+  `SimpleMultiBOLT` spend read from the bytes.
 - **Lemma 4 proved over the bytecode** (`lean/BoltProof/Bridge/Gadgets/`): the null-ancestor check's tail
   `OP_SIZE OP_NIP OP_0 OP_EQUALVERIFY` passes exactly when the concatenated ancestor arguments are empty and
   fails with `SCRIPT_ERR_EQUALVERIFY` otherwise, for every input, over bsv-script-lean's own instruction loop and
@@ -84,6 +94,18 @@ All notable changes to **b017** are documented here. The format is based on
   theorems. The generators of the glue's regular files are under `lean/scripts/`.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
+- **A merge commit's carried balance is anchored at the settle, not the commit** (`lean/GLUE-PLAN.md` §7 Q8, probed
+  by `smb_probe_q8_melt_other_{honest_balance,inflated}_{commit,settle}`). A merge commit whose other token input
+  takes the melt branch is accepted on every input, whatever balance the first input's `nbc` argument claims for the
+  other token; the settle of the honestly-claimed one is accepted, the settle of one claiming 1,000,000 for a token
+  of balance 1 is refused at the merged token's input (`SCRIPT_ERR_EQUALVERIFY`). An inflated merge-commit token can
+  exist but cannot be settled; no settled token carries value nobody minted. The refinement keeps the hypothesis
+  that the other input presents a preimage, and a `0x25` token's `balanceCommit` is unanchored until its settle.
+- **A split settle's output order is the spender's** (§7 Q3, probed by `smb_probe_q3_swapped_split_settle` and
+  `smb_probe_q3_swapped_respend_{commit,settle}`). With `pkh1` non-empty the bytes accept the settle with its two
+  tokens swapped, each index byte off its position; both tokens remain spendable with the committed recipients and
+  balances. An output-order quirk the model's `l2_outs` does not admit, kept as the refinement's `splitFlags`
+  hypothesis; the index byte is not the output's position.
 - **A cross-issuer merge is refused by the other token's covenant** (input 1 of the merge commit,
   `SCRIPT_ERR_EQUALVERIFY`): both covenants pin the output's `issuerPubKey` to their own, as the interface clause
   `l_merge_same_issuer` states.

@@ -34,6 +34,7 @@ import { buildOutpoint, buildChangeOutput } from '../../src/lib/boltLib.js'
 import MinSimpleTemplate from '../../src/tokens/templates/MinSimple.sx.template.js'
 import AuthBoltTemplate from '../../src/tokens/templates/AuthBolt.sx.template.js'
 import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
+import Pay2ProofTemplate from '../../src/tokens/templates/pay2Proof.js'
 import SerialBoltTemplate from '../../src/tokens/templates/SerialBolt.sx.template.js'
 import { emitBytes, emitChunks, emitTheorems, emitVectors, type Expect, type Vec } from './leanEmit.js'
 import { cutSections, EXTRA_CUTS, LANDMARKS } from './sections.js'
@@ -72,8 +73,9 @@ const PINNED: Record<string, string> = {
   'smb_extra_output_settle#1': 'SCRIPT_ERR_EVAL_FALSE', // the funding P2PKH signature covered the outputs
   'smb_wrong_key_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the prologue's issuer guard (suffix 13): at genesis the signer must be the issuer
   'smb_wrong_key_commit#1': 'SCRIPT_ERR_EQUALVERIFY',
-  // the glue plan's probes (lean/GLUE-PLAN.md, M1)
+  // the glue plan's probes (lean/GLUE-PLAN.md, M1 and §7)
   'smb_probe_type27_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the written type is derived from the mode flags, not copied
+  'smb_probe_q8_melt_other_inflated_settle#0': 'SCRIPT_ERR_EQUALVERIFY', // the merge settle anchors the carried balance to the other lineage's rebuilt ancestor (the honest-balance control passes)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -383,6 +385,142 @@ it('exports the Lean vectors', async () => {
     const parsed = Transaction.fromHex(commit.toHex())
     commit.inputs.forEach((inp, i) => { parsed.inputs[i].sourceTransaction = inp.sourceTransaction })
     add('smb_probe_type27_commit', 'SimpleMultiBOLT', parsed, 'GLUE-PLAN probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags')
+  }
+
+  // ---- The glue plan's open questions Q8 and Q3 (lean/GLUE-PLAN.md §7): probes -----------------------------------
+  {
+    // Q8. A merge commit whose second token input takes the melt branch (the six CTX pieces empty), while the first
+    // input's covenant takes the other token's balance from the interop argument `nbc`. The first input's run
+    // constrains `hashPrevouts` (this outpoint, `i2`, the funding outpoint) and nothing about the other input's
+    // unlocking script. Built twice: with `nbc` the other token's real balance (the control) and with `nbc` =
+    // 1,000,000 for a token of balance 1 (the attack). The settle then rebuilds both lineages: whether its second
+    // rebuild anchors the carried balance to the other token's real one is what the two settles, side by side, show.
+    const tpl = new SimpleMultiTemplate()
+    const proofTpl = new Pay2ProofTemplate()
+    const z = (n: number): number[] => new Array(n).fill(0x00)
+    const clean = (tx: Transaction): Transaction => {
+      const c = Transaction.fromHex(tx.toHex())
+      tx.inputs.forEach((inp, i) => { c.inputs[i].sourceTransaction = inp.sourceTransaction })
+      return c
+    }
+    const keyA = child(smbIssuer, '1')
+    const keyB = child(smbIssuer, '2')
+    let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+    let b = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1)))
+    a = await a.transfer(keyA)
+    b = await b.transfer(keyB)
+    const toKey = child(smbIssuer, '400')
+    const toPub = toKey.toPublicKey().encode(true) as number[]
+    const toPkh = Hash.hash160(toPub)
+    const q8 = async (tag: string, claimed: number[], what: string): Promise<void> => {
+      const commitTx = new Transaction(2, [
+        { sourceTransaction: a.tx, sourceOutputIndex: a.voutIdx as number, sequence: 0xffffffff,
+          unlockingScriptTemplate: tpl.unlock(keyA, toPub, a.prevTxs, false, false, claimed, [0x25], [0x00], [], [], [], [],
+            buildOutpoint(b.tx!, b.voutIdx!), (b as any).getParentOutpoint()) },
+        { sourceTransaction: b.tx, sourceOutputIndex: b.voutIdx as number, sequence: 0xffffffff,
+          unlockingScriptTemplate: tpl.melt(keyB) },
+        { sourceTransaction: a.tx, sourceOutputIndex: a.tx!.outputs.length - 1, sequence: 0xffffffff,
+          unlockingScriptTemplate: new P2PKH().unlock(keyA) },
+      ], [
+        { satoshis: 1, lockingScript: tpl.lock(a.pubKey, a.prevTxs, a.balance, claimed, toPkh, z(20), (b as any).getParentOutpoint(), [0x25], [0x00], a.voutIdx) },
+        { satoshis: 1, lockingScript: proofTpl.lock(toPkh) },
+        { change: true, lockingScript: new P2PKH().lock(a.pubKeyHash as number[]) },
+      ])
+      await commitTx.fee(0)
+      await commitTx.sign()
+      const commit = clean(commitTx)
+      add(`smb_probe_q8_melt_other_${tag}_commit`, 'SimpleMultiBOLT', commit,
+        `GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc ${what}`)
+      const aTxs = [...a.prevTxs, commit]
+      const bTxs = [...b.prevTxs, commit]
+      const thisAnc = aTxs[aTxs.length - 3]
+      const otherAnc = bTxs[bTxs.length - 3]
+      const thisProof = (a as any).findProofVout(thisAnc, keyA) as number
+      const otherProof = (b as any).findProofVout(otherAnc, keyB) as number
+      const merged = (a as any).addBalances(a.balance, claimed) as number[]
+      const settleTx = new Transaction(2, [
+        { sourceTransaction: commit, sourceOutputIndex: 0, sequence: 0xffffffff,
+          unlockingScriptTemplate: tpl.unlock(keyA, toPub, aTxs, false, false, z(16), [0x24], [0x00], [],
+            (a as any).voutLE(thisProof), (a as any).voutLE(otherProof), [], [], [], otherAnc) },
+        { sourceTransaction: thisAnc, sourceOutputIndex: thisProof, sequence: 0xffffffff, unlockingScriptTemplate: proofTpl.unlock(keyA) },
+        { sourceTransaction: otherAnc, sourceOutputIndex: otherProof, sequence: 0xffffffff, unlockingScriptTemplate: proofTpl.unlock(keyB) },
+        { sourceTransaction: commit, sourceOutputIndex: commit.outputs.length - 1, sequence: 0xffffffff, unlockingScriptTemplate: new P2PKH().unlock(keyA) },
+      ], [
+        { satoshis: 1, lockingScript: tpl.lock(toPub, aTxs, merged, z(16), z(20), z(20), z(36), [0x24], [0x00], 0) },
+        { change: true, lockingScript: new P2PKH().lock(toPkh) },
+      ])
+      await settleTx.fee(0)
+      await settleTx.sign()
+      add(`smb_probe_q8_melt_other_${tag}_settle`, 'SimpleMultiBOLT', clean(settleTx),
+        `GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc ${what}`)
+    }
+    await q8('honest_balance', b.balance, '= the other token\'s real balance (1), the control')
+    await q8('inflated', bal(BigInt(1000000)), '= 1,000,000 for a token of balance 1, the attack')
+  }
+  {
+    // Q3. A split settle with `pkh1` non-empty, which the bytes read as a flag that puts the second token first (the
+    // honest builder leaves it empty): the two token outputs are swapped, so each carries an index byte that is not
+    // its position. The first token, now at output 1 with index byte 0, is then spent again: a transfer commit and
+    // its settle, which rebuilds the swapped settle as the grandparent.
+    const tpl = new SimpleMultiTemplate()
+    const proofTpl = new Pay2ProofTemplate()
+    const z = (n: number): number[] => new Array(n).fill(0x00)
+    const clean = (tx: Transaction): Transaction => {
+      const c = Transaction.fromHex(tx.toHex())
+      tx.inputs.forEach((inp, i) => { c.inputs[i].sourceTransaction = inp.sourceTransaction })
+      return c
+    }
+    const owner = child(smbIssuer, '1')
+    const keyA = child(smbIssuer, '10')
+    const keyB = child(smbIssuer, '11')
+    const pubA = keyA.toPublicKey().encode(true) as number[]
+    const pubB = keyB.toPublicKey().encode(true) as number[]
+    const piece = bal(BigInt(1))
+    let t = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+    t = await t.transfer(owner)
+    const [main] = await t.split(keyA, keyB, piece) // the honest split: its commit is reused, its settle replaced
+    const n = main.prevTxs.length
+    const txs = main.prevTxs.slice(0, n - 1) // up to and including the split commit
+    const commit = txs[txs.length - 1]
+    const anc = txs[txs.length - 3]
+    const ancProof = (main as any).findProofVout(anc, owner) as number
+    const mainBal = (main as any).subtractBalances(bal(BigInt(1000)), piece) as number[]
+    const outA = tpl.lock(pubA, txs, mainBal, z(16), z(20), z(20), z(36), [0x22], [0x00], 0)
+    const outB = tpl.lock(pubB, txs, piece, z(16), z(20), z(20), z(36), [0x22], [0x01], 0)
+    const settleTx = new Transaction(2, [
+      { sourceTransaction: commit, sourceOutputIndex: 0, sequence: 0xffffffff,
+        unlockingScriptTemplate: tpl.unlock(owner, pubA /* non-empty: pkh1 = hash160(pubA), read as the flag */, txs,
+          false, false, [], [0x22], [0x00], [], (main as any).voutLE(ancProof)) },
+      { sourceTransaction: anc, sourceOutputIndex: ancProof, sequence: 0xffffffff, unlockingScriptTemplate: proofTpl.unlock(owner) },
+      { sourceTransaction: commit, sourceOutputIndex: commit.outputs.length - 1, sequence: 0xffffffff, unlockingScriptTemplate: new P2PKH().unlock(owner) },
+    ], [
+      { satoshis: 1, lockingScript: outB },
+      { satoshis: 1, lockingScript: outA },
+      { change: true, lockingScript: new P2PKH().lock(Hash.hash160(pubA)) },
+    ])
+    await settleTx.fee(0)
+    await settleTx.sign()
+    const swapped = clean(settleTx)
+    add('smb_probe_q3_swapped_split_settle', 'SimpleMultiBOLT', swapped,
+      'GLUE-PLAN §7 Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position')
+    const tokA = new SimpleMultiBOLT()
+    tokA.tx = swapped
+    tokA.voutIdx = 1
+    tokA.prevTxs = [...txs, swapped]
+    tokA.signer = keyA as any
+    tokA.pubKey = pubA
+    tokA.pubKeyHash = Hash.hash160(pubA)
+    tokA.issuerPubKey = main.issuerPubKey
+    tokA.genesisOutpoint = main.genesisOutpoint
+    tokA.mintData = main.mintData
+    tokA.balance = mainBal
+    tokA.skipVerify = true
+    await tokA.transfer(child(smbIssuer, '20'))
+    const m = tokA.prevTxs.length
+    add('smb_probe_q3_swapped_respend_commit', 'SimpleMultiBOLT', tokA.prevTxs[m - 2],
+      'GLUE-PLAN §7 Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit')
+    add('smb_probe_q3_swapped_respend_settle', 'SimpleMultiBOLT', tokA.prevTxs[m - 1],
+      'GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle')
   }
 
   // ---- History: the fabricated-hop chain against the PRE-FIX bytes --------------------------------

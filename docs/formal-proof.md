@@ -153,14 +153,15 @@ machine-checks it in two layers, the second of them two ways:
    with the stack that proof assumes, and that a spend the consensus rules judge valid satisfies the
    interface once read into the model. These theorems use only the three standard axioms.
 
-What this does **not** establish, precisely: the refinement in point 3 is per spend and rests on
+What this does **not** establish, precisely: the refinement in point 3 is per input and rests on
 assumptions it states once. They are cryptographic (the OP_PUSH_TX signature binds the preimage,
 second-preimage freedom of what the spend hashes), the lineage link that the grandparent a token names
 is the real commit two steps back (which reading a chain of real spends as a run discharges, the open
 composition step), and three interface clauses the bytes do not enforce and that are not security
 properties (melt outputs, the change blob, the melt's version); the fungible family adds four more,
 each an open question in `lean/GLUE-PLAN.md` §7 (the six protocol next types, the rebuild's piece
-widths, the anchor index, a merge's other input presenting a preimage). Layer 2 remains evidence on the
+widths, the anchor index, a merge's other input presenting a preimage; the last, and the split settle's output
+order, are probed on the engine and judged in Lean, see `lean/GLUE-PLAN.md` §7). Layer 2 remains evidence on the
 transactions it covers (148 inputs at the time of writing), and Assumption 4 is still trusted.
 Every bytecode-level statement (points 2 and 3) is made under the post-Chronicle consensus parameters;
 nothing is claimed under the pre-Chronicle rules. The Lean development also states a fifth, ledger-level
@@ -661,8 +662,8 @@ is reducible to breaking SHA-256 or ECDSA. ∎
 These four results are the whole claim. They establish **third-party per-token unforgeability**;
 they do **not** establish issuer supply-honesty or network-level security. The theorems are
 machine-checked in Lean from the covenant interface; for every shipped covenant the bytes are proved to
-enforce that interface on every input, per spend and under stated assumptions, and checked against it on
-real transactions; composing the hops of a real chain into a model run, which lifts the per-spend results
+enforce that interface on every input, per input and under stated assumptions, and checked against it on
+real transactions; composing the hops of a real chain into a model run, which lifts the per-input results
 to Theorems 1 and 5 for real tokens, is the open step — see §1.6 and `lean/README.md` for the exact
 boundary.
 

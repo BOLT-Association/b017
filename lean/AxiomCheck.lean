@@ -30,6 +30,8 @@ open BoltProof
 #print axioms Run.t5_proof_gating
 #print axioms Run.t5_balance_anchor
 #print axioms Run.t5_fabricated_hop_excluded
+#print axioms t1_step
+#print axioms t1_genesis_signer
 
 -- The glue (`lean/GLUE-PLAN.md`): what each shipped suffix enforces on every input (`*_sound`), the proved fragments
 -- it reaches (`reaches_*`), and the refinement of a valid spend to `Accepts` (`*_refines`).
@@ -43,6 +45,8 @@ open BoltProof
 #print axioms Glue.MinSimple.real_no_keyless_spend
 #print axioms Glue.MinSimple.real_state_machine
 #print axioms Glue.MinSimple.real_value_conserved
+#print axioms Glue.MinSimple.real_issuer_carried
+#print axioms Glue.MinSimple.real_genesis_needs_issuer
 #print axioms Glue.SimpleMulti.reaches_parityCheck
 #print axioms Glue.SimpleMulti.reaches_boundCheck_610
 #print axioms Glue.SimpleMulti.reaches_boundCheck_621
@@ -55,6 +59,17 @@ open BoltProof
 #print axioms Glue.SimpleMulti.simpleMulti_refines_settle_gp
 #print axioms Glue.SimpleMulti.simpleMulti_refines_merge_commit
 #print axioms Glue.SimpleMulti.simpleMulti_refines_merge_settle
+#print axioms Glue.SimpleMulti.accepts_of_real
+#print axioms Glue.SimpleMulti.accepts_of_real_settle_gp
+#print axioms Glue.SimpleMulti.accepts_of_real_merge_commit
+#print axioms Glue.SimpleMulti.accepts_of_real_merge_settle
+#print axioms Glue.SimpleMulti.real_presented
+#print axioms Glue.SimpleMulti.real_ownership
+#print axioms Glue.SimpleMulti.real_state_machine
+#print axioms Glue.SimpleMulti.real_value_conserved
+#print axioms Glue.SimpleMulti.real_value_conserved_merge
+#print axioms Glue.SimpleMulti.real_issuer_carried
+#print axioms Glue.SimpleMulti.real_genesis_needs_issuer
 #print axioms Glue.AuthBolt.authBolt_sound
 #print axioms Glue.AuthBolt.reaches_nftTypeSel
 #print axioms Glue.AuthBolt.reaches_nullTail

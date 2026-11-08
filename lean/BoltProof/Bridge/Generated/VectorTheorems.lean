@@ -216,6 +216,27 @@ theorem check_nft_probe_change_two_p2pkh : nft_probe_change_two_p2pkh.check para
 /-- GLUE-PLAN probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid] -/
 theorem check_smb_probe_type27_commit : smb_probe_type27_commit.check params = true := by native_decide
 
+/-- GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_q8_melt_other_honest_balance_commit : smb_probe_q8_melt_other_honest_balance_commit.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_q8_melt_other_honest_balance_settle : smb_probe_q8_melt_other_honest_balance_settle.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_q8_melt_other_inflated_commit : smb_probe_q8_melt_other_inflated_commit.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_q8_melt_other_inflated_settle : smb_probe_q8_melt_other_inflated_settle.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_q3_swapped_split_settle : smb_probe_q3_swapped_split_settle.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_q3_swapped_respend_commit : smb_probe_q3_swapped_respend_commit.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_q3_swapped_respend_settle : smb_probe_q3_swapped_respend_settle.check params = true := by native_decide
+
 /-- test/fixtures/fabricated-hop-chain.json mintTx_#0: the historical chain a regtest Teranode ACCEPTED against the pre-fix covenant; valid here reproduces that acceptance in Lean [sdk: ] -/
 theorem check_fabhop_prefix_mintTx_0 : fabhop_prefix_mintTx_0.check params = true := by native_decide
 

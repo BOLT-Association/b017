@@ -42,6 +42,11 @@ Follow-ups (the residual trust boundary, in order of value):
       commit — the fabricated-hop exclusion stated above the single-spend interface
       (`lean/BoltProof/Theorems/ProofGating.lean`: `t5_proof_gating`, `t5_balance_anchor`,
       `t5_fabricated_hop_excluded`; hypotheses: the UTXO no-double-spend rule and collision-freeness).
+- [ ] Compose real spends into a model `Run` (`lean/GLUE-PLAN.md` M4's Option A): discharges `GpReal` and lifts the
+      per-input results of the two `EndToEnd.lean` files to Theorems 1 and 5 for real tokens.
+- [ ] Decide the model's reading of the two probed quirks (`GLUE-PLAN.md` §7): a merge commit's carried balance is
+      anchored at the settle, not the commit (Q8); a split settle's output order is the spender's (Q3). Either
+      generalise `Accepts` or keep the hypotheses `hpre'` and `splitFlags` and say so where the claim appears.
 - [x] Decide the issuer-guard question: decided in `docs/issuer-guard.md`. Both families have the second-spend
       guard (the glue proves it from the bytes); `is2ndTx` is not to be ported; aligning the NFT rule with the
       fungible one is deferred to the next NFT bytecode rebuild (`docs/ROADMAP.md`).

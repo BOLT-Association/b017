@@ -29,7 +29,7 @@ for the argument and the forgery tests that demonstrate it, and
 full attack-vector analysis), and [`lean/README.md`](lean/README.md) for the **machine-checked**
 version: Theorems 1–5 proved in Lean 4 over the protocol model, and, for every shipped covenant, a proof
 that each hop of a lineage is what the covenant wrote from the token it spent and that a parentless token
-moves only under the issuer's key, per spend, under stated assumptions and the Chronicle consensus rules,
+moves only under the issuer's key, per input, under stated assumptions and the Chronicle consensus rules,
 with the bsv-script-lean semantics; composing the hops of a real chain is the open step. That file states
 exactly what is proved and what is still trusted.
 [`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard
