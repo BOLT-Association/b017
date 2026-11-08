@@ -81,10 +81,6 @@ All notable changes to **b017** are documented here. The format is based on
   theorems. The generators of the glue's regular files are under `lean/scripts/`.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
-- **The covenant is Chronicle-era.** Under post-Genesis, pre-Chronicle consensus every covenant input fails with
-  `SCRIPT_ERR_SIG_PUSHONLY` (the unlocking script carries OP_PUSH_TX opcodes after `OP_CODESEPARATOR`); under
-  Chronicle rules all 74 vectors (148 inputs) verify or fail exactly as `docs/formal-proof.md` predicts. The
-  security claims hold for Chronicle consensus; on a pre-Chronicle node the transactions are invalid.
 - **A cross-issuer merge is refused by the other token's covenant** (input 1 of the merge commit,
   `SCRIPT_ERR_EQUALVERIFY`): both covenants pin the output's `issuerPubKey` to their own, as the interface clause
   `l_merge_same_issuer` states.

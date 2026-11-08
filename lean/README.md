@@ -13,7 +13,9 @@ real bytecode twice. On 74 real transactions their verdicts are registered with 
 and for each of the four shipped covenants a symbolic run of the compiled suffix proves, for
 *every* input, what the bytes enforce, and that a spend the consensus rules judge valid satisfies
 the interface once read into the model, under residual assumptions each refinement states once
-(`BoltProof/Bridge/Glue/`, "What is still trusted" below).
+(`BoltProof/Bridge/Glue/`, "What is still trusted" below). The run model admits only covenant-created tokens:
+the fabricated-hop attack is covered at the ledger level by Theorem 5, and a recipient's off-chain lineage checks
+are not formalized.
 
 ## Layout
 
@@ -185,19 +187,8 @@ end test), with only the three standard axioms, in the style of their `Gadget/Ha
   OP_0NOTEQUAL` (`76 81 92`, `nftFlag_run`) as the type flag `txoType ≠ 0`; in the shipped
   suffixes it runs on the grandparent outpoint and computes `gp ≠ 0`.
 
-`lake exe boltvectors` runs the same verdicts natively and prints a
-table, with the pre-Chronicle verdict as an informative control.
-
-**Judging height, and a finding.** Every vector is judged at bsv-script-lean's
-`defaultSpendHeight` (post-Chronicle, block path). Under post-Genesis but **pre-Chronicle**
-rules (`paramsPreChronicle`, the control column of `boltvectors`) *every* covenant input of
-every vector — honest or not — fails with `SCRIPT_ERR_SIG_PUSHONLY`: b017's unlocking scripts
-carry the OP_PUSH_TX computation after an `OP_CODESEPARATOR`, i.e. non-push opcodes, which the
-Genesis-era `SIGPUSHONLY` rule forbids and the Chronicle rules admit (they also make the
-scriptCode inside the unlocking script `codeSep ++ lockingScript`, which is what b017's
-`splitCtx(ctx, 2)` signs). The covenant is therefore a Chronicle-era protocol; its security
-claims are stated for Chronicle consensus and would not hold on a pre-Chronicle node, where the
-transactions are simply invalid. The P2PKH and proof inputs are valid in both eras.
+`lake exe boltvectors` runs the same verdicts natively. Vectors are judged under the Chronicle rules BSV runs
+(bsv-script-lean's `defaultSpendHeight`, block path).
 
 ## What is still trusted
 

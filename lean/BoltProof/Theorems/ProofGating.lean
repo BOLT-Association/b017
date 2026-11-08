@@ -71,7 +71,8 @@ theorem t5_proof_gating (hv : r.Valid P fam) (hnd : r.NoDoubleSpend) {i j : Nat}
 /-- **Theorem 5 (balance anchor).** Under collision resistance, when the grandparent outpoint of
 a settled token was created by step `c`, the rebuilt ancestor is `c`'s transaction, its token
 output at that outpoint is a commit token, and (fungible) the spent balance is exactly that
-token's settle result at the parent's index: a cloned settle carries the real lineage's balance. -/
+token's settle result at the parent's index: a cloned settle carries the real lineage's balance.
+The producing step is a hypothesis (`_hcs`, `hprod`), not derived. -/
 theorem t5_balance_anchor (hc : CollisionFree P) (hv : r.Valid P fam) {k c : Nat}
     {s sc : Spend Txid} (hk : r.steps[k]? = some s) (hs : s.kind = .settle)
     {gp : Outpoint Txid} (hgp : s.spent.grandparent = some gp) (_hcs : r.steps[c]? = some sc)
