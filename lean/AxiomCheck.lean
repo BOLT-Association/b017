@@ -33,6 +33,10 @@ open BoltProof
 #print axioms t1_step
 #print axioms Spend.commit_outputs
 #print axioms Run.grandparent_commit
+#print axioms Run.valid_of_stepwise
+#print axioms Run.grandparent_commit_upto
+#print axioms Run.grandparent_layout_upto
+#print axioms Run.other_grandparent_layout_upto
 #print axioms t1_genesis_signer
 
 -- The glue (`lean/GLUE-PLAN.md`): what each shipped suffix enforces on every input (`*_sound`), the proved fragments
@@ -49,6 +53,12 @@ open BoltProof
 #print axioms Glue.MinSimple.real_value_conserved
 #print axioms Glue.MinSimple.real_issuer_carried
 #print axioms Glue.MinSimple.real_genesis_needs_issuer
+#print axioms Glue.MinSimple.gpReal_of_chain
+#print axioms Glue.MinSimple.valid_of_chain
+#print axioms Glue.MinSimple.chain_authenticity
+#print axioms Glue.MinSimple.chain_count
+#print axioms Glue.MinSimple.chain_proof_gating
+#print axioms Glue.MinSimple.chain_fabricated_hop_excluded
 #print axioms Glue.SimpleMulti.reaches_parityCheck
 #print axioms Glue.SimpleMulti.reaches_boundCheck_610
 #print axioms Glue.SimpleMulti.reaches_boundCheck_621
@@ -72,6 +82,13 @@ open BoltProof
 #print axioms Glue.SimpleMulti.real_value_conserved_merge
 #print axioms Glue.SimpleMulti.real_issuer_carried
 #print axioms Glue.SimpleMulti.real_genesis_needs_issuer
+#print axioms Glue.SimpleMulti.gpRealF_of_chain
+#print axioms Glue.SimpleMulti.gpRealB_of_chain
+#print axioms Glue.SimpleMulti.valid_of_chain
+#print axioms Glue.SimpleMulti.chain_authenticity
+#print axioms Glue.SimpleMulti.chain_conservation
+#print axioms Glue.SimpleMulti.chain_proof_gating
+#print axioms Glue.SimpleMulti.chain_fabricated_hop_excluded
 #print axioms Glue.AuthBolt.authBolt_sound
 #print axioms Glue.AuthBolt.reaches_nftTypeSel
 #print axioms Glue.AuthBolt.reaches_nullTail

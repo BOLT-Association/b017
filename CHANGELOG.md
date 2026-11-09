@@ -57,6 +57,17 @@ All notable changes to **b017** are documented here. The format is based on
   split, the second recipient's proof (`Run.grandparent_commit`), so the index the script forces (1, or 2 for a
   split) names a proof output of the real grandparent. Reading a real transaction's bytes as that step's `TxDesc`
   is what remains of the composition.
+- **The chaining step, Bridge half** (`lean/BoltProof/Bridge/Glue/Refine/Chain.lean`, `Glue/SimpleMulti/Chain.lean`,
+  `Theorems/Chain.lean`): a chain of real MinSimpleBOLT or SimpleMultiBOLT spends, each read by its refinement, with
+  the UTXO model's bookkeeping (a well-formed genesis set, each step spending live tokens, each transaction id new),
+  is a valid model run (`valid_of_chain`), so Theorems 1, 3, 4 and 5 hold of real tokens: every live token is rooted
+  at a genesis of the run and carries the issuer along its lineage, tokens are neither created nor duplicated and
+  value is conserved, every type byte is defined, and each real commit's proof admits one settle carrying the
+  committed balance (`chain_authenticity`, `chain_count`, `chain_conservation`, `chain_defined_types`,
+  `chain_proof_gating`, `chain_fabricated_hop_excluded`). The grandparent's reality (`GpReal`) is read off the run
+  (`Run.grandparent_layout_upto`): outright for the NFT script, and for the fungible one under A1 plus two facts read
+  off the ancestors' bytes (non-negative balance fields, and a merge settle's `i4` naming a proof output:
+  `lean/GLUE-PLAN.md` §7 Q9).
 - **`lean/BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`**: the fungible end-to-end statement. Each proof stage's
   hypotheses are one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`, `RealMergeSettle`); Lemma 1,
   Theorems 2, 3 and 4 per step and Theorem 1 per hop are stated of any `SimpleMultiBOLT` spend the script accepts.
@@ -113,6 +124,9 @@ All notable changes to **b017** are documented here. The format is based on
   split settle's flags or the anchor argument `i5`: `Residual` loses `splitFlags` and `ResidualGp` loses `i5`;
   `outs_settle_split` proves both orders from the script's flag cases and `AnchorOK.index` reads the anchor's index
   from the script's own check. SimpleMultiBOLT's remaining assumptions are Q4, Q7 and Q8 of `lean/GLUE-PLAN.md` §7.
+- **The NFT refinements ask `GpReal` of a settle only** (`Residual.gp`): a commit's token can name a settle
+  transaction as its grandparent, which has no proof output at index 1, so the unconditional form could not be met
+  by the commits of a chain. The theorems are stronger, their proofs unchanged.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **A merge's carried balance is checked at the settle, not the commit** (`lean/GLUE-PLAN.md` §7 Q8; vectors

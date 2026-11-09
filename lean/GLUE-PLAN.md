@@ -409,6 +409,12 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    (`test/lib/indexByte.test.ts`, builders shared with the exporter in `test/helpers/indexByte.ts`). The byte is
    dead weight; dropping it at the next fungible bytecode rebuild is recorded in `docs/ROADMAP.md`.
 
+9. The merge settle's other-lineage index (M5, the chain). The second rebuild names the co-spent outpoint as the
+   other grandparent's hash and the interop slot `i4`, and the model's `l3_merge` asks that output to be a proof
+   output. The first rebuild's anchor fixes its index (`AnchorOK.index`, Q6); whether the second rebuild fixes `i4`
+   the same way is not yet read off the bytes, so the chain (`SimpleMulti/Chain.lean`) takes it as the step's own
+   assertion (`ChainMergeSettle.proofB`). Reading it off `rebuildB_k` would shed it, as `AnchorOK.index` shed `i5`.
+
 ## 8. Milestones and effort
 
 | M | Deliverable (independently mergeable) | Effort |
@@ -480,7 +486,8 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   `MinSimpleBOLT` spends read through `spendOf` have the kinds, sighash bytes, output shapes and ancestors the model
   expects, and `minSimple_refines` applies to the first commit, the second settle (with its rebuild) and the melt,
   every decidable hypothesis checked on the vector's data, so `Accepts` follows for them from `Residual` alone.
-  Open from M4: Option A (a lossless `TxDesc`), for the run-level composition.
+  Open from M4 was Option A, the run-level composition: done without a lossless `TxDesc` (Progress, the chaining
+  step), the ancestor a settle supplies being identified with the run's step by A1.
 - **M5, first step** (`Bridge/Glue/SimpleMulti/`): `Spec.lean` (the eleven lock fields in push order, `balance`,
   `balanceCommit`, `pkh`, `com`, `com2`, `ogp`, `ty`, `outIdx`, `parent`, `gp`, `issuer`, and the fifteen unlocking
   arguments above the 150 ancestor pieces), `PushTx.lean`, and `Reaches.lean`: `prologue` (the issuer guard
@@ -913,3 +920,16 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   fungible residuals are Q4, Q7 and Q8. The index-byte builders moved to `test/helpers/indexByte.ts`, shared by the
   exporter and the new `test/lib/indexByte.test.ts`, which judges the same four shapes on the Spend engine under the
   fast suite; the vectors are byte-identical.
+- **The chaining step, Bridge half (M4's Option A, done):** `Refine/Chain.lean` and `SimpleMulti/Chain.lean` read a
+  chain of real spends as a model `Run` and prove it valid (`valid_of_chain`), by `Run.valid_of_stepwise`
+  (`Theorems/Chain.lean`): each step is read by its refinement, and the grandparent's reality is read off the valid
+  prefix (`Run.grandparent_layout_upto`, `Run.other_grandparent_layout_upto`) instead of assumed. For the NFT
+  script `GpReal` is discharged outright (`gpReal_of_chain`); its `Residual.gp` is now asked of a settle only, since
+  a commit's token can name a settle transaction as its grandparent, which has no proof output at 1. For the
+  fungible script `GpRealF` and `GpRealB` are discharged under A1, which identifies the ancestor the settle supplies
+  with the step that created the grandparent outpoint (`gpRealF_of_chain`, `gpRealB_of_chain`), with two facts read
+  off the chain's bytes: the ancestors' balance fields are non-negative script numbers (`BalsNonneg`), and a merge
+  settle's `i4` names a proof output (Q9). The chain's own hypotheses are the UTXO model's (`RealChain`: a
+  well-formed genesis set, live inputs, fresh ids). Theorems 1, 3, 4 and 5 then hold of real tokens
+  (`chain_authenticity`, `chain_count`, `chain_conservation`, `chain_defined_types`, `chain_proof_gating`,
+  `chain_fabricated_hop_excluded`). No lossless `TxDesc` was needed.

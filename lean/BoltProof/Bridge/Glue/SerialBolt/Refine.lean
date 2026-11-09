@@ -22,7 +22,8 @@ What is assumed beyond the bytes is stated once, in `Residual`:
   spend's own data rather than as a global injectivity, which no hash has);
 * `GpReal`: the grandparent txid the token names is a well-formed transaction's, with its token
   output at the named index and a proof output at index 1, whose abstract id the primitives agree
-  on (what the accepted commit two steps back guarantees; the run-level argument discharges it);
+  on. Asked of a settle only, and what the accepted commit two steps back guarantees: the chain
+  discharges it (`Refine/Chain.lean` reads a chain of real spends as a valid run);
 * `Agrees`: the primitives compute `hash160` and this spend's `OP_CHECKSIG`;
 * `HonestOutputs`/`HonestMelt`: the change outputs carry no token, and a melt pays P2PKH only and
   has version 2 (Finding 1 of the plan: the bytes do not enforce these clauses).
@@ -79,7 +80,7 @@ structure Residual (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : A
   preimage : NoSecondPreimage (preimageBIP143 (lockOf f) tx i ⟨0x41⟩ amt)
   outputs : NoSecondPreimage ((tx.outputs.map serTxOut).flatten)
   prevouts : NoSecondPreimage ((tx.inputs.map serOutPoint).flatten)
-  gp : GpReal P f
+  gp : castToBool a.pre = true → f.ty = [0x21] → GpReal P f
   agrees : Agrees P tx i amt (lockOf f)
   honest : castToBool a.pre = true → HonestOutputs tx (if f.ty = [0] then 2 else 1)
   melt : castToBool a.pre = false → HonestMelt tx
@@ -306,6 +307,6 @@ theorem serialBolt_refines (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields
       obtain ⟨-, hne⟩ := kindOf_settle.mp hk
       rcases hty with hty | hty
       · exact absurd hty hne
-      · exact rebuild_facts htx hty hpre h32 hout hprev henf hres.gp hres.prevouts gp hgp
+      · exact rebuild_facts htx hty hpre h32 hout hprev henf (hres.gp hpre hty) hres.prevouts gp hgp
 
 end BoltProof.Glue.SerialBolt

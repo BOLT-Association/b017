@@ -36,6 +36,7 @@ import BoltProof.Bridge.Glue.Refine.Facts
 import BoltProof.Bridge.Glue.Refine.Weld
 import BoltProof.Bridge.Glue.Refine.MinSimple
 import BoltProof.Bridge.Glue.Refine.EndToEnd
+import BoltProof.Bridge.Glue.Refine.Chain
 import BoltProof.Bridge.Glue.Regress
 import BoltProof.Bridge.Glue.SimpleMulti.Spec
 import BoltProof.Bridge.Glue.SimpleMulti.PushTx
@@ -71,6 +72,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.RebuiltB
 import BoltProof.Bridge.Glue.SimpleMulti.RefineMergeSettle
 import BoltProof.Bridge.Glue.SimpleMulti.Regress
 import BoltProof.Bridge.Glue.SimpleMulti.EndToEnd
+import BoltProof.Bridge.Glue.SimpleMulti.Chain
 
 /-!
 # BoltProof.Bridge.Glue
@@ -89,7 +91,8 @@ rules; the few evaluator-trusted identities live in `BoltProof.Bridge` (`Bridge/
   run of the lock, `Serial.lean` round-trips the node's serialisation, `Weld.lean` and `Facts.lean`
   turn the facts the run leaves into the model's clauses, and `MinSimple.lean` proves
   `minSimple_refines`: the bytes accept only what `Accepts` admits, under the residual assumptions
-  it states; `EndToEnd.lean` composes it with Layer 1's per-input theorems. `Regress.lean` (namespace `BoltProof.Bridge.Glue`, `native_decide`) reads the real
+  it states; `EndToEnd.lean` composes it with Layer 1's per-input theorems, and `Chain.lean` reads a chain
+  of real spends as a valid model `Run`, discharging `GpReal`, so the run-level theorems hold of real tokens. `Regress.lean` (namespace `BoltProof.Bridge.Glue`, `native_decide`) reads the real
   `MinSimpleBOLT` vectors through the abstraction and applies the theorem to them.
 * `SimpleMulti/`: the fungible family (M5): `Spec.lean` names its eleven fields and the unlocking
   arguments, `PushTx.lean` abstracts its `OP_PUSH_TX` block, and `Reaches.lean` proves that the
@@ -97,8 +100,9 @@ rules; the few evaluator-trusted identities live in `BoltProof.Bridge` (`Bridge/
   `Arms.lean` and `Regions.lean` fold the loops, the rebuilds' arms and the rebuild phase into one-step
   lemmas; `Enforced.lean`, `Settle.lean` and `Melt.lean` state what each spend shape enforces;
   `Paths/`, `Settle/`, `Melt.lean` and `Refute.lean` are the path theorems and the refused type pairs;
-  `Sound.lean` assembles them into `simpleMulti_sound`; `Refine*.lean` are the four refinement stages and
-  `EndToEnd.lean` composes them with Layer 1's per-input theorems.
+  `Sound.lean` assembles them into `simpleMulti_sound`; `Refine*.lean` are the four refinement stages,
+  `EndToEnd.lean` composes them with Layer 1's per-input theorems, and `Chain.lean` reads a chain of real
+  spends as a valid model `Run` (under A1), so the run-level theorems hold of real fungible tokens.
 * `AuthBolt/` and `SerialBolt/`: the two other NFT locks (M6), each MinSimple's files over its own bytes:
   `Spec`, `PushTx`, `Paths/` and `Sound` (`authBolt_sound`, `serialBolt_sound`, the `reaches_*` corollaries),
   `Abs`, `Facts`, `Weld` and `Refine` (`authBolt_refines`, `serialBolt_refines`), `Regress` on their vectors.

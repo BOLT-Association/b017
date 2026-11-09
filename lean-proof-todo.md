@@ -42,10 +42,17 @@ Follow-ups (the residual trust boundary, in order of value):
       commit — the fabricated-hop exclusion stated above the single-spend interface
       (`lean/BoltProof/Theorems/ProofGating.lean`: `t5_proof_gating`, `t5_balance_anchor`,
       `t5_fabricated_hop_excluded`; hypotheses: the UTXO no-double-spend rule and collision-freeness).
-- [ ] Compose real spends into a model `Run` (`lean/GLUE-PLAN.md` M4's Option A): discharges `GpReal` and lifts the
-      per-input results of the two `EndToEnd.lean` files to Theorems 1 and 5 for real tokens. The Layer 1 half is
-      done (`Theorems/Chain.lean`, `Run.grandparent_commit`: the grandparent is a real commit of the run with the
-      honest layout); reading a real transaction's bytes as that step's `TxDesc` is what remains.
+- [x] Compose real spends into a model `Run` (`lean/GLUE-PLAN.md` M4's Option A): discharges `GpReal` and lifts the
+      per-input results of the two `EndToEnd.lean` files to Theorems 1 and 5 for real tokens. Done:
+      `Bridge/Glue/Refine/Chain.lean` and `Glue/SimpleMulti/Chain.lean` (`RealChain`, `valid_of_chain`, the
+      `chain_*` theorems) over `Run.valid_of_stepwise` and the `*_upto` lemmas of `Theorems/Chain.lean`. `GpReal` is
+      discharged outright for the NFT script, and for the fungible one under A1 plus two facts read off the
+      ancestors' bytes (`BalsNonneg`, and Q9's `i4` naming a proof output).
+- [ ] Shed the two byte-level facts the fungible chain still reads off the ancestors: the balance signs from the
+      commit paths' output bytes (`BalsNonneg`), and the second rebuild's index `i4` from `rebuildB_k` (Q9), as
+      `AnchorOK.index` did for `i5`.
+- [ ] State the chain for AuthBOLT and SerialBOLT: their `Residual.gp` is already settle-only, and the file is
+      MinSimple's over their abstraction.
 - [x] Decide the model's reading of the two probed quirks (`GLUE-PLAN.md` §7). Done for Q3 and Q6: the model admits
       either split order (`Spend.OutsOK`) and anchors by the co-spent proof's index (`l3_rebuild`), safely (the
       Lean README says why). Q8 stays the hypothesis `hpre'`.

@@ -151,8 +151,10 @@ shipped; a result holds **per input** when it is proved of one token spend at a 
 
 What this does **not** establish. Point 3 is per input and rests on assumptions listed once per
 script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; the
-grandparent a token names is the real commit two steps back (chaining real spends into a run would
-prove it, the open step); and three model rules the script does not check and that are not security
+grandparent a settle names is the real commit two steps back, per input (chaining real spends into a run
+discharges it: a chain of real spends is a valid run, `lean/BoltProof/Bridge/Glue/*/Chain.lean`, so
+Theorems 1, 3, 4 and 5 hold of real tokens, for the fungible script under A1 and two facts read off the
+ancestors' bytes); and three model rules the script does not check and that are not security
 properties (melt outputs, the change blob, the melt's version). The fungible script adds three, each an
 open question in `lean/GLUE-PLAN.md` §7 (the six protocol types, the rebuild's piece widths, the merge
 partner presenting a preimage); the last is probed on the engine and judged in Lean, as are two quirks the
@@ -656,9 +658,9 @@ is reducible to breaking SHA-256 or ECDSA. ∎
 These four results are the whole claim. They establish **third-party per-token unforgeability**;
 they do **not** establish issuer supply-honesty or network-level security. The theorems are
 machine-checked in Lean of the model; for every shipped script, the script is proved to enforce the
-model per input, under listed assumptions, and checked against it on real transactions; chaining the
-per-input results along a real token's history, which would give Theorems 1 and 5 for real tokens, is
-the open step — see §1.6 and `lean/README.md` for the exact boundary.
+model per input, under listed assumptions, and checked against it on real transactions; and a chain of
+real spends is proved a valid run, so Theorems 1, 3, 4 and 5 hold of real tokens under the assumptions of
+§1.6 — see §1.6 and `lean/README.md` for the exact boundary.
 
 ---
 
