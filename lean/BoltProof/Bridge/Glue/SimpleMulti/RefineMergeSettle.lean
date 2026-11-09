@@ -169,7 +169,7 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
       rw [hsB, gpOutB_2_eq, gateT_item60]
   have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none (some GB) hwf hsc hop hval8 (Or.inr (Or.inr h24))
     (fun h => absurd h (by rw [h24]; decide)) hlen24 hgr.pieces
-    h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hcoA htx hgr.gp hgr.i5 henf.balLo hpar
+    h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hcoA htx hgr.gp henf.balLo hpar
   have hhon1 : HonestOutputs tx 1 := by
     have hcount : expectedCount f a = 1 := by
       rw [expectedCount, ite_eq_right hset, ite_eq_right (by rw [hmrg]; decide)]
@@ -184,8 +184,8 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
       · rw [hk] at h; cases h
       · simp [outpointOf, hgp] at h))
   · intro _
-    exact outs_settle_merge none (some G) (some GB) hwf hA htx hamt hpre hmrg h24 henf.balLo hbc hsum h32 hidx hnz
-      hval hout hsc hflat hhon1
+    exact Spend.outsOK_of_canonical (outs_settle_merge none (some G) (some GB) hwf hA htx hamt hpre hmrg h24
+      henf.balLo hbc hsum h32 hidx hnz hval hout hsc hflat hhon1)
   · intro _ _
     have hm := maxBalance_eq
     have hb0 := henf.balLo

@@ -115,6 +115,30 @@ does refuse — so this is an **optimisation, not a fix**, and it sits on the lo
 - **Do it when** the NFT bytecode is being rebuilt for another reason (the NFT token classes or
   `SerialBOLT` work above), never on its own.
 
+## Deferred: drop the fungible lock's index byte (`outputIndexN`)
+The fungible lock carries an index byte (`outputIndexN`, lock chunk 7) that nothing reads. On chain,
+each spend writes the new token's byte afresh from its own `inputIndexN` argument (or from the `i2`
+slot for a split settle's second token), never from the spent token's; the ancestor rebuild hashes the
+ancestor's bytes as supplied; the balance anchor's index comes from the proof-vout argument `i5`; and
+the one place a lock's byte is read, the merge settle's choice between its two prevouts orders, reads
+the spent merge-commit token's byte, which both merge paths write as 0, so only that branch ever runs.
+Off chain, `multiBoltLib` copies the byte as a rebuild piece and the scanner and the builders locate
+tokens by position and proofs by key hash. The Lean development found this (`lean/GLUE-PLAN.md` §7 Q3);
+twenty vectors (`smb_probe_idx_*`) and `test/lib/indexByte.test.ts` show that a token whose byte
+disagrees with its position stays spendable through every operation. The byte is dead weight: one push
+per token output and the write that fills it on every path. `inputIndexN` is **not** dead: it is the
+merge-role flag that orders `hashPrevouts` for a merge commit's second token input, and it stays.
+- **Change:** remove the push from the lock and its write from every spend path (`inIdxByte`,
+  `splitIdx`), and let the merge settle keep only the prevouts order its zero branch builds. `i2` keeps
+  its interop role; `inputIndexN` keeps its merge role.
+- **Cost:** new fungible bytecode, so new fingerprints for `SimpleMultiBOLT`, `FixedBOLT` and `OpenBOLT`
+  and a **reissue** of tokens on the current bytes; the lock layout shifts (`LAYOUTS`/`FIELDS`, the
+  rebuild's piece list and widths, `multiBoltLib`'s field map), and the Lean glue's stack offsets and
+  `Residual`'s piece hypotheses are recounted; the lifecycle, attack and index-byte suites re-run and the
+  Lean vectors regenerate.
+- **Do it when** the fungible bytecode is being rebuilt for another reason (the descriptor work above or a
+  genesis-family change), never on its own.
+
 ## Library hardening
 - `tsconfig strict: true`; remove `any` casts; type the `BOLT` abstract methods (today `any`,
   and they diverge from the concrete classes).

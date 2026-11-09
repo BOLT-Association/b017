@@ -219,15 +219,6 @@ theorem Out.token?_eq_none_of_not_token {o : Out Txid} (h : o.isToken = false) :
     o.token? = none := by
   cases o <;> simp_all [Out.isToken, Out.token?]
 
-/-- The canonical output decomposition is one `l2_outs` admits. -/
-theorem Spend.outsOK_of_canonical {fam : Fam} {s : Spend Txid}
-    (h : ∃ change : List (Out Txid), (∀ o ∈ change, o.isToken = false) ∧
-      s.tx.outputs = s.expectedOuts fam ++ change) :
-    ∃ (outs change : List (Out Txid)), s.OutsOK fam outs ∧ (∀ o ∈ change, o.isToken = false) ∧
-      s.tx.outputs = outs ++ change :=
-  let ⟨c, hc, he⟩ := h
-  ⟨_, c, Or.inl rfl, hc, he⟩
-
 /-- An accepted non-melt spend's token outputs are the reconstructed ones (Lemma 2): in the covenant's
 order or, for a split settle, the two settled tokens in the other order. -/
 theorem Spend.tokens_of_accepts {P : Prims Txid} {fam : Fam} {s : Spend Txid}

@@ -160,6 +160,16 @@ def OutsOK (fam : Fam) (s : Spend Txid) (outs : List (Out Txid)) : Prop :=
     (s.kind = .settle ∧ fam.modeOfCommitType s.spent.txoType = some .split ∧
       outs = [.token (s.settleToken fam 1), .token (s.settleToken fam 0)])
 
+/-- The covenant's own order is one `OutsOK` admits: what a construction that has the canonical decomposition
+passes to `l2_outs`. Here, beside `OutsOK`, so that the Bridge reaches it without the run lemmas. -/
+theorem outsOK_of_canonical {fam : Fam} {s : Spend Txid}
+    (h : ∃ change : List (Out Txid), (∀ o ∈ change, o.isToken = false) ∧
+      s.tx.outputs = s.expectedOuts fam ++ change) :
+    ∃ (outs change : List (Out Txid)), s.OutsOK fam outs ∧ (∀ o ∈ change, o.isToken = false) ∧
+      s.tx.outputs = outs ++ change :=
+  let ⟨c, hc, he⟩ := h
+  ⟨_, c, Or.inl rfl, hc, he⟩
+
 /-- The token outputs the transaction actually carries. -/
 def tokenOuts (s : Spend Txid) : List (Token Txid) := s.tx.tokens
 

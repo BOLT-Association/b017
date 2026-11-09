@@ -49,9 +49,10 @@ Follow-ups (the residual trust boundary, in order of value):
 - [x] Decide the model's reading of the two probed quirks (`GLUE-PLAN.md` §7). Done for Q3 and Q6: the model admits
       either split order (`Spend.OutsOK`) and anchors by the co-spent proof's index (`l3_rebuild`), safely (the
       Lean README says why). Q8 stays the hypothesis `hpre'`.
-- [ ] Shed the coverage hypotheses the model no longer needs: `splitFlags` (the swapped order from
+- [x] Shed the coverage hypotheses the model no longer needs: `splitFlags` (the swapped order from
       `settleOuts_22`'s other flag cases in `outs_settle_split`) and `i5` (read the index from `AnchorOK`, state
-      `GpRealF.proof` at it).
+      `GpRealF.proof` at it). Done: `Residual` and `ResidualGp` no longer name them (`AnchorOK.index`,
+      `GpRealF.proof1`/`proof2`); the fungible residuals are Q4, Q7 and Q8.
 - [x] Decide the issuer-guard question: decided in `docs/issuer-guard.md`. Both families have the second-spend
       guard (the glue proves it from the bytes); `is2ndTx` is not to be ported; aligning the NFT rule with the
       fungible one is deferred to the next NFT bytecode rebuild (`docs/ROADMAP.md`).

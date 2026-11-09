@@ -143,10 +143,11 @@ theorem simpleMulti_refines_basic (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f :
         rw [hcount] at hhon
         rcases hnt with h | h
         · rw [ite_eq_right (by rw [h]; decide)] at hhon
-          exact outs_commit_transfer none none none hwf hA htx hamt hpre' hset h h32 hidx hnz hval hout hsc hflat hhon
+          exact Spend.outsOK_of_canonical
+            (outs_commit_transfer none none none hwf hA htx hamt hpre' hset h h32 hidx hnz hval hout hsc hflat hhon)
         · rw [ite_eq_left h] at hhon
-          exact outs_commit_split none none none hwf hA htx hamt hpre' hset h (hpkh2 h) h32 hidx hnz hval hout hsc
-            hflat hhon
+          exact Spend.outsOK_of_canonical (outs_commit_split none none none hwf hA htx hamt hpre' hset h (hpkh2 h)
+            h32 hidx hnz hval hout hsc hflat hhon)
       · intro _ hm
         rw [hmode] at hm
         split_ifs at hm with h
@@ -191,10 +192,10 @@ theorem simpleMulti_refines_basic (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f :
         rw [hcount] at hhon
         rcases htn with ⟨h, g⟩ | ⟨h, g⟩
         · rw [ite_eq_right (by rw [h]; decide)] at hhon
-          exact outs_settle_transfer none none none hwf hA htx hamt hpre' h g h32 hidx hnz hval hout hsc hflat hhon
+          exact Spend.outsOK_of_canonical
+            (outs_settle_transfer none none none hwf hA htx hamt hpre' h g h32 hidx hnz hval hout hsc hflat hhon)
         · rw [ite_eq_left h] at hhon
-          obtain ⟨hpk, -⟩ := hres.splitFlags hpre' h
-          exact outs_settle_split none none none hwf hA htx hamt hpre' h g hpk (henf.balCommitLo (by rw [g]; decide))
+          exact outs_settle_split none none none hwf hA htx hamt hpre' h g (henf.balCommitLo (by rw [g]; decide))
             (henf.splitRem g) henf.balHi (hcom2 h) h32 hidx hnz hval hout hsc hflat hhon
       · intro _ hm
         rw [hmode] at hm

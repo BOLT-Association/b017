@@ -9,7 +9,7 @@ The fungible refinement theorems (`simpleMulti_refines_basic`, `simpleMulti_refi
 about the spend and scope assumptions about its pieces and ancestors. These guards evaluate them on the real
 `SimpleMultiBOLT` vectors Layer 2 judges (`Generated/Vectors.lean`): the abstraction reads each honest spend as
 the model expects (its kind, mode, outputs), and every decidable hypothesis holds of it, including the scope
-assumptions `HonestPiecesB`, the index argument and the decidable parts of `GpRealF` and `GpRealB` against the
+assumptions `HonestPiecesB`, the index argument's width and the decidable parts of `GpRealF` and `GpRealB` against the
 real grandparents, so the theorems apply to real spends. Everything here is `native_decide` on concrete data, in
 the `BoltProof.Bridge` namespace the axiom audit reserves for evaluator-trusted facts.
 -/
@@ -127,6 +127,21 @@ theorem of_isProofAt {l : List (Out Bytes)} {j : Nat} (h : isProofAt l j = true)
   · rename_i pkh hp; exact ⟨pkh, hp⟩
   · cases h
 
+/-- Output 2 is a proof output whenever the token at `idx` is a split commit: the decidable form of
+`GpRealF.proof2`. -/
+def proof2At (l : List (Out Bytes)) (idx : Nat) : Bool :=
+  match l[idx]? with
+  | some (.token t) => (t.txoType != 0x23) || isProofAt l 2
+  | _ => true
+
+theorem of_proof2At {l : List (Out Bytes)} {idx : Nat} (h : proof2At l idx = true) :
+    ∀ t, l[idx]? = some (.token t) → t.txoType = 0x23 → ∃ pkh, l[2]? = some (.proof pkh) := by
+  intro t ht hty
+  unfold proof2At at h
+  rw [ht] at h
+  simp only [hty, bne_self_eq_false, Bool.false_or] at h
+  exact of_isProofAt h
+
 def balsNonneg (G : Tx) : Bool :=
   G.outputs.all fun o => match decodeLock o.scriptPubKey with
     | some g => decide (0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit)
@@ -190,10 +205,9 @@ theorem a_settle2_refines (P : Prims Bytes) (hres : Residual P (Vec.inputD smb_h
   simpleMulti_refines_settle_gp P _ 0 _ _ _ [] (Vec.inputD smb_honest_a_settle2 0).scriptSig (txD smb_honest_a_commit1) ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ (by native_decide) (by native_decide) (by native_decide) hres
     ⟨⟨⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide, hnsp, hptxid, of_isTokenAt (by native_decide),
-      fun p hp => of_isProofAt (of_outpointAll (p := fun q => isProofAt (absTx (txD smb_honest_a_commit1)).outputs (q.vout + 1)) (by native_decide) p hp),
+      of_isProofAt (by native_decide), of_proof2At (by native_decide),
       of_balsNonneg (by native_decide)⟩,
-      ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide,
-      fun p hp => of_decide_eq_true (of_outpointAll (p := fun q => decide (decode (smArgsD smb_honest_a_settle2 0).i5 = (q.vout : Int) + 1)) (by native_decide) p hp)⟩
+      ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide⟩
     (by native_decide) (by native_decide)
 
 /-- The split settle of lifecycle A, which rebuilds the second commit. -/
@@ -204,10 +218,9 @@ theorem a_splitSettle_refines (P : Prims Bytes) (hres : Residual P (Vec.inputD s
   simpleMulti_refines_settle_gp P _ 0 _ _ _ [] (Vec.inputD smb_honest_a_splitSettle 0).scriptSig (txD smb_honest_a_commit2) ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ (by native_decide) (by native_decide) (by native_decide) hres
     ⟨⟨⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide, hnsp, hptxid, of_isTokenAt (by native_decide),
-      fun p hp => of_isProofAt (of_outpointAll (p := fun q => isProofAt (absTx (txD smb_honest_a_commit2)).outputs (q.vout + 1)) (by native_decide) p hp),
+      of_isProofAt (by native_decide), of_proof2At (by native_decide),
       of_balsNonneg (by native_decide)⟩,
-      ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide,
-      fun p hp => of_decide_eq_true (of_outpointAll (p := fun q => decide (decode (smArgsD smb_honest_a_splitSettle 0).i5 = (q.vout : Int) + 1)) (by native_decide) p hp)⟩
+      ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide⟩
     (by native_decide) (by native_decide)
 
 /-- The merge commit of lifecycle B, at its first token input, given the second's run. -/
@@ -226,10 +239,9 @@ theorem b_mergeSettle_refines (P : Prims Bytes) (hres : Residual P (Vec.inputD s
   simpleMulti_refines_merge_settle P _ 0 _ _ _ [] (Vec.inputD smb_honest_b_mergeSettle 0).scriptSig (txD smb_honest_b_commit1) (txD smb_honest_b_lineageB_commit1) ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ (by native_decide) (by native_decide) (by native_decide) hres
     ⟨⟨⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide, hnsp, hptxid, of_isTokenAt (by native_decide),
-      fun p hp => of_isProofAt (of_outpointAll (p := fun q => isProofAt (absTx (txD smb_honest_b_commit1)).outputs (q.vout + 1)) (by native_decide) p hp),
+      of_isProofAt (by native_decide), of_proof2At (by native_decide),
       of_balsNonneg (by native_decide)⟩,
-      ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide,
-      fun p hp => of_decide_eq_true (of_outpointAll (p := fun q => decide (decode (smArgsD smb_honest_b_mergeSettle 0).i5 = (q.vout : Int) + 1)) (by native_decide) p hp)⟩
+      ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide⟩
     ⟨by native_decide, hptxidB, of_isTokenAt (by native_decide), by native_decide, of_isProofAt (by native_decide)⟩ (by native_decide) (by native_decide)
 
 end BoltProof.Bridge.Glue.SimpleMulti

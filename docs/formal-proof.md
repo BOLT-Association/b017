@@ -153,11 +153,11 @@ What this does **not** establish. Point 3 is per input and rests on assumptions 
 script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; the
 grandparent a token names is the real commit two steps back (chaining real spends into a run would
 prove it, the open step); and three model rules the script does not check and that are not security
-properties (melt outputs, the change blob, the melt's version). The fungible script adds four, each an
+properties (melt outputs, the change blob, the melt's version). The fungible script adds three, each an
 open question in `lean/GLUE-PLAN.md` §7 (the six protocol types, the rebuild's piece widths, the merge
-partner presenting a preimage, and two the model now admits, so that they are coverage left to the proof:
-the anchor's index argument and the split settle's output order); the last three are probed on the engine
-and judged in Lean. Layer 2 remains evidence on the transactions it covers (225
+partner presenting a preimage); the last is probed on the engine and judged in Lean, as are two quirks the
+model admits and the proof covers without assumption (the split settle's output order and the balance
+anchor's index). Layer 2 remains evidence on the transactions it covers (225
 inputs at the time of writing), and Assumption 4 is still trusted. Everything about the script is under
 today's BSV rules (post-Chronicle); nothing is claimed for the old rules. The model contains only
 tokens the script created, so the fabricated-hop attack's own transactions are outside it and the

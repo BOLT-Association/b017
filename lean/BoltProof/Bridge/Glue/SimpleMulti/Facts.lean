@@ -47,8 +47,9 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
     (hsig : P.verify a.pk (P.sighash (absTx tx) i) a.sig = true)
     (htype : a.sig.getLast?.getD 0 = 0x41)
     (hissuer : GuardF f → f.issuer = a.pk ∧ a.nty ≠ [0x25] ∧ a.nty ≠ [0x27])
-    (houts : kindOf f a ≠ .melt → ∃ change : List (Out Bytes), (∀ o ∈ change, o.isToken = false) ∧
-      (absTx tx).outputs = (spendOf tx i f a other ancA ancB).expectedOuts .fungible ++ change)
+    (houts : kindOf f a ≠ .melt → ∃ (outs change : List (Out Bytes)),
+      (spendOf tx i f a other ancA ancB).OutsOK .fungible outs ∧ (∀ o ∈ change, o.isToken = false) ∧
+      (absTx tx).outputs = outs ++ change)
     (hmelt : kindOf f a = .melt → ∀ o ∈ (absTx tx).outputs, o.isP2pkh = true)
     (hbound : balOf f.bal ≤ Fam.maxBalance)
     (hsplit : kindOf f a = .commit → modeOf f a = .split → balOf a.nbc ≤ balOf f.bal)
@@ -130,7 +131,7 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
     split_ifs at hm' with hk
     · simp only [modeOfNext] at hm'; split_ifs at hm' <;> simp_all
     · rcases hgen hgen0 with h0 | h0 | h0 <;> simp [h0, Fam.modeOfCommitType] at hm'
-  l2_outs := fun hk => Spend.outsOK_of_canonical (houts hk)
+  l2_outs := houts
   l2_melt := hmelt
   l6_bound := fun _ => hbound
   l6_split := fun hk hm => hsplit hk hm

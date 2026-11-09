@@ -341,9 +341,10 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    carries `i5 = parent.vout + 1` as a residual, like the split order; a model change would let the anchor quantify
    over the co-spent proof output's index instead. Done in the model: `Accepts.l3_rebuild` now anchors at the
    co-spent proof's index minus one, as the bytes do (`AnchorOK` forces the index to 1, or 2 for a split commit
-   grandparent, so the co-spent output is a proof output, `Run.grandparent_commit`). The refinement's `i5` hypothesis
-   is now coverage, not a model gap: `l3_settle` still reaches the clause through `GpRealF.proof` at the parent's
-   index; shedding `i5` means reading the index from `AnchorOK` and stating `GpRealF.proof` at that index.
+   grandparent, so the co-spent output is a proof output, `Run.grandparent_commit`). Discharged in the refinement
+   too: `AnchorOK.index` (`Blocks.lean`) reads the index from the script's own check (1, or 2 under a split-commit
+   grandparent), `GpRealF` states the grandparent's proof outputs at those indices (`proof1`, `proof2`), and
+   `l3_settle` and `ResidualGp` take no hypothesis on `i5` beyond its four-byte width.
 4. Undefined next types off genesis (M5). The parity check only requires `nextTxoType` to flip the spent type's
    parity, so a settled token's spend may name any odd byte. Probing a commit to `0x27` or `0x29`, the run leaves
    the six protocol types' paths at the output builder (suffix 1112, where it tests the zero `ogp` push) and then
@@ -402,8 +403,11 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    reading: `Spend.OutsOK` admits either order for a split settle and `l3_rebuild` anchors at the co-spent proof's
    index minus one (safe: the order changes neither recipient nor balance, only a proof's recipient can spend it,
    the script forces the proof to the grandparent's first or second, and Theorem 5 lets each proof admit one
-   settle). The refinement keeps `splitFlags` and `i5` as coverage hypotheses: `outs_settle_split` proves the
-   canonical order, and the swapped order needs the `Or.inr` branch from `settleOuts_22`'s other flag cases.
+   settle). The refinement needs no hypothesis on the flags: `outs_settle_split` proves the canonical order with
+   `pkh1` empty and the swapped order with it set, each as `Spend.OutsOK`, from `settleOuts_22`'s flag cases;
+   `splitFlags` is gone from `Residual`. The same shapes run under the fast TypeScript suite
+   (`test/lib/indexByte.test.ts`, builders shared with the exporter in `test/helpers/indexByte.ts`). The byte is
+   dead weight; dropping it at the next fungible bytecode rebuild is recorded in `docs/ROADMAP.md`.
 
 ## 8. Milestones and effort
 
@@ -898,7 +902,14 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   `Spend.OutsOK` (a split settle's two tokens in either order) and `Accepts.l3_rebuild` names the co-spent proof's
   index `j` and anchors at `j − 1`, as the bytes do. Layer 1 re-proved with the same statements for Theorems 1–4;
   Theorem 5's balance anchor names the proof's index. The Bridge constructions pass the canonical order
-  (`Spend.outsOK_of_canonical`) and `l3_settle` exhibits `j = parent.vout + 1`, so `splitFlags` and `i5` remain as
-  coverage. `Theorems/Chain.lean` is the Layer 1 half of the chaining step: `Run.grandparent_commit`, a settled
+  (`Spend.outsOK_of_canonical`). `Theorems/Chain.lean` is the Layer 1 half of the chaining step: `Run.grandparent_commit`, a settled
   token's grandparent is output 0 of an earlier commit step of the run, with its token, the recipient's proof and,
   for a split, the second proof as its first outputs, so the index `AnchorOK` forces names a proof output.
+- **The coverage hypotheses shed (§7 Q3 and Q6 discharged):** `Residual` loses `splitFlags` and `ResidualGp` loses
+  `i5`. `outs_settle_split` proves both orders of a split settle, each as `Spend.OutsOK`, from `settleOuts_22`'s
+  flag cases; `AnchorOK.index` (`Blocks.lean`) reads the anchor's index from the script's check, 1 or, under a
+  split-commit grandparent, 2; `GpRealF.proof1` and `proof2` state the grandparent's proof outputs at those indices
+  (`Regress.lean`'s `proof2At` decides the second); `l3_settle` exhibits that index as `l3_rebuild`'s `j`. The
+  fungible residuals are Q4, Q7 and Q8. The index-byte builders moved to `test/helpers/indexByte.ts`, shared by the
+  exporter and the new `test/lib/indexByte.test.ts`, which judges the same four shapes on the Spend engine under the
+  fast suite; the vectors are byte-identical.

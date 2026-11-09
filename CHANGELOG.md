@@ -40,6 +40,14 @@ All notable changes to **b017** are documented here. The format is based on
   proof, runs every vector, audits axioms and fails on vector drift. `docs/formal-proof.md` §1.6 states what is
   still trusted.
 - `test/helpers/minSimpleAttacks.ts`: the NFT red-team builders, shared by the suite and the exporter.
+- **`test/lib/indexByte.test.ts`**, with `test/helpers/indexByte.ts`: the index-byte shapes of the `smb_probe_idx_*`
+  vectors under the fast suite. The builders (a split settle rebuilt with `pkh1` or `i2` set, a commit or settle with
+  `inputIndexN` = 1, a token object on any output) are shared with the Lean vector exporter, which imports them, so
+  the two judge the same transactions: four tests, every later operation on a token whose index byte is not its
+  position accepted by the Spend engine (no dead tokens).
+- **`docs/ROADMAP.md`** records, as deferred work, dropping the fungible lock's index byte `outputIndexN`, which
+  nothing on chain or off reads, at the next fungible bytecode rebuild (new fingerprints and a reissue, so never on
+  its own); `inputIndexN` stays as the merge-role flag.
 - **Theorem 1 per hop** (`t1_step`, `t1_genesis_signer`, `lean/BoltProof/Theorems/Authenticity.lean`): every token
   a spend produces is built from the one it spent, same issuer, that token as parent; a genesis moves only under the
   issuer's key. Stated of the script for every valid input by `real_issuer_carried` and `real_genesis_needs_issuer`
@@ -101,7 +109,10 @@ All notable changes to **b017** are documented here. The format is based on
   balance, only a proof's recipient can spend it, the script forces the proof to the grandparent's first or, for a
   split, second output (`AnchorOK`), and Theorem 5 lets each proof admit one settle, so each settle result of a
   real commit is claimed at most once. The position-based anchor was wrong in the swapped order. Theorems 1–4 keep
-  their statements; Theorem 5's anchor names the proof's index.
+  their statements; Theorem 5's anchor names the proof's index. The script-to-model proofs no longer assume the
+  split settle's flags or the anchor argument `i5`: `Residual` loses `splitFlags` and `ResidualGp` loses `i5`;
+  `outs_settle_split` proves both orders from the script's flag cases and `AnchorOK.index` reads the anchor's index
+  from the script's own check. SimpleMultiBOLT's remaining assumptions are Q4, Q7 and Q8 of `lean/GLUE-PLAN.md` §7.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **A merge's carried balance is checked at the settle, not the commit** (`lean/GLUE-PLAN.md` §7 Q8; vectors
@@ -112,8 +123,8 @@ All notable changes to **b017** are documented here. The format is based on
   `0x25` token's `balanceCommit` is unchecked until its settle.
 - **A split settle's output order is the spender's** (§7 Q3; vectors `smb_probe_q3_*`). With `pkh1` set, the script
   accepts the settle with its two tokens swapped, each index byte off its position; both stay spendable with the
-  committed recipients and balances. Harmless to value; the model fixes the order, so this stays the `splitFlags`
-  assumption. Followed through every later operation (`smb_probe_idx_*`, 20 vectors): a token whose index byte
+  committed recipients and balances. Harmless to value; the model admits either order (`Spend.OutsOK`) and the proof covers
+  both, so no assumption on the flags remains. Followed through every later operation (`smb_probe_idx_*`, 20 vectors): a token whose index byte
   disagrees with its position, by `pkh1`, `i2` or `inputIndexN`, is transferred, split, merged as either input and
   melted by the honest builder with every input accepted. No spend reads the byte: each spend writes it afresh, the
   rebuild hashes it as supplied, and the anchor's index comes from the proof-vout argument. No token dies of it.

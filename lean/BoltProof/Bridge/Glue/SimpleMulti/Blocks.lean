@@ -128,6 +128,19 @@ def AnchorOK (c ty n3 n2 n1 x : Bytes) : Prop :=
     ((encode (decode x) = [1] ∧ n1 = encode (decode n2 - decode n3)) ∨ (encode (decode x) = [2] ∧ n1 = n3))) ∨
   (castToBool c = false ∧ ty ≠ [0x23] ∧ encode (decode x) = [1] ∧ n1 = n2)
 
+/-- The anchor fixes its index argument: it reads 1, or 2 when the grandparent token is a split commit. With a
+commit's outputs being its token and then one proof output per recipient, the output the settle co-spends at that
+index is a proof output of the grandparent. -/
+theorem AnchorOK.index {c ty n3 n2 n1 x : Bytes} (h : AnchorOK c ty n3 n2 n1 x) :
+    decode x = 1 ∨ (ty = [0x23] ∧ decode x = 2) := by
+  have hd : ∀ k : Int, encode (decode x) = encode k → decode x = k := fun k hk => by
+    have := congrArg decode hk; rwa [decode_encode, decode_encode] at this
+  rcases h with ⟨-, hx, -⟩ | ⟨-, hty, (⟨hx, -⟩ | ⟨hx, -⟩)⟩ | ⟨-, -, hx, -⟩
+  · exact Or.inl (hd 1 (by rw [hx]; decide))
+  · exact Or.inl (hd 1 (by rw [hx]; decide))
+  · exact Or.inr ⟨hty, hd 2 (by rw [hx]; decide)⟩
+  · exact Or.inl (hd 1 (by rw [hx]; decide))
+
 theorem encode_two : encode 2 = [2] := by decide
 theorem encode_three : encode 3 = [3] := by decide
 theorem encode_four : encode 4 = [4] := by decide

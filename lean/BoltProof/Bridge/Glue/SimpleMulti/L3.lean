@@ -8,10 +8,11 @@ import BoltProof.Bridge.Glue.Refine.Weld
 A settle of a token with a grandparent rebuilds the grandparent, hashes it against the grandparent's txid,
 anchors the spent balance to the grandparent token's, and names the co-spent proof output in `hashPrevouts`.
 Under the fungible `GpRealF` (the grandparent is a real, well-formed transaction whose serialisation has no
-second preimage, whose token output the token names, with a proof output after the parent's index and
-non-negative balances), the honest piece widths and the index assumption on `i5`, those facts are the model's
-`l3_rebuild` (`l3_settle`), for each of the rebuild's optional arms (a merge-commit grandparent's second token
-input, a split-commit grandparent's second proof output).
+second preimage, whose token output the token names, with proof outputs at 1 and, for a split commit, 2, and
+non-negative balances) and the honest piece widths, those facts are the model's `l3_rebuild` (`l3_settle`), for
+each of the rebuild's optional arms (a merge-commit grandparent's second token input, a split-commit grandparent's
+second proof output). The index argument is not assumed: the anchor forces it to 1 or, for a split-commit
+grandparent, 2 (`AnchorOK.index`), which names the proof the settle co-spends and the settle result it carries.
 -/
 
 set_option autoImplicit false
@@ -27,15 +28,18 @@ open BoltProof.Glue.MinSimple (sc scLen preOutpoint preHashPrevouts outpointOf N
 
 /-- The grandparent is real (fungible): a well-formed transaction whose txid the token names and whose
 serialisation has no second preimage, with the primitives' id; its output at the named index is a token, it has a
-proof output just after the parent's index, and its tokens' balances are non-negative script numbers. What the
-accepted commit two steps back guarantees; the run-level argument discharges it. -/
+proof output at 1 and, when the named token is a split commit, at 2, and its tokens' balances are non-negative
+script numbers. What the accepted commit two steps back guarantees (`Run.grandparent_commit` has the Layer 1
+half); reading its bytes as that step discharges it. -/
 structure GpRealF (P : Prims Bytes) (f : Fields) (G : Tx) : Prop where
   wf : TxWF G
   txid : Sighash.txid G = List.take 32 f.gp
   nsp : NoSecondPreimage (serTx G)
   ptxid : P.txid (absTx G) = Sighash.txid G
   token : ∃ t, (absTx G).outputs[leNat (List.drop 32 f.gp)]? = some (.token t)
-  proof : ∀ p, outpointOf f.parent = some p → ∃ pkh, (absTx G).outputs[p.vout + 1]? = some (.proof pkh)
+  proof1 : ∃ pkh, (absTx G).outputs[1]? = some (.proof pkh)
+  proof2 : ∀ t, (absTx G).outputs[leNat (List.drop 32 f.gp)]? = some (.token t) → t.txoType = 0x23 →
+    ∃ pkh, (absTx G).outputs[2]? = some (.proof pkh)
   bal : ∀ o ∈ G.outputs, ∀ g, decodeLock o.scriptPubKey = some g → 0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit
 
 /-- A 32-bit word that reads as a positive script number reads as its value. -/
@@ -105,8 +109,7 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
     (hco : ∃ i1 ∈ tx.inputs, serOutPoint i1 =
       Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ a.i5)
     (htx : TxWF tx) (hG : GpRealF P f G)
-    (hi5 : ∀ p, outpointOf f.parent = some p → decode a.i5 = (p.vout : Int) + 1)
-    (hbal : 0 ≤ decode f.bal) (hpar : decode f.parent ≠ 0) :
+    (hbal : 0 ≤ decode f.bal) (_hpar : decode f.parent ≠ 0) :
     ∀ gp, outpointOf f.gp = some gp →
       ∃ (A : TxDesc Bytes) (t : Token Bytes) (j : Nat) (pkh : PKH), (spendOf tx i f a other (some G) ancB).anc = some A ∧
         P.txid A = gp.txid ∧ A.outputs[gp.vout]? = some (.token t) ∧
@@ -145,22 +148,27 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
     (by rw [h32', BoltProof.Glue.MinSimple.hash256_length])
   rw [rebuildA_fact1_eq, gateT_item36] at h1
   have hprev1 : i1.prevHash = List.take 32 f.gp := by rw [hsplit.1, h1]
-  -- the proof output after the parent's index is the one co-spent: its index is the parent's plus one
-  have hpp : outpointOf f.parent = some ⟨List.take 32 f.parent, leNat (List.drop 32 f.parent)⟩ := by
-    simp [outpointOf, hpar]
-  obtain ⟨pkh, hproof⟩ := hG.proof _ hpp
-  have hx : decode a.i5 = ((leNat (List.drop 32 f.parent) : Nat) : Int) + 1 := hi5 _ hpp
+  -- the anchor forces the co-spent index to 1 or, for a split-commit grandparent, 2
+  rw [rebuildA_fact0_eq, gateT_item61, gateT_item145, gateT_item150, gateT_item151, gateT_item46] at h0
+  have hidx15 := AnchorOK.index h0
+  have hpos : 0 < decode a.i5 := by rcases hidx15 with h | ⟨-, h⟩ <;> omega
   have hle : decode (le32 i1.prevIndex) = i1.prevIndex :=
-    decode_le32_of_pos hidx1 (by rw [hsplit.2, hx]; omega)
-  have hidx' : i1.prevIndex = leNat (List.drop 32 f.parent) + 1 := by
-    rw [hsplit.2, hx] at hle; omega
-  refine ⟨absTx G, t, leNat (List.drop 32 f.parent) + 1, pkh, by simp [spendOf], by rw [hG.ptxid, hG.txid],
-    ht, hproof, ?_, ?_⟩
+    decode_le32_of_pos hidx1 (by rw [hsplit.2]; exact hpos)
+  have hn : decode a.i5 = (i1.prevIndex : Int) := by rw [← hsplit.2]; exact hle
+  have hx : decode a.i5 = ((i1.prevIndex - 1 : Nat) : Int) + 1 := by rw [hn]; omega
+  -- the co-spent output is a proof output of the grandparent: its first, or its second for a split commit
+  obtain ⟨pkh, hproof⟩ : ∃ pkh, (absTx G).outputs[i1.prevIndex]? = some (.proof pkh) := by
+    rcases hidx15 with h1 | ⟨hsp, h2⟩
+    · have h1' : i1.prevIndex = 1 := by omega
+      rw [h1']; exact hG.proof1
+    · have h2' : i1.prevIndex = 2 := by omega
+      rw [h2']
+      refine hG.proof2 t ht ?_
+      rw [htt]; simp [tokenOf, gpFieldsA, gateT_item145, hsp]
+  refine ⟨absTx G, t, i1.prevIndex, pkh, by simp [spendOf], by rw [hG.ptxid, hG.txid], ht, hproof, ?_, ?_⟩
   · simp only [absTx, List.mem_map]
-    exact ⟨i1, hi1mem, by rw [hprev1, hidx']⟩
-  · -- the anchor: the settle result one below the co-spent proof, the parent's index
-    rw [Nat.add_sub_cancel]
-    rw [rebuildA_fact0_eq, gateT_item61, gateT_item145, gateT_item150, gateT_item151, gateT_item46] at h0
+    exact ⟨i1, hi1mem, by rw [hprev1]⟩
+  · -- the anchor: the settle result one below the co-spent proof
     rw [htt]
     exact anchorOK_settled (g := gpFieldsA (gateT f a S) f.issuer) (ty := a.psB.p8) (n3 := a.psB.p13)
       (n2 := a.psB.p14) (by simp [gpFieldsA, gateT_item145]) (by rw [← gateT_item145 f a S]; exact hl.ty)

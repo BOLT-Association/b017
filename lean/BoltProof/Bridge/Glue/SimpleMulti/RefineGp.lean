@@ -27,12 +27,14 @@ open BoltProof.Glue.MinSimple (sc preOutpoint preValue preVersion preHashOutputs
 open BoltProof.Bridge (params)
 open BoltProof.Bridge.Generated
 
-/-- What the second stage assumes beyond `Residual`, of a settle with a grandparent `G`. -/
+/-- What the second stage assumes beyond `Residual`, of a settle with a grandparent `G`: the grandparent is real
+(`GpRealF`), the rebuild's pieces have their fields' widths, and the index argument is a 32-bit word. Which proof
+output the index names is not assumed: the anchor forces it to 1, or 2 for a split-commit grandparent
+(`AnchorOK.index`), and `GpRealF` has those outputs as proofs. -/
 structure ResidualGp (P : Prims Bytes) (f : Fields) (a : Args) (G : Tx) : Prop where
   gp : GpRealF P f G
   pieces : HonestPiecesB a.psB
   i5len : a.i5.length = 4
-  i5 : ∀ p, outpointOf f.parent = some p → decode a.i5 = (p.vout : Int) + 1
 
 /-- The run prefix of the refinement: a valid verdict runs the suffix to `SpendEnforced` with the owner's
 signature verified, and with a preimage the preimage is the real one and the types are related. -/
@@ -155,7 +157,7 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
   have hnty3 : a.nty = [0x20] ∨ a.nty = [0x22] ∨ a.nty = [0x24] := hnty'.elim Or.inl (fun h => Or.inr (Or.inl h))
   have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none none hwf hsc hop hval8 hnty3 hlen
     (fun h => absurd h (by rcases hnty' with h' | h' <;> rw [h'] <;> decide)) hgr.pieces
-    h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hco htx hgr.gp hgr.i5 henf.balLo hpar
+    h0 h1 h2 h3 h5 h6 h7 h8 h9 h11 h12 hco htx hgr.gp henf.balLo hpar
   refine accepts_of_facts P tx i f a none (some G) none hty (fun _ => hnty) (fun _ h => absurd h hset) hgen hi hver
     (by rw [hres.agrees.h160]; exact henf.owner) hsig (by simp [hlast]) henf.issuer ?_
     (fun h => absurd h (by rw [hk]; decide)) (balOf_le henf.balHi) (fun h => by rw [hk] at h; cases h)
@@ -171,10 +173,10 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
     rw [hcount] at hhon
     rcases htn with ⟨h, g⟩ | ⟨h, g⟩
     · rw [ite_eq_right (by rw [h]; decide)] at hhon
-      exact outs_settle_transfer none (some G) none hwf hA htx hamt hpre h g h32 hidx hnz hval hout hsc hflat hhon
+      exact Spend.outsOK_of_canonical
+        (outs_settle_transfer none (some G) none hwf hA htx hamt hpre h g h32 hidx hnz hval hout hsc hflat hhon)
     · rw [ite_eq_left h] at hhon
-      obtain ⟨hpk, -⟩ := hres.splitFlags hpre h
-      exact outs_settle_split none (some G) none hwf hA htx hamt hpre h g hpk (henf.balCommitLo (by rw [g]; decide))
+      exact outs_settle_split none (some G) none hwf hA htx hamt hpre h g (henf.balCommitLo (by rw [g]; decide))
         (henf.splitRem g) henf.balHi (hcom2 h) h32 hidx hnz hval hout hsc hflat hhon
   · intro _ hm
     rw [hmode] at hm

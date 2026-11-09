@@ -140,37 +140,53 @@ theorem outs_settle_transfer {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (ot
       tokenOf_settle_transfer tx i other ancA ancB hty hout hnz h32 hidx]
     simp [spendOf, tokenOf, hty, Fam.modeOfCommitType]
 
-/-- A split settle's outputs with the honest flags, read by the model: the two settled tokens, then non-token
-change. -/
+/-- A split settle's outputs, read by the model, for either value of the `pkh1` flag: the two settled tokens, in
+the covenant's order or swapped (`Spend.OutsOK`), then non-token change. The `i2` flag only sets the second token's
+index byte, which the model does not read. -/
 theorem outs_settle_split {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
     (ancA ancB : Option Tx) (hwf : WF f) (ha : ArgsWF a) (htx : TxWF tx) (hamt : amt < 2 ^ 64)
     (hpre : castToBool a.pre = true) (hty : f.ty = [0x23]) (hnty : a.nty = [0x22])
-    (hpk : decode a.pkh1 = 0) (hbc : 0 ≤ decode f.balCommit) (hrem : 0 ≤ decode f.bal - decode f.balCommit)
+    (hbc : 0 ≤ decode f.balCommit) (hrem : 0 ≤ decode f.bal - decode f.balCommit)
     (hbal : decode f.bal ≤ maxBalance) (hcom2 : f.com2 ≠ zeroPKH)
     (h32 : (inputAt tx i).prevHash.length = 32) (hidx : (inputAt tx i).prevIndex < 2 ^ 32)
     (hnz : decode (serOutPoint (inputAt tx i)) ≠ 0)
     (hval : preValue a.pre = le64 amt) (hout : preOutpoint a.pre = serOutPoint (inputAt tx i))
     (hsc : MinSimple.sc a.pre = lockScript f)
     (hflat : settleOuts f a ++ a.chg = (tx.outputs.map serTxOut).flatten) (hhon : HonestOutputs tx 2) :
-    ∃ change : List (Out Bytes), (∀ o ∈ change, o.isToken = false) ∧
-      (absTx tx).outputs = (spendOf tx i f a other ancA ancB).expectedOuts .fungible ++ change := by
+    ∃ (outs change : List (Out Bytes)), (spendOf tx i f a other ancA ancB).OutsOK .fungible outs ∧
+      (∀ o ∈ change, o.isToken = false) ∧ (absTx tx).outputs = outs ++ change := by
   have hlen := padN16_length_of_range hrem (by omega)
   have hawf := splitFieldsA_wf hwf ha hlen (a := a)
   have hbwf := splitFieldsB_wf hwf ha (a := a)
-  rw [settleOuts, ite_eq_right (by rw [hnty]; decide), ite_eq_left hnty, settleOuts_22, ite_eq_left hpk,
-    splitOutA_eq hwf hsc, splitOutB_eq hwf hsc hlen, tokenOut_eq hawf hval, tokenOut_eq hbwf hval,
-    List.append_assoc] at hflat
-  obtain ⟨os1, hos1, hf1⟩ := flatten_serTxOut_cons htx.outputs (lockScript_value_ok hawf hamt) hflat.symm
-  obtain ⟨os2, hos2, hf2⟩ := flatten_serTxOut_cons
-    (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (lockScript_value_ok hbwf hamt) hf1
-  refine ⟨os2.map outOf, ?_, ?_⟩
-  · intro o ho
-    obtain ⟨o', ho', rfl⟩ := List.mem_map.mp ho
-    exact hhon o' (by rw [hos1, hos2]; simpa using ho')
-  · have hset : ¬ settledTy f.ty := by simp [settledTy, hty]
-    have hk : (spendOf tx i f a other ancA ancB).kind = .settle := kindOf_settle hpre hset
-    obtain ⟨hA, hB⟩ := tokenOf_settle_split tx i other ancA ancB hty hbc hrem hcom2 hout hnz h32 hidx (a := a)
-    simp only [absTx, hos1, hos2, List.map_cons, Spend.expectedOuts, hk, outOf_lock hawf, outOf_lock hbwf, hA, hB]
-    simp [spendOf, tokenOf, hty, Fam.modeOfCommitType]
+  have hset : ¬ settledTy f.ty := by simp [settledTy, hty]
+  have hk : (spendOf tx i f a other ancA ancB).kind = .settle := kindOf_settle hpre hset
+  obtain ⟨hA, hB⟩ := tokenOf_settle_split tx i other ancA ancB hty hbc hrem hcom2 hout hnz h32 hidx (a := a)
+  rw [settleOuts, ite_eq_right (by rw [hnty]; decide), ite_eq_left hnty, settleOuts_22] at hflat
+  by_cases hpk : decode a.pkh1 = 0
+  · -- the covenant's order: the remainder first
+    rw [ite_eq_left hpk, splitOutA_eq hwf hsc, splitOutB_eq hwf hsc hlen, tokenOut_eq hawf hval,
+      tokenOut_eq hbwf hval, List.append_assoc] at hflat
+    obtain ⟨os1, hos1, hf1⟩ := flatten_serTxOut_cons htx.outputs (lockScript_value_ok hawf hamt) hflat.symm
+    obtain ⟨os2, hos2, hf2⟩ := flatten_serTxOut_cons
+      (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (lockScript_value_ok hbwf hamt) hf1
+    refine ⟨_, os2.map outOf, Or.inl rfl, ?_, ?_⟩
+    · intro o ho
+      obtain ⟨o', ho', rfl⟩ := List.mem_map.mp ho
+      exact hhon o' (by rw [hos1, hos2]; simpa using ho')
+    · simp only [absTx, hos1, hos2, List.map_cons, Spend.expectedOuts, hk, outOf_lock hawf, outOf_lock hbwf, hA, hB]
+      simp [spendOf, tokenOf, hty, Fam.modeOfCommitType]
+  · -- the other order: the piece first
+    rw [ite_eq_right hpk, splitOutA_eq hwf hsc, splitOutB_eq hwf hsc hlen, tokenOut_eq hawf hval,
+      tokenOut_eq hbwf hval, List.append_assoc] at hflat
+    obtain ⟨os1, hos1, hf1⟩ := flatten_serTxOut_cons htx.outputs (lockScript_value_ok hbwf hamt) hflat.symm
+    obtain ⟨os2, hos2, hf2⟩ := flatten_serTxOut_cons
+      (fun o ho => htx.outputs o (by rw [hos1]; exact List.mem_cons_of_mem _ ho)) (lockScript_value_ok hawf hamt) hf1
+    refine ⟨_, os2.map outOf, Or.inr ⟨hk, ?_, rfl⟩, ?_, ?_⟩
+    · simp [spendOf, tokenOf, hty, Fam.modeOfCommitType]
+    · intro o ho
+      obtain ⟨o', ho', rfl⟩ := List.mem_map.mp ho
+      exact hhon o' (by rw [hos1, hos2]; simpa using ho')
+    · simp only [absTx, hos1, hos2, List.map_cons, outOf_lock hbwf, outOf_lock hawf, hA, hB]
+      rfl
 
 end BoltProof.Glue.SimpleMulti

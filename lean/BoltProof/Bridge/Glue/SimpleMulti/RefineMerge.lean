@@ -96,8 +96,8 @@ theorem simpleMulti_refines_merge_commit (P : Prims Bytes) (tx : Tx) (i amt : Na
     (fun h => by rw [hk] at h; cases h) ?_ ?_ ?_ ?_ (fun h => by rw [hk] at h; cases h)
     (fun h => by rw [hk] at h; cases h) (fun _ => ⟨rfl, rfl⟩)
   · intro _
-    exact outs_commit_merge _ none none hwf hA htx hamt hpre hset hmrg hidx0 hnbc hi1 h32 hidx hnz hval hout hsc
-      hflat hhon
+    exact Spend.outsOK_of_canonical (outs_commit_merge _ none none hwf hA htx hamt hpre hset hmrg hidx0 hnbc hi1 h32
+      hidx hnz hval hout hsc hflat hhon)
   · intro _ hm; rw [hmode] at hm; cases hm
   · intro _ _
     refine ⟨_, rfl, ?_⟩
