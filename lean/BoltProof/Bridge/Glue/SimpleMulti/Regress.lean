@@ -142,18 +142,20 @@ theorem of_proof2At {l : List (Out Bytes)} {idx : Nat} (h : proof2At l idx = tru
   simp only [hty, bne_self_eq_false, Bool.false_or] at h
   exact of_isProofAt h
 
-def balsNonneg (G : Tx) : Bool :=
-  G.outputs.all fun o => match decodeLock o.scriptPubKey with
+def balsNonneg (f : Fields) (G : Tx) : Bool :=
+  match G.outputs[leNat (List.drop 32 f.gp)]? with
+  | some o => match decodeLock o.scriptPubKey with
     | some g => decide (0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit)
     | none => true
+  | none => true
 
-theorem of_balsNonneg {G : Tx} (h : balsNonneg G = true) :
-    ∀ o ∈ G.outputs, ∀ g, decodeLock o.scriptPubKey = some g → 0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit := by
+theorem of_balsNonneg {f : Fields} {G : Tx} (h : balsNonneg f G = true) :
+    ∀ o, G.outputs[leNat (List.drop 32 f.gp)]? = some o → ∀ g, decodeLock o.scriptPubKey = some g →
+      0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit := by
   intro o ho g hg
   unfold balsNonneg at h
-  have := List.all_eq_true.mp h o ho
-  rw [hg] at this
-  exact of_decide_eq_true this
+  simp only [ho, hg] at h
+  exact of_decide_eq_true h
 
 
 

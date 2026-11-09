@@ -14,8 +14,8 @@ token ever created, and Theorem 5 (proof gating, the fabricated-hop exclusion).
 The grandparents' reality is read off the run instead of assumed. For a settle with a grandparent the
 refinement wants `GpRealF` of the ancestor `G` it is given; the chain asserts of `G` only that it is a
 well-formed transaction whose id the token names, with no second preimage of its serialisation and the
-primitives' id (`ChainTx`), and that its token outputs' balance fields are non-negative script numbers
-(`BalsNonneg`). In a valid prefix the grandparent outpoint is output 0 of an earlier commit step whose
+primitives' id (`ChainTx`), and that its grandparent token output's balance fields are non-negative script
+numbers (`BalsNonneg`, narrowed to the one output the anchor reads). In a valid prefix the grandparent outpoint is output 0 of an earlier commit step whose
 outputs are its token and the recipients' proof outputs (`Run.grandparent_layout_upto`,
 `Theorems/Chain.lean`), and A1 (`CollisionFree`) identifies `G`'s abstraction with that step's transaction,
 as the hand proof's Lemma 3 does, so `GpRealF` follows (`gpRealF_of_chain`). A merge settle's other
@@ -50,11 +50,13 @@ structure ChainTx (P : Prims Bytes) (G : Tx) : Prop where
   nsp : NoSecondPreimage (serTx G)
   ptxid : P.txid (absTx G) = Sighash.txid G
 
-/-- The balance fields of every token-shaped output are non-negative script numbers: what the covenant
+/-- The grandparent token output's balance fields are non-negative script numbers: what the covenant
 writes (a sixteen-byte pad of a value below `2^127`), decidable on the bytes, and the one fact about an
-ancestor the composition reads off its bytes rather than derives from the run. -/
-def BalsNonneg (G : Tx) : Prop :=
-  ∀ o ∈ G.outputs, ∀ g, decodeLock o.scriptPubKey = some g → 0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit
+ancestor the composition reads off its bytes rather than derives from the run. Narrowed to the one output
+`l3_settle` reads (the token at the grandparent index), the minimal form the anchor needs. -/
+def BalsNonneg (f : Fields) (G : Tx) : Prop :=
+  ∀ o, G.outputs[leNat (List.drop 32 f.gp)]? = some o → ∀ g, decodeLock o.scriptPubKey = some g →
+    0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit
 
 /-- A transfer or split settle with a grandparent, as `RealSettleGp` takes it, with the grandparent's reality
 (`GpRealF`) left out: the chain supplies it. Of `ResidualGp` the rebuild's piece widths (Q7) and the index
@@ -82,7 +84,7 @@ structure ChainSettleGp (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (
   i5len : a.i5.length = 4
   hG : ChainTx P G
   hGtxid : Sighash.txid G = List.take 32 f.gp
-  hGbals : BalsNonneg G
+  hGbals : BalsNonneg f G
   hstack : ((evalScript Eval.opExec (mkEnv params (txContext tx i amt) params.flags.forkAdjust
     (some (lockScript f))) scriptSig [] 0).2).stack = a.stack ++ S
   hvalid : Eval.verifyScript params (txContext tx i amt) scriptSig (lockScript f) = .valid
@@ -109,7 +111,7 @@ structure ChainMergeSettle (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields
   i5len : a.i5.length = 4
   hG : ChainTx P G
   hGtxid : Sighash.txid G = List.take 32 f.gp
-  hGbals : BalsNonneg G
+  hGbals : BalsNonneg f G
   hogp : decode f.ogp ≠ 0
   hGB : ChainTx P GB
   hGBtxid : Sighash.txid GB = List.take 32 f.ogp
@@ -190,7 +192,7 @@ theorem gpRealF_of_chain (hc : CollisionFree P) {k : Nat} (hv : r.ValidUpTo P .f
     (hlive : ((spendOf tx i f a other ancA ancB).spentOutpoint, (spendOf tx i f a other ancA ancB).spent) ∈
       r.liveAfter P k)
     (hty : f.ty = [0x21] ∨ f.ty = [0x23] ∨ f.ty = [0x25]) (hgp0 : decode f.gp ≠ 0) {G : Tx} (hG : ChainTx P G)
-    (hGtxid : Sighash.txid G = List.take 32 f.gp) (hGbals : BalsNonneg G) : GpRealF P f G := by
+    (hGtxid : Sighash.txid G = List.take 32 f.gp) (hGbals : BalsNonneg f G) : GpRealF P f G := by
   obtain ⟨c, -, sc, -, hid, hvout, ⟨t, ht⟩, ⟨pkh, hpk⟩, h2⟩ :=
     Run.grandparent_layout_upto hv hlive (spent_commitTyped hty) (spent_grandparent hgp0)
   have hvout' : leNat (List.drop 32 f.gp) = 0 := hvout

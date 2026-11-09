@@ -188,8 +188,9 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
   a non-merge token names no other lineage, the balance is in range, a split's second recipient is not the zero hash
   (fungible); the recipient hash and the signing key at their widths, which the bytes copy into the new lock
   unchecked (`ArgsWF`, all four). `Regress.lean` checks them on the vectors.
-* Over the fungible chain, also A1 and `BalsNonneg`: the ancestors' token outputs carry non-negative balance
-  fields (the script writes them so; decidable; a proof debt).
+* Over the fungible chain, also A1 and `BalsNonneg`: the grandparent token output's balance fields, read as
+  signed script numbers, are non-negative (the covenant writes them so, from a value below `2^127`; decidable, and
+  discharged on every vector in `Regress.lean`; narrowed to the one output the anchor reads).
 
 **Findings.** What the glue found that the prose did not say, each pinned by a vector where one applies:
 
@@ -235,8 +236,8 @@ input 0) is derived from the bytes; Q3, Q6 and Q9 are closed by model and lemma;
 had recorded a false literal fact; every probe is now scanned for them); Q8 is settled at the vector level
 and kept as the hypothesis `hpre'`.
 
-**Follow-ups.** Shed `BalsNonneg` by reading the balance signs off the commit paths' output bytes; state the
-Q4 above.
+**Follow-ups.** Shed `BalsNonneg` by reading the grandparent token output's balance signs off the commit step
+that wrote them (it is narrowed to that one output); Q4 above.
 
 **Generators.** The long, regular files (the path theorems, the rebuilds' arms and parses, the gate items,
 the guards) are written by `scripts/*.py` (`scripts/README.md`); a generated file says so in its header.

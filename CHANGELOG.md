@@ -75,7 +75,8 @@ All notable changes to **b017** are documented here. The format is based on
   `GpRealF`'s twin (well-formed, the txid, the token at the named index, the proof outputs), the merge-settle
   refinement reads the other grandparent's token type off the bytes (`gpB_token_of_facts`), and the fungible chain
   asserts nothing of a merge settle beyond its spend: `typeB` is gone, and `BalsNonneg` is the one byte-level fact
-  the chain still reads off the ancestors.
+  the chain still reads off the ancestors. `BalsNonneg` is narrowed to the single grandparent token output the
+  anchor reads, the minimal form, and stays a documented decidable assumption discharged on every vector.
 - **`lean/BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`**: the fungible end-to-end statement. Each proof stage's
   hypotheses are one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`, `RealMergeSettle`); Lemma 1,
   Theorems 2, 3 and 4 per step and Theorem 1 per hop are stated of any `SimpleMultiBOLT` spend the script accepts.

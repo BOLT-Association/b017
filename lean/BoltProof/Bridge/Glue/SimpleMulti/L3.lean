@@ -40,7 +40,8 @@ structure GpRealF (P : Prims Bytes) (f : Fields) (G : Tx) : Prop where
   proof1 : ∃ pkh, (absTx G).outputs[1]? = some (.proof pkh)
   proof2 : ∀ t, (absTx G).outputs[leNat (List.drop 32 f.gp)]? = some (.token t) → t.txoType = 0x23 →
     ∃ pkh, (absTx G).outputs[2]? = some (.proof pkh)
-  bal : ∀ o ∈ G.outputs, ∀ g, decodeLock o.scriptPubKey = some g → 0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit
+  bal : ∀ o, G.outputs[leNat (List.drop 32 f.gp)]? = some o → ∀ g, decodeLock o.scriptPubKey = some g →
+    0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit
 
 /-- A 32-bit word that reads as a positive script number reads as its value. -/
 theorem decode_le32_of_pos {n : Nat} (hn : n < 2 ^ 32) (h : 0 < decode (le32 n)) : decode (le32 n) = n := by
@@ -133,12 +134,13 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
   -- the anchor: the grandparent token's balances are non-negative
   have hlk : (gpTxA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs[0]? =
       some (outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S))) := rfl
-  have hmem0 : outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S)) ∈ G.outputs := by
-    rw [hGeq]; exact List.mem_of_getElem? hlk
+  have hidx0 : G.outputs[leNat (List.drop 32 f.gp)]? =
+      some (outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S))) := by
+    rw [hGeq, hv0]; exact hlk
   have hdec : decodeLock (outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S))).scriptPubKey =
       some (gpFieldsA (gateT f a S) f.issuer) := by
     simp only [outOfBytes, lkA_eq hl h15 h14, decodeLock_lockScript (gpFieldsA_wf hl hwf.issuer)]
-  obtain ⟨hn2, hn3⟩ := hG.bal _ hmem0 _ hdec
+  obtain ⟨hn2, hn3⟩ := hG.bal _ hidx0 _ hdec
   -- the co-spent proof output
   obtain ⟨i1, hi1mem, hi1⟩ := hco
   have h32' : i1.prevHash.length = 32 := (htx.inputs i1 hi1mem).1
