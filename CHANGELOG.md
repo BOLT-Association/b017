@@ -132,6 +132,12 @@ All notable changes to **b017** are documented here. The format is based on
   split settle's flags or the anchor argument `i5`: `Residual` loses `splitFlags` and `ResidualGp` loses `i5`;
   `outs_settle_split` proves both orders from the script's flag cases and `AnchorOK.index` reads the anchor's index
   from the script's own check. SimpleMultiBOLT's remaining assumptions are Q4, Q7 and Q8 of `lean/README.md`.
+- **The chain stated for AuthBOLT and SerialBOLT** (`lean/BoltProof/Bridge/Glue/AuthBolt/Chain.lean`,
+  `SerialBolt/Chain.lean`): each is MinSimpleBOLT's chain file over its own abstraction, so a chain of real
+  AuthBOLT or SerialBOLT spends is a valid model run and Theorems 1, 3, 4 and 5 hold of their real tokens too
+  (`valid_of_chain`, `chain_authenticity`, `chain_count`, `chain_defined_types`, `chain_proof_gating`,
+  `chain_fabricated_hop_excluded`). Their `GpReal` was already settle-only, so the grandparent's reality is read
+  off the run as it is for MinSimpleBOLT, with nothing assumed. The chain now covers all four shipped scripts.
 - **`lean/README.md` is the one document of the Lean development.** It absorbs the glue plan (`lean/GLUE-PLAN.md`:
   the proof style, the per-script structure, the rebuilds, the chain, the assumptions, the findings, the open
   questions and the build notes) and the checklist `lean-proof-todo.md`, both deleted; the prose is compressed, the

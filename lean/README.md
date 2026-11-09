@@ -18,7 +18,7 @@ What is proved:
 * **The script enforces the model, per input.** For each of the four scripts a symbolic execution proves
   what it enforces on every possible input, and that any spend the network accepts is one the model
   accepts, under assumptions listed once per script ("The glue" below).
-* **A chain of real spends is a valid run**, for MinSimpleBOLT and SimpleMultiBOLT, so Theorems 1, 3, 4
+* **A chain of real spends is a valid run**, for all four scripts, so Theorems 1, 3, 4
   and 5 hold of real tokens. The grandparent a settle names is read off the run, not assumed.
 
 Scope. Everything about the script is under today's BSV rules (post-Chronicle, `Bridge/Params.lean`);
@@ -38,7 +38,7 @@ boundary.
 | `BoltProof/Bridge/Gadgets/*.lean` | 2 (standard axioms) | bsv-script-lean `Gadget` | Fragments of the script proved over the interpreter's own instruction loop, for every input. |
 | `BoltProof/Bridge/Glue/Sym/`, `Sections.lean` | 2 (standard axioms) | bsv-script-lean | The symbolic execution: one inversion lemma per opcode, the `sym_all` driver, each fragment at its offset. |
 | `BoltProof/Bridge/Glue/{MinSimple,AuthBolt,SerialBolt,SimpleMulti}/` | 2 (standard axioms) | Model, bsv-script-lean | Per script: `Spec`/`Enforced` (what it enforces), `Paths/` and `Sound.lean` (`*_sound`, `reaches_*`), `Abs.lean` (a real spend read into the model), `Refine*.lean` (`*_refines`), `Regress.lean` (applied to the real vectors). The fungible directory also holds the two rebuilds' parses and welds (`Rebuilt*.lean`, `Anchor*.lean`, `GpWeld*.lean`, `L3.lean`). |
-| `BoltProof/Bridge/Glue/Refine/` | 2 (standard axioms) | Model, bsv-script-lean | Shared by the refinements: a valid verdict as a run of the script, the node's serialisation round trip, the preimage fields. `EndToEnd.lean` and `Chain.lean`: the per-input theorems and the chain for MinSimpleBOLT. |
+| `BoltProof/Bridge/Glue/Refine/` | 2 (standard axioms) | Model, bsv-script-lean | Shared by the refinements: a valid verdict as a run of the script, the node's serialisation round trip, the preimage fields. `EndToEnd.lean` and `Chain.lean`: the per-input theorems and the chain for MinSimpleBOLT (AuthBOLT's and SerialBOLT's chains are `AuthBolt/Chain.lean` and `SerialBolt/Chain.lean`, this file over their abstractions). |
 | `BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`, `Chain.lean` | 2 (standard axioms) | Model, bsv-script-lean | The same for SimpleMultiBOLT, each refinement stage's hypotheses as one structure. |
 | `AxiomCheck.lean`, `AXIOMS-ALLOWED` | — | — | The axiom audit (`node scripts/lean-axiom-check.mjs`): three standard axioms for Layer 1 and the symbolic proofs; `native_decide`'s per-theorem axiom for the rest of Layer 2 only. |
 | `vectors/export.test.ts`, `vectors/sections.ts` | — | vitest | The exporter: builds the suite's honest and adversarial transactions and writes `Generated/`. |
@@ -155,12 +155,12 @@ anchor into the model's `settledBalance` (`anchorOK_settled`); the anchor also f
 other lineage's grandparent, is welded the same way (`RebuiltBParse.lean`, `AnchorB.lean`,
 `GpWeldB.lean`; `anchorB_index` for its index argument `i4`).
 
-**The chain** (`Refine/Chain.lean`, `SimpleMulti/Chain.lean`). A run whose steps are real spends, each read
+**The chain** (`Refine/Chain.lean`, `AuthBolt/Chain.lean`, `SerialBolt/Chain.lean`, `SimpleMulti/Chain.lean`). A run whose steps are real spends, each read
 by its refinement, with the UTXO model's bookkeeping (a well-formed genesis set, each step spending live
 tokens, each transaction id new: `RealChain`), is valid (`valid_of_chain`). The induction is
 `Run.valid_of_stepwise`; at each step the grandparent a settle names is read off the valid prefix: it is
 output 0 of an earlier commit step with the honest layout (`Run.grandparent_layout_upto`), which
-discharges `GpReal` outright for the NFT script and, under A1 to identify the ancestor the settle
+discharges `GpReal` outright for the three NFT scripts and, under A1 to identify the ancestor the settle
 supplies with that step, `GpRealF` and `GpRealB` for the fungible one. Theorems 1, 3, 4 and 5 then hold
 of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `chain_defined_types`,
 `chain_proof_gating`, `chain_fabricated_hop_excluded`.
@@ -236,8 +236,7 @@ had recorded a false literal fact; every probe is now scanned for them); Q8 is s
 and kept as the hypothesis `hpre'`.
 
 **Follow-ups.** Shed `BalsNonneg` by reading the balance signs off the commit paths' output bytes; state the
-chain for AuthBOLT and SerialBOLT (their refinements already ask `GpReal` of a settle only; the file is
-MinSimpleBOLT's over their abstraction); Q4 above.
+Q4 above.
 
 **Generators.** The long, regular files (the path theorems, the rebuilds' arms and parses, the gate items,
 the guards) are written by `scripts/*.py` (`scripts/README.md`); a generated file says so in its header.
@@ -248,7 +247,7 @@ glue lives under `BoltProof.Glue`, the `native_decide` guards under `BoltProof.B
 
 | Item | Status |
 |---|---|
-| That the script enforces the model on *every* input (A4 + L1–L7 fidelity) | **Proved for all four scripts, per input, under the assumptions listed above; proved over a chain for MinSimpleBOLT and SimpleMultiBOLT.** Layer 2 still evidences all four on 241 inputs. |
+| That the script enforces the model on *every* input (A4 + L1–L7 fidelity) | **Proved for all four scripts, per input, under the assumptions listed above; proved over a chain for all four scripts.** Layer 2 still evidences all four on 241 inputs. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound`, the fungible chain and `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |

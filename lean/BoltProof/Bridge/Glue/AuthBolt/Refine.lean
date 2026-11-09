@@ -23,7 +23,8 @@ What is assumed beyond the bytes is stated once, in `Residual`:
 * `GpReal`: the grandparent txid the token names is a well-formed transaction's, with its token
   output at the named index and a proof output at index 1, whose abstract id the primitives agree
   on. Asked of a settle only, and what the accepted commit two steps back guarantees: the chain
-  discharges it (`Refine/Chain.lean` reads a chain of real spends as a valid run);
+  discharges it (`AuthBolt/Chain.lean` reads a chain of real spends as a valid run, this family's copy of
+  `Refine/Chain.lean`);
 * `Agrees`: the primitives compute `hash160` and this spend's `OP_CHECKSIG`;
 * `HonestOutputs`/`HonestMelt`: the change outputs carry no token, and a melt pays P2PKH only and
   has version 2 (Finding 1 of `lean/README.md`: the bytes do not enforce these clauses).
