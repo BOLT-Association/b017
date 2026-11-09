@@ -180,8 +180,10 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
   proved, carries the security.
 * `GpReal`, `GpRealF`, `GpRealB`: the grandparent a settle names is real, well-formed, with the token at the
   named index and the proof outputs of a commit. Per input an assumption; over a chain, proved.
-* SimpleMultiBOLT only: the six protocol types (Q4), the rebuilds' pieces at the widths of the fields they
-  stand for (`HonestPiecesB`, both piece sets, Q7), and the merge partner presenting a preimage (Q8).
+* SimpleMultiBOLT only: the six protocol types (Q4), the rebuilds' pieces named at their fields' widths
+  (`HonestPiecesB`, both piece sets; Q7, a representation choice, not an enforcement gap: the covenant
+  concatenates the pieces and hashes the result, so the binding is the hash, not the split), and the merge
+  partner presenting a preimage (Q8).
 * Lock-data conditions every covenant-built token meets, asked of the spent token: a genesis token is settled-typed,
   a non-merge token names no other lineage, the balance is in range, a split's second recipient is not the zero hash
   (fungible); the recipient hash and the signing key at their widths, which the bytes copy into the new lock
@@ -222,16 +224,20 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
 
 **Open questions.** Q4: off genesis, the parity check lets a settled token's spend name any odd next type;
 whether a run with a type outside the six succeeds is open (the honest-shaped probe is refused), so
-`simpleMulti_sound` covers the six protocol types and states the restriction. Q7: whether the bytes force
-the rebuilds' piece widths, for instance through the grandparent's own structure, is open; the refinement
-reads them under `HonestPiecesB`. Q1 (Finding 1) was decided for the hypothesis route; Q2 (the token at
+`simpleMulti_sound` covers the six protocol types and states the restriction. Q7 is not an open enforcement
+question: the covenant concatenates the rebuild's pieces and hashes the result against the grandparent's
+txid, and never parses the concatenation back into fields, so no contract operation splits the bytes at the
+field boundaries and there is nothing for the bytes to force. `HonestPiecesB` names the pieces at their
+fields' widths as the honest spender supplies them; the binding is carried by the hash, which under no
+second preimage makes the concatenation the real grandparent's serialisation whatever the split. It is
+discharged on every real spend in `Regress.lean`. Q1 (Finding 1) was decided for the hypothesis route; Q2 (the token at
 input 0) is derived from the bytes; Q3, Q6 and Q9 are closed by model and lemma; Q5 was retracted (a probe
 had recorded a false literal fact; every probe is now scanned for them); Q8 is settled at the vector level
 and kept as the hypothesis `hpre'`.
 
 **Follow-ups.** Shed `BalsNonneg` by reading the balance signs off the commit paths' output bytes; state the
 chain for AuthBOLT and SerialBOLT (their refinements already ask `GpReal` of a settle only; the file is
-MinSimpleBOLT's over their abstraction); Q4 and Q7 above.
+MinSimpleBOLT's over their abstraction); Q4 above.
 
 **Generators.** The long, regular files (the path theorems, the rebuilds' arms and parses, the gate items,
 the guards) are written by `scripts/*.py` (`scripts/README.md`); a generated file says so in its header.
