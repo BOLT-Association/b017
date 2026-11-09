@@ -108,10 +108,10 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
     (hi5 : ∀ p, outpointOf f.parent = some p → decode a.i5 = (p.vout : Int) + 1)
     (hbal : 0 ≤ decode f.bal) (hpar : decode f.parent ≠ 0) :
     ∀ gp, outpointOf f.gp = some gp →
-      ∃ (A : TxDesc Bytes) (t : Token Bytes), (spendOf tx i f a other (some G) ancB).anc = some A ∧
+      ∃ (A : TxDesc Bytes) (t : Token Bytes) (j : Nat) (pkh : PKH), (spendOf tx i f a other (some G) ancB).anc = some A ∧
         P.txid A = gp.txid ∧ A.outputs[gp.vout]? = some (.token t) ∧
-        (∃ j pkh, A.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Bytes) ∈ (absTx tx).inputs) ∧
-        ∀ p, outpointOf f.parent = some p → balOf f.bal = t.settledBalance .fungible p.vout := by
+        A.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Bytes) ∈ (absTx tx).inputs ∧
+        balOf f.bal = t.settledBalance .fungible (j - 1) := by
   intro gp hgp
   have hgp0 : decode f.gp ≠ 0 := by intro h; simp [outpointOf, h] at hgp
   have hgpeq : gp = ⟨List.take 32 f.gp, leNat (List.drop 32 f.gp)⟩ := by
@@ -145,21 +145,21 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
     (by rw [h32', BoltProof.Glue.MinSimple.hash256_length])
   rw [rebuildA_fact1_eq, gateT_item36] at h1
   have hprev1 : i1.prevHash = List.take 32 f.gp := by rw [hsplit.1, h1]
-  refine ⟨absTx G, t, by simp [spendOf], by rw [hG.ptxid, hG.txid], ht, ?_, ?_⟩
-  · -- the proof output after the parent's index is the one co-spent
-    have hpp : outpointOf f.parent = some ⟨List.take 32 f.parent, leNat (List.drop 32 f.parent)⟩ := by
-      simp [outpointOf, hpar]
-    obtain ⟨pkh, hproof⟩ := hG.proof _ hpp
-    have hx := hi5 _ hpp
-    have hle : decode (le32 i1.prevIndex) = i1.prevIndex :=
-      decode_le32_of_pos hidx1 (by rw [hsplit.2, hx]; omega)
-    have hidx' : i1.prevIndex = leNat (List.drop 32 f.parent) + 1 := by
-      rw [hsplit.2, hx] at hle; dsimp only at hle; omega
-    refine ⟨_, pkh, hproof, ?_⟩
-    simp only [absTx, List.mem_map]
+  -- the proof output after the parent's index is the one co-spent: its index is the parent's plus one
+  have hpp : outpointOf f.parent = some ⟨List.take 32 f.parent, leNat (List.drop 32 f.parent)⟩ := by
+    simp [outpointOf, hpar]
+  obtain ⟨pkh, hproof⟩ := hG.proof _ hpp
+  have hx : decode a.i5 = ((leNat (List.drop 32 f.parent) : Nat) : Int) + 1 := hi5 _ hpp
+  have hle : decode (le32 i1.prevIndex) = i1.prevIndex :=
+    decode_le32_of_pos hidx1 (by rw [hsplit.2, hx]; omega)
+  have hidx' : i1.prevIndex = leNat (List.drop 32 f.parent) + 1 := by
+    rw [hsplit.2, hx] at hle; omega
+  refine ⟨absTx G, t, leNat (List.drop 32 f.parent) + 1, pkh, by simp [spendOf], by rw [hG.ptxid, hG.txid],
+    ht, hproof, ?_, ?_⟩
+  · simp only [absTx, List.mem_map]
     exact ⟨i1, hi1mem, by rw [hprev1, hidx']⟩
-  · intro p hpp
-    have hx := hi5 p hpp
+  · -- the anchor: the settle result one below the co-spent proof, the parent's index
+    rw [Nat.add_sub_cancel]
     rw [rebuildA_fact0_eq, gateT_item61, gateT_item145, gateT_item150, gateT_item151, gateT_item46] at h0
     rw [htt]
     exact anchorOK_settled (g := gpFieldsA (gateT f a S) f.issuer) (ty := a.psB.p8) (n3 := a.psB.p13)

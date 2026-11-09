@@ -149,6 +149,17 @@ def expectedOuts (fam : Fam) (s : Spend Txid) : List (Out Txid) :=
         [.token (s.settleToken fam 0)]
   | .melt => []
 
+/-- The outputs a spend may carry before its change (Lemma 2): the reconstructed ones in the covenant's
+order or, for a split settle only, its two settled tokens in the other order. The fungible script lets
+the spender choose that order (`lean/GLUE-PLAN.md` §7 Q3). It is safe to admit: both tokens still go to
+the committed recipients with the committed balances, a token's outpoint is wherever it sits, and no
+later check reads the order (the anchor names its proof, not a position, `Accepts.l3_rebuild`), so
+nothing a theorem depends on changes. -/
+def OutsOK (fam : Fam) (s : Spend Txid) (outs : List (Out Txid)) : Prop :=
+  outs = s.expectedOuts fam ∨
+    (s.kind = .settle ∧ fam.modeOfCommitType s.spent.txoType = some .split ∧
+      outs = [.token (s.settleToken fam 1), .token (s.settleToken fam 0)])
+
 /-- The token outputs the transaction actually carries. -/
 def tokenOuts (s : Spend Txid) : List (Token Txid) := s.tx.tokens
 

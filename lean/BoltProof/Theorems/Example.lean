@@ -116,7 +116,7 @@ theorem accepts_s1 : Accepts P .nft s1 := by
       settle_mode := fun h => (by cases h)
       l5_issuer := fun _ => rfl
       l5_no_merge_at_genesis := fun _ => (by decide)
-      l2_outs := fun _ => ⟨[.p2pkh iPk], (by decide), rfl⟩
+      l2_outs := fun _ => Spend.outsOK_of_canonical ⟨[.p2pkh iPk], (by decide), rfl⟩
       l2_melt := fun h => (by cases h)
       l6_bound := fun h => (by cases h)
       l6_split := fun _ h => (by cases h)
@@ -145,7 +145,7 @@ theorem accepts_s2 : Accepts P .nft s2 := by
       settle_mode := fun _ => rfl
       l5_issuer := fun _ => rfl
       l5_no_merge_at_genesis := fun h => (by cases h)
-      l2_outs := fun _ => ⟨[.p2pkh iPk], (by decide), rfl⟩
+      l2_outs := fun _ => Spend.outsOK_of_canonical ⟨[.p2pkh iPk], (by decide), rfl⟩
       l2_melt := fun h => (by cases h)
       l6_bound := fun h => (by cases h)
       l6_split := fun h => (by cases h)
@@ -174,7 +174,7 @@ theorem accepts_s3 : Accepts P .nft s3 := by
       settle_mode := fun h => (by cases h)
       l5_issuer := fun h => ?_
       l5_no_merge_at_genesis := fun h => (by cases h)
-      l2_outs := fun _ => ⟨[.p2pkh uPk], (by decide), rfl⟩
+      l2_outs := fun _ => Spend.outsOK_of_canonical ⟨[.p2pkh uPk], (by decide), rfl⟩
       l2_melt := fun h => (by cases h)
       l6_bound := fun h => (by cases h)
       l6_split := fun _ h => (by cases h)
@@ -205,7 +205,7 @@ theorem accepts_s4 : Accepts P .nft s4 := by
       settle_mode := fun _ => rfl
       l5_issuer := fun h => ?_
       l5_no_merge_at_genesis := fun h => (by cases h)
-      l2_outs := fun _ => ⟨[.p2pkh uPk], (by decide), rfl⟩
+      l2_outs := fun _ => Spend.outsOK_of_canonical ⟨[.p2pkh uPk], (by decide), rfl⟩
       l2_melt := fun h => (by cases h)
       l6_bound := fun h => (by cases h)
       l6_split := fun h => (by cases h)
@@ -224,7 +224,7 @@ theorem accepts_s4 : Accepts P .nft s4 := by
   · -- the rebuilt ancestor is commit1; its proof (1, 1) is co-spent
     have : gp = o1 := by simpa [s4, c3] using hgp.symm
     subst this
-    exact ⟨tx1, c1, rfl, rfl, rfl, ⟨1, uPk, rfl, (by decide)⟩, fun h => (by cases h)⟩
+    exact ⟨tx1, c1, 1, uPk, rfl, rfl, rfl, rfl, (by decide), fun h => (by cases h)⟩
   · rcases h with h | h <;> cases h
 
 /-- The honest NFT lifecycle is a valid run of the interface: the theorems are not vacuous. -/

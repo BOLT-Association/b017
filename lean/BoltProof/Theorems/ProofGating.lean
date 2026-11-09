@@ -51,7 +51,7 @@ theorem settle_consumes_proof (hv : r.Valid P fam) {k : Nat} {s : Spend Txid}
     (hgp : s.spent.grandparent = some gp) :
     ∃ (A : TxDesc Txid) (j : Nat) (pkh : PKH), s.anc = some A ∧ P.txid A = gp.txid ∧
       A.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Txid) ∈ s.tx.inputs := by
-  obtain ⟨A, _, hA, hid, _, ⟨j, pkh, hj, hin⟩, _⟩ := (hv.2 k s hk).accepts.l3_rebuild hs gp hgp
+  obtain ⟨A, _, j, pkh, hA, hid, _, hj, hin, _⟩ := (hv.2 k s hk).accepts.l3_rebuild hs gp hgp
   exact ⟨A, j, pkh, hA, hid, hj, hin⟩
 
 /-- **Theorem 5 (proof gating).** Two distinct settles of tokens with grandparents consume two
@@ -70,35 +70,37 @@ theorem t5_proof_gating (hv : r.Valid P fam) (hnd : r.NoDoubleSpend) {i j : Nat}
 
 /-- **Theorem 5 (balance anchor).** Under collision resistance, when the grandparent outpoint of
 a settled token was created by step `c`, the rebuilt ancestor is `c`'s transaction, its token
-output at that outpoint is a commit token, and (fungible) the spent balance is exactly that
-token's settle result at the parent's index: a cloned settle carries the real lineage's balance.
-The producing step is a hypothesis (`_hcs`, `hprod`), not derived. -/
+output at that outpoint is a commit token, the settle co-spends one of `c`'s proof outputs, at
+index `j`, and (fungible) the spent balance is exactly that token's settle result for that proof,
+the one at index `j − 1`: a cloned settle carries the real lineage's balance. The producing step
+is a hypothesis (`_hcs`, `hprod`), not derived. -/
 theorem t5_balance_anchor (hc : CollisionFree P) (hv : r.Valid P fam) {k c : Nat}
     {s sc : Spend Txid} (hk : r.steps[k]? = some s) (hs : s.kind = .settle)
     {gp : Outpoint Txid} (hgp : s.spent.grandparent = some gp) (_hcs : r.steps[c]? = some sc)
     (hprod : P.txid sc.tx = gp.txid) :
     s.anc = some sc.tx ∧
-    ∃ t : Token Txid, sc.tx.outputs[gp.vout]? = some (.token t) ∧
-      (fam = .fungible → ∀ p, s.spent.parent = some p → s.spent.balance = t.settledBalance fam p.vout) := by
-  obtain ⟨A, t, hA, hid, ht, _, hbal⟩ := (hv.2 k s hk).accepts.l3_rebuild hs gp hgp
+    ∃ (t : Token Txid) (j : Nat) (pkh : PKH), sc.tx.outputs[gp.vout]? = some (.token t) ∧
+      sc.tx.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Txid) ∈ s.tx.inputs ∧
+      (fam = .fungible → s.spent.balance = t.settledBalance fam (j - 1)) := by
+  obtain ⟨A, t, j, pkh, hA, hid, ht, hj, hin, hbal⟩ := (hv.2 k s hk).accepts.l3_rebuild hs gp hgp
   have hAeq : A = sc.tx := hc A sc.tx (hid.trans hprod.symm)
   subst hAeq
-  exact ⟨hA, t, ht, hbal⟩
+  exact ⟨hA, t, j, pkh, ht, hj, hin, hbal⟩
 
 /-- **Theorem 5, combined.** In a valid, double-spend-free run under collision resistance, every
-settle with a grandparent (i) consumes a proof outpoint of the grandparent's transaction that
-no other settle consumes, and (ii) carries the balance the grandparent's own transition dictates. -/
+settle with a grandparent consumes a proof outpoint of the grandparent's transaction, at index `j`,
+that no other step consumes, and carries the balance the grandparent's own transition dictates for
+that proof, the settle result at index `j − 1`. -/
 theorem t5_fabricated_hop_excluded (hc : CollisionFree P) (hv : r.Valid P fam) (hnd : r.NoDoubleSpend)
     {k c : Nat} {s sc : Spend Txid} (hk : r.steps[k]? = some s) (hs : s.kind = .settle)
     {gp : Outpoint Txid} (hgp : s.spent.grandparent = some gp) (hcs : r.steps[c]? = some sc)
     (hprod : P.txid sc.tx = gp.txid) :
-    (∃ j, (⟨gp.txid, j⟩ : Outpoint Txid) ∈ s.tx.inputs ∧
-      ∀ k' s', r.steps[k']? = some s' → k' ≠ k → (⟨gp.txid, j⟩ : Outpoint Txid) ∉ s'.tx.inputs) ∧
-    (∃ t : Token Txid, sc.tx.outputs[gp.vout]? = some (.token t) ∧
-      (fam = .fungible → ∀ p, s.spent.parent = some p → s.spent.balance = t.settledBalance fam p.vout)) := by
-  obtain ⟨_, j, _, _, _, _, hin⟩ := settle_consumes_proof hv hk hs hgp
-  obtain ⟨_, t, ht, hbal⟩ := t5_balance_anchor hc hv hk hs hgp hcs hprod
-  refine ⟨⟨j, hin, fun k' s' hk' hne' hin' => hnd k k' s s' hk hk' (Ne.symm hne') _ hin hin'⟩, t, ht, hbal⟩
+    ∃ (t : Token Txid) (j : Nat) (pkh : PKH), sc.tx.outputs[gp.vout]? = some (.token t) ∧
+      sc.tx.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Txid) ∈ s.tx.inputs ∧
+      (∀ k' s', r.steps[k']? = some s' → k' ≠ k → (⟨gp.txid, j⟩ : Outpoint Txid) ∉ s'.tx.inputs) ∧
+      (fam = .fungible → s.spent.balance = t.settledBalance fam (j - 1)) := by
+  obtain ⟨_, t, j, pkh, ht, hj, hin, hbal⟩ := t5_balance_anchor hc hv hk hs hgp hcs hprod
+  exact ⟨t, j, pkh, ht, hj, hin, fun k' s' hk' hne' hin' => hnd k k' s s' hk hk' (Ne.symm hne') _ hin hin', hbal⟩
 
 end Run
 

@@ -74,7 +74,7 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
     · simp [spendOf, tokenOf, hty, Fam.modeOfCommitType]
   l5_issuer := fun h => (hissuer ((issuerMustSign_iff hty).mp h)).symm
   l5_no_merge_at_genesis := fun _ => by simp [spendOf]
-  l2_outs := houts
+  l2_outs := fun hk => Spend.outsOK_of_canonical (houts hk)
   l2_melt := hmelt
   l6_bound := fun h => by cases h
   l6_split := fun _ h => by cases h
@@ -88,7 +88,7 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
   l3_rebuild := by
     intro h gp hgp
     obtain ⟨A, t, hanc, htxid, hout, j, pkh, hproof, hmem⟩ := hreb h gp hgp
-    exact ⟨A, t, hanc, htxid, hout, ⟨j, pkh, hproof, hmem⟩, fun h => by cases h⟩
+    exact ⟨A, t, j, pkh, hanc, htxid, hout, hproof, hmem, fun h => by cases h⟩
   l3_merge := fun _ _ h => by cases h
   l4_null := by
     rintro (h | h)

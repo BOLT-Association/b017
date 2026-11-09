@@ -11,6 +11,7 @@ import BoltProof.Theorems.Balance
 import BoltProof.Theorems.Ownership
 import BoltProof.Theorems.Authenticity
 import BoltProof.Theorems.ProofGating
+import BoltProof.Theorems.Chain
 import BoltProof.Theorems.Example
 
 /-!

@@ -62,10 +62,10 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
     (hotherIss : ∀ o, other = some o → o.1.issuer = f.issuer)
     (hotherTy : ∀ o, other = some o → (tokenOf o.1).txoType ∈ Fam.settleTypes .fungible)
     (hreb : kindOf f a = .settle → ∀ gp, outpointOf f.gp = some gp →
-      ∃ (A : TxDesc Bytes) (t : Token Bytes), (spendOf tx i f a other ancA ancB).anc = some A ∧ P.txid A = gp.txid ∧
-        A.outputs[gp.vout]? = some (.token t) ∧
-        (∃ j pkh, A.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Bytes) ∈ (absTx tx).inputs) ∧
-        ∀ p, outpointOf f.parent = some p → balOf f.bal = t.settledBalance .fungible p.vout)
+      ∃ (A : TxDesc Bytes) (t : Token Bytes) (j : Nat) (pkh : PKH), (spendOf tx i f a other ancA ancB).anc = some A ∧
+        P.txid A = gp.txid ∧ A.outputs[gp.vout]? = some (.token t) ∧
+        A.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Bytes) ∈ (absTx tx).inputs ∧
+        balOf f.bal = t.settledBalance .fungible (j - 1))
     (hrebB : kindOf f a = .settle → ∀ ogp, outpointOf f.ogp = some ogp →
       ∃ (B : TxDesc Bytes) (t : Token Bytes), (spendOf tx i f a other ancA ancB).ancB = some B ∧
         P.txid B = ogp.txid ∧ B.outputs[ogp.vout]? = some (.token t) ∧
@@ -130,7 +130,7 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
     split_ifs at hm' with hk
     · simp only [modeOfNext] at hm'; split_ifs at hm' <;> simp_all
     · rcases hgen hgen0 with h0 | h0 | h0 <;> simp [h0, Fam.modeOfCommitType] at hm'
-  l2_outs := houts
+  l2_outs := fun hk => Spend.outsOK_of_canonical (houts hk)
   l2_melt := hmelt
   l6_bound := fun _ => hbound
   l6_split := fun hk hm => hsplit hk hm
@@ -158,8 +158,8 @@ theorem accepts_of_facts (P : Prims Bytes) (tx : Tx) (i : Nat) (f : Fields) (a :
     exact hotherTy _ hgo
   l3_rebuild := by
     intro h gp hgp
-    obtain ⟨A, t, hanc, htxid, hout, hproof, hbal⟩ := hreb h gp hgp
-    exact ⟨A, t, hanc, htxid, hout, hproof, fun _ p hp => hbal p hp⟩
+    obtain ⟨A, t, j, pkh, hanc, htxid, hout, hproof, hmem, hbal⟩ := hreb h gp hgp
+    exact ⟨A, t, j, pkh, hanc, htxid, hout, hproof, hmem, fun _ => hbal⟩
   l3_merge := fun h ogp hogp => hrebB h ogp hogp
   l4_null := by
     rintro (h | h)

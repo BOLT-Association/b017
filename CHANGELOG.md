@@ -44,6 +44,11 @@ All notable changes to **b017** are documented here. The format is based on
   a spend produces is built from the one it spent, same issuer, that token as parent; a genesis moves only under the
   issuer's key. Stated of the script for every valid input by `real_issuer_carried` and `real_genesis_needs_issuer`
   in `Glue/Refine/EndToEnd.lean` (MinSimpleBOLT) and `Glue/SimpleMulti/EndToEnd.lean` (SimpleMultiBOLT).
+- **`lean/BoltProof/Theorems/Chain.lean`, the Layer 1 half of the chaining step**: in a valid run a settled token's
+  grandparent is output 0 of an earlier commit step whose outputs are its token, the recipient's proof and, for a
+  split, the second recipient's proof (`Run.grandparent_commit`), so the index the script forces (1, or 2 for a
+  split) names a proof output of the real grandparent. Reading a real transaction's bytes as that step's `TxDesc`
+  is what remains of the composition.
 - **`lean/BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`**: the fungible end-to-end statement. Each proof stage's
   hypotheses are one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`, `RealMergeSettle`); Lemma 1,
   Theorems 2, 3 and 4 per step and Theorem 1 per hop are stated of any `SimpleMultiBOLT` spend the script accepts.
@@ -87,6 +92,16 @@ All notable changes to **b017** are documented here. The format is based on
   `Regress.lean` applies each theorem to the real honest spends (`native_decide`). The axiom audit now has Lean
   enumerate Layer 2's declarations, and `AxiomCheck.lean` lists the glue's theorems. The generators of the glue's
   regular files are under `lean/scripts/`.
+
+### Changed
+- **The model's L2 and L3 clauses admit exactly what the script admits** (`lean/BoltProof/Model/Covenant.lean`,
+  `Model/Spend.lean`). A split settle's two tokens may come out in either order (`Spend.OutsOK`), and the anchor
+  names the proof a settle co-spends: the balance carried is the settle result at the index one below that proof,
+  not at the parent's position, which the script never reads. Safe: the order changes neither recipient nor
+  balance, only a proof's recipient can spend it, the script forces the proof to the grandparent's first or, for a
+  split, second output (`AnchorOK`), and Theorem 5 lets each proof admit one settle, so each settle result of a
+  real commit is claimed at most once. The position-based anchor was wrong in the swapped order. Theorems 1–4 keep
+  their statements; Theorem 5's anchor names the proof's index.
 
 ### Findings (from the Lean bridge, bsv-script-lean v1.2.0)
 - **A merge's carried balance is checked at the settle, not the commit** (`lean/GLUE-PLAN.md` §7 Q8; vectors

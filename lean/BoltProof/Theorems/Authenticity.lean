@@ -269,7 +269,7 @@ theorem t1_rebuild_sound (hc : CollisionFree P) (hv : r.Valid P fam) {k j : Nat}
     {s sj : Spend Txid} (hk : r.steps[k]? = some s) (hs : s.kind = .settle)
     {gp : Outpoint Txid} (hgp : s.spent.grandparent = some gp) (_hj : r.steps[j]? = some sj)
     (hprod : P.txid sj.tx = gp.txid) : s.anc = some sj.tx := by
-  obtain ⟨A, _, hA, hid, _⟩ := (hv.2 k s hk).accepts.l3_rebuild hs gp hgp
+  obtain ⟨A, _, _, _, hA, hid, _⟩ := (hv.2 k s hk).accepts.l3_rebuild hs gp hgp
   rw [hA, hc A sj.tx (hid.trans hprod.symm)]
 
 end Run

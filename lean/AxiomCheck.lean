@@ -31,6 +31,8 @@ open BoltProof
 #print axioms Run.t5_balance_anchor
 #print axioms Run.t5_fabricated_hop_excluded
 #print axioms t1_step
+#print axioms Spend.commit_outputs
+#print axioms Run.grandparent_commit
 #print axioms t1_genesis_signer
 
 -- The glue (`lean/GLUE-PLAN.md`): what each shipped suffix enforces on every input (`*_sound`), the proved fragments

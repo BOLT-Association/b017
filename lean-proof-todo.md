@@ -43,14 +43,15 @@ Follow-ups (the residual trust boundary, in order of value):
       (`lean/BoltProof/Theorems/ProofGating.lean`: `t5_proof_gating`, `t5_balance_anchor`,
       `t5_fabricated_hop_excluded`; hypotheses: the UTXO no-double-spend rule and collision-freeness).
 - [ ] Compose real spends into a model `Run` (`lean/GLUE-PLAN.md` M4's Option A): discharges `GpReal` and lifts the
-      per-input results of the two `EndToEnd.lean` files to Theorems 1 and 5 for real tokens.
-- [ ] Decide the model's reading of the two probed quirks (`GLUE-PLAN.md` §7): a merge commit's carried balance is
-      anchored at the settle, not the commit (Q8); a split settle's output order is the spender's and a token's
-      index byte is informational (Q3, twenty vectors: no token dies of it). The model is stricter than the script in
-      `l2_outs` (the split settle's output order) and `l3_rebuild` (the anchor at the parent's position, where the
-      script anchors at `i5 − 1`); a model whose split settle admits either order and whose anchor names the
-      co-spent proof's index would discharge `splitFlags` and the `i5` hypothesis. Otherwise keep the hypotheses
-      `hpre'`, `splitFlags` and `i5` and say so where the claim appears.
+      per-input results of the two `EndToEnd.lean` files to Theorems 1 and 5 for real tokens. The Layer 1 half is
+      done (`Theorems/Chain.lean`, `Run.grandparent_commit`: the grandparent is a real commit of the run with the
+      honest layout); reading a real transaction's bytes as that step's `TxDesc` is what remains.
+- [x] Decide the model's reading of the two probed quirks (`GLUE-PLAN.md` §7). Done for Q3 and Q6: the model admits
+      either split order (`Spend.OutsOK`) and anchors by the co-spent proof's index (`l3_rebuild`), safely (the
+      Lean README says why). Q8 stays the hypothesis `hpre'`.
+- [ ] Shed the coverage hypotheses the model no longer needs: `splitFlags` (the swapped order from
+      `settleOuts_22`'s other flag cases in `outs_settle_split`) and `i5` (read the index from `AnchorOK`, state
+      `GpRealF.proof` at it).
 - [x] Decide the issuer-guard question: decided in `docs/issuer-guard.md`. Both families have the second-spend
       guard (the glue proves it from the bytes); `is2ndTx` is not to be ported; aligning the NFT rule with the
       fungible one is deferred to the next NFT bytecode rebuild (`docs/ROADMAP.md`).

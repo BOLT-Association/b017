@@ -219,15 +219,32 @@ theorem Out.token?_eq_none_of_not_token {o : Out Txid} (h : o.isToken = false) :
     o.token? = none := by
   cases o <;> simp_all [Out.isToken, Out.token?]
 
-/-- An accepted non-melt spend's token outputs are exactly the reconstructed ones (Lemma 2). -/
+/-- The canonical output decomposition is one `l2_outs` admits. -/
+theorem Spend.outsOK_of_canonical {fam : Fam} {s : Spend Txid}
+    (h : ∃ change : List (Out Txid), (∀ o ∈ change, o.isToken = false) ∧
+      s.tx.outputs = s.expectedOuts fam ++ change) :
+    ∃ (outs change : List (Out Txid)), s.OutsOK fam outs ∧ (∀ o ∈ change, o.isToken = false) ∧
+      s.tx.outputs = outs ++ change :=
+  let ⟨c, hc, he⟩ := h
+  ⟨_, c, Or.inl rfl, hc, he⟩
+
+/-- An accepted non-melt spend's token outputs are the reconstructed ones (Lemma 2): in the covenant's
+order or, for a split settle, the two settled tokens in the other order. -/
 theorem Spend.tokens_of_accepts {P : Prims Txid} {fam : Fam} {s : Spend Txid}
     (h : Accepts P fam s) (hk : s.kind ≠ .melt) :
-    s.tx.tokens = (s.expectedOuts fam).filterMap Out.token? := by
-  obtain ⟨change, hc, hout⟩ := h.l2_outs hk
-  rw [TxDesc.tokens, hout, List.filterMap_append]
-  have : change.filterMap Out.token? = [] :=
+    s.tx.tokens = (s.expectedOuts fam).filterMap Out.token? ∨
+      (s.kind = .settle ∧ fam.modeOfCommitType s.spent.txoType = some .split ∧
+        s.tx.tokens = [s.settleToken fam 1, s.settleToken fam 0]) := by
+  obtain ⟨outs, change, hok, hc, hout⟩ := h.l2_outs hk
+  have hch : change.filterMap Out.token? = [] :=
     List.filterMap_eq_nil_iff.mpr fun o ho => Out.token?_eq_none_of_not_token (hc o ho)
-  rw [this, List.append_nil]
+  rcases hok with rfl | ⟨hs, hm, rfl⟩
+  · left
+    rw [TxDesc.tokens, hout, List.filterMap_append, hch, List.append_nil]
+  · right
+    refine ⟨hs, hm, ?_⟩
+    rw [TxDesc.tokens, hout, List.filterMap_append, hch, List.append_nil]
+    simp [Out.token?]
 
 /-- An accepted melt has no token output (Lemma 2, melt). -/
 theorem Spend.tokens_of_melt {P : Prims Txid} {fam : Fam} {s : Spend Txid}
@@ -251,6 +268,25 @@ theorem Spend.expectedOuts_tokens_settle {fam : Fam} {s : Spend Txid} (hk : s.ki
       else [s.settleToken fam 0] := by
   simp only [Spend.expectedOuts, hk]
   split <;> simp [Out.token?]
+
+/-- The value an accepted non-melt spend's token outputs carry, whatever their order. -/
+theorem Spend.tokens_value_sum {P : Prims Txid} {fam : Fam} {s : Spend Txid}
+    (h : Accepts P fam s) (hk : s.kind ≠ .melt) :
+    (s.tx.tokens.map Token.value).sum =
+      (((s.expectedOuts fam).filterMap Out.token?).map Token.value).sum := by
+  rcases Spend.tokens_of_accepts h hk with heq | ⟨hs, hm, heq⟩
+  · rw [heq]
+  · rw [heq, Spend.expectedOuts_tokens_settle hs, ite_eq_left hm]
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
+    omega
+
+/-- The number of token outputs of an accepted non-melt spend, whatever their order. -/
+theorem Spend.tokens_length {P : Prims Txid} {fam : Fam} {s : Spend Txid}
+    (h : Accepts P fam s) (hk : s.kind ≠ .melt) :
+    s.tx.tokens.length = ((s.expectedOuts fam).filterMap Out.token?).length := by
+  rcases Spend.tokens_of_accepts h hk with heq | ⟨hs, hm, heq⟩
+  · rw [heq]
+  · rw [heq, Spend.expectedOuts_tokens_settle hs, ite_eq_left hm]; rfl
 
 theorem Spend.produced_map_snd (P : Prims Txid) (s : Spend Txid) :
     (s.produced P).map Prod.snd = s.tx.tokens := by
@@ -287,20 +323,28 @@ theorem Spend.mem_tokens_cases {P : Prims Txid} {fam : Fam} {s : Spend Txid} {t 
   cases hk : s.kind with
   | melt => rw [Spend.tokens_of_melt h hk] at ht; simp at ht
   | commit =>
-    rw [Spend.tokens_of_accepts h (by simp [hk]), Spend.expectedOuts_tokens_commit hk] at ht
-    simp at ht
-    exact Or.inl ⟨rfl, ht⟩
+    rcases Spend.tokens_of_accepts h (by simp [hk]) with heq | ⟨hks, -, -⟩
+    · rw [heq, Spend.expectedOuts_tokens_commit hk] at ht
+      simp at ht
+      exact Or.inl ⟨rfl, ht⟩
+    · rw [hk] at hks; cases hks
   | settle =>
-    rw [Spend.tokens_of_accepts h (by simp [hk]), Spend.expectedOuts_tokens_settle hk] at ht
     refine Or.inr ⟨rfl, ?_⟩
-    split at ht
-    · rename_i hsplit
+    rcases Spend.tokens_of_accepts h (by simp [hk]) with heq | ⟨-, hsplit, heq⟩
+    · rw [heq, Spend.expectedOuts_tokens_settle hk] at ht
+      split at ht
+      · rename_i hsplit
+        simp at ht
+        rcases ht with rfl | rfl
+        · exact Or.inl rfl
+        · exact Or.inr ⟨hsplit, rfl⟩
+      · simp at ht
+        exact Or.inl ht
+    · rw [heq] at ht
       simp at ht
       rcases ht with rfl | rfl
-      · exact Or.inl rfl
       · exact Or.inr ⟨hsplit, rfl⟩
-    · simp at ht
-      exact Or.inl ht
+      · exact Or.inl rfl
 
 /-- The lineage fields every produced token carries (Lemma 2): parent, grandparent, issuer. -/
 theorem Spend.token_fields {P : Prims Txid} {fam : Fam} {s : Spend Txid} {t : Token Txid}

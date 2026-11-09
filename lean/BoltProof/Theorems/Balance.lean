@@ -62,7 +62,7 @@ theorem Spend.value_conserved {P : Prims Txid} {fam : Fam} {s : Spend Txid} (h :
     rw [Spend.tokens_of_melt h hk, ho]
     simp
   | commit =>
-    rw [Spend.tokens_of_accepts h (by simp [hk]), Spend.expectedOuts_tokens_commit hk]
+    rw [Spend.tokens_value_sum h (by simp [hk]), Spend.expectedOuts_tokens_commit hk]
     have hsv := Token.value_of_settleTyped (h.commit_type hk)
     rw [hsv]
     cases hm : s.mode with
@@ -84,7 +84,7 @@ theorem Spend.value_conserved {P : Prims Txid} {fam : Fam} {s : Spend Txid} (h :
   | settle =>
     have ho : s.other = none := Spend.other_none_of_not_merge h (by simp [hk])
     have hmode := h.settle_mode hk
-    rw [Spend.tokens_of_accepts h (by simp [hk]), Spend.expectedOuts_tokens_settle hk, ho]
+    rw [Spend.tokens_value_sum h (by simp [hk]), Spend.expectedOuts_tokens_settle hk, ho]
     rcases Fam.modeOfCommitType_cases hmode with ⟨hm, ha⟩ | ⟨hm, ha, _⟩ | ⟨hm, ha, _⟩
     · -- transfer
       have hsplit : fam.modeOfCommitType s.spent.txoType ≠ some .split := by rw [hmode, hm]; simp
@@ -225,9 +225,9 @@ theorem nft_tokens_length {s : Spend Txid} (h : Accepts P .nft s) :
     s.tx.tokens.length = if s.kind = .melt then 0 else 1 := by
   cases hk : s.kind with
   | melt => simp [Spend.tokens_of_melt h hk]
-  | commit => simp [Spend.tokens_of_accepts h (by simp [hk]), Spend.expectedOuts_tokens_commit hk]
+  | commit => simp [Spend.tokens_length h (by simp [hk]), Spend.expectedOuts_tokens_commit hk]
   | settle =>
-    rw [Spend.tokens_of_accepts h (by simp [hk]), Spend.expectedOuts_tokens_settle hk]
+    rw [Spend.tokens_length h (by simp [hk]), Spend.expectedOuts_tokens_settle hk]
     have hmode := h.settle_mode hk
     rcases Fam.modeOfCommitType_cases hmode with ⟨hm, _⟩ | ⟨_, _, hf⟩ | ⟨_, _, hf⟩
     · simp [hmode, hm]

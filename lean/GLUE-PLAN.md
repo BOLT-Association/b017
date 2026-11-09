@@ -339,7 +339,11 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    whenever `i5` is that index plus one, and for every real lineage under the split settle's honest flags (a
    mismatch is possible only when the two pieces are equal, and then the balance is the same). The second stage
    carries `i5 = parent.vout + 1` as a residual, like the split order; a model change would let the anchor quantify
-   over the co-spent proof output's index instead.
+   over the co-spent proof output's index instead. Done in the model: `Accepts.l3_rebuild` now anchors at the
+   co-spent proof's index minus one, as the bytes do (`AnchorOK` forces the index to 1, or 2 for a split commit
+   grandparent, so the co-spent output is a proof output, `Run.grandparent_commit`). The refinement's `i5` hypothesis
+   is now coverage, not a model gap: `l3_settle` still reaches the clause through `GpRealF.proof` at the parent's
+   index; shedding `i5` means reading the index from `AnchorOK` and stating `GpRealF.proof` at that index.
 4. Undefined next types off genesis (M5). The parity check only requires `nextTxoType` to flip the spent type's
    parity, so a settled token's spend may name any odd byte. Probing a commit to `0x27` or `0x29`, the run leaves
    the six protocol types' paths at the output builder (suffix 1112, where it tests the zero `ogp` push) and then
@@ -394,9 +398,12 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    as a rebuild piece, and the scanner and the builders locate tokens by position and proofs by key hash. The
    recipients and balances are the committed ones in every case, so Q3 is an output-order quirk, not a value
    defect. The model is stricter than the bytes in two places here: `l2_outs` fixes the split settle's output order,
-   and `l3_rebuild` anchors at the parent's position where the bytes anchor at `i5 − 1`. The refinement keeps
-   `splitFlags` and `i5 = parent.vout + 1` as hypotheses; a model whose split settle admits either order and whose
-   anchor names the co-spent proof's index would discharge both.
+   and `l3_rebuild` anchored at the parent's position where the bytes anchor at `i5 − 1`. Both are now the model's
+   reading: `Spend.OutsOK` admits either order for a split settle and `l3_rebuild` anchors at the co-spent proof's
+   index minus one (safe: the order changes neither recipient nor balance, only a proof's recipient can spend it,
+   the script forces the proof to the grandparent's first or second, and Theorem 5 lets each proof admit one
+   settle). The refinement keeps `splitFlags` and `i5` as coverage hypotheses: `outs_settle_split` proves the
+   canonical order, and the swapped order needs the `Or.inr` branch from `settleOuts_22`'s other flag cases.
 
 ## 8. Milestones and effort
 
@@ -887,3 +894,11 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   at either input and a melt; every input is accepted. The exporter builds them with the honest builders over a
   by-hand split settle (`splitSettle`), a by-hand index-1 commit or settle (`spendIdx1`) and a token object placed on
   any output (`tokenAt`). 101 vectors, 225 inputs.
+- **The model admits the split order and anchors by the proof (§7 Q3, Q6):** `Accepts.l2_outs` takes
+  `Spend.OutsOK` (a split settle's two tokens in either order) and `Accepts.l3_rebuild` names the co-spent proof's
+  index `j` and anchors at `j − 1`, as the bytes do. Layer 1 re-proved with the same statements for Theorems 1–4;
+  Theorem 5's balance anchor names the proof's index. The Bridge constructions pass the canonical order
+  (`Spend.outsOK_of_canonical`) and `l3_settle` exhibits `j = parent.vout + 1`, so `splitFlags` and `i5` remain as
+  coverage. `Theorems/Chain.lean` is the Layer 1 half of the chaining step: `Run.grandparent_commit`, a settled
+  token's grandparent is output 0 of an earlier commit step of the run, with its token, the recipient's proof and,
+  for a split, the second proof as its first outputs, so the index `AnchorOK` forces names a proof output.

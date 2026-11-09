@@ -40,11 +40,11 @@ structure Accepts {Txid : Type} (P : Prims Txid) (fam : Fam) (s : Spend Txid) : 
   l5_issuer : s.spent.issuerMustSign fam → s.signer = s.spent.issuer
   /-- **L5**: the first commit may not be a merge. -/
   l5_no_merge_at_genesis : s.spent.isGenesis → s.mode ≠ .merge
-  /-- **L2 (output determinism)**: the outputs are exactly the reconstructed ones, followed by
-  change that carries no token. -/
+  /-- **L2 (output determinism)**: the outputs are exactly the reconstructed ones (a split settle's
+  two tokens in either order, `Spend.OutsOK`), followed by change that carries no token. -/
   l2_outs : s.kind ≠ .melt →
-    ∃ change : List (Out Txid), (∀ o ∈ change, o.isToken = false) ∧
-      s.tx.outputs = s.expectedOuts fam ++ change
+    ∃ (outs change : List (Out Txid)), s.OutsOK fam outs ∧ (∀ o ∈ change, o.isToken = false) ∧
+      s.tx.outputs = outs ++ change
   /-- **L2 (melt)**: a melt produces P2PKH outputs only. -/
   l2_melt : s.kind = .melt → ∀ o ∈ s.tx.outputs, o.isP2pkh = true
   /-- **L6**: the spent balance is in range (fungible). -/
@@ -69,15 +69,20 @@ structure Accepts {Txid : Type} (P : Prims Txid) (fam : Fam) (s : Spend Txid) : 
   and only a settle-typed token's covenant accepts a commit-shaped spend. -/
   other_settle_typed : ∀ o, s.other = some o → o.1.txoType ∈ fam.settleTypes
   /-- **L3 (ancestor integrity)**: a settle of a token with a grandparent rebuilds the
-  grandparent transaction, matches its id, co-spends the grandparent's proof output, and
-  (fungible) anchors the spent balance to the rebuilt ancestor's own balance transition
-  (the §8.1 fabricated-hop defence). -/
+  grandparent transaction, matches its id, co-spends one of its proof outputs, the one at index `j`,
+  and (fungible) carries exactly the settle result the grandparent's own transition assigns to that
+  proof, the one at index `j − 1` (the §8.1 fabricated-hop defence). The proof selects the result: a
+  commit's outputs are its token and then one proof output per recipient (`Run.grandparent_commit`),
+  and the script forces `j` to 1, or to 2 for a split (`AnchorOK`, `Bridge/Glue/SimpleMulti/Blocks.lean`).
+  Only a proof's recipient can spend it, and Theorem 5 lets each proof admit one settle, so each
+  settle result of a real commit is claimed at most once, by its recipient, whatever position the
+  settled token sits at. An earlier form anchored at the parent's position, which the script does
+  not read; it agreed with this one in the honest output order and was wrong in the other. -/
   l3_rebuild : s.kind = .settle → ∀ gp, s.spent.grandparent = some gp →
-    ∃ (A : TxDesc Txid) (t : Token Txid),
+    ∃ (A : TxDesc Txid) (t : Token Txid) (j : Nat) (pkh : PKH),
       s.anc = some A ∧ P.txid A = gp.txid ∧ A.outputs[gp.vout]? = some (.token t) ∧
-      (∃ j pkh, A.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Txid) ∈ s.tx.inputs) ∧
-      (fam = .fungible → ∀ p, s.spent.parent = some p →
-        s.spent.balance = t.settledBalance fam p.vout)
+      A.outputs[j]? = some (.proof pkh) ∧ (⟨gp.txid, j⟩ : Outpoint Txid) ∈ s.tx.inputs ∧
+      (fam = .fungible → s.spent.balance = t.settledBalance fam (j - 1))
   /-- **L3 (merge)**: the other lineage is bound the same way through `otherGrandparent`. -/
   l3_merge : s.kind = .settle → ∀ ogp, s.spent.otherGrandparent = some ogp →
     ∃ (B : TxDesc Txid) (t : Token Txid),
