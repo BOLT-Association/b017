@@ -216,6 +216,12 @@ theorem check_nft_probe_change_two_p2pkh : nft_probe_change_two_p2pkh.check para
 /-- Glue probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid] -/
 theorem check_smb_probe_type27_commit : smb_probe_type27_commit.check params = true := by native_decide
 
+/-- Glue Q4 probe: a mid-lineage commit (the spent token has a grandparent, so the issuer guard is silent) with undefined nextTxoType 0x27 and a matching output type: refused at the covenant's OP_EQUALVERIFY, so no undefined-typed token can be committed [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid] -/
+theorem check_smb_probe_type_oor_27_commit : smb_probe_type_oor_27_commit.check params = true := by native_decide
+
+/-- Glue Q4 probe: a mid-lineage commit (the spent token has a grandparent, so the issuer guard is silent) with undefined nextTxoType 0x29 and a matching output type: refused at the covenant's OP_EQUALVERIFY, so no undefined-typed token can be committed [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid] -/
+theorem check_smb_probe_type_oor_29_commit : smb_probe_type_oor_29_commit.check params = true := by native_decide
+
 /-- Glue Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_q8_melt_other_honest_balance_commit : smb_probe_q8_melt_other_honest_balance_commit.check params = true := by native_decide
 

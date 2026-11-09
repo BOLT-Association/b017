@@ -13,7 +13,7 @@ chain** when it is proved of a token's whole history.
 What is proved:
 
 * **Theorems 1–5 of the hand proof hold of the model** (Layer 1, Lean's three standard axioms only).
-* **The script is run inside Lean** on 105 real transactions, 241 inputs, and each verdict is registered
+* **The script is run inside Lean** on 107 real transactions, 245 inputs, and each verdict is registered
   with the kernel (Layer 2).
 * **The script enforces the model, per input.** For each of the four scripts a symbolic execution proves
   what it enforces on every possible input, and that any spend the network accepts is one the model
@@ -103,7 +103,7 @@ SHA-256, RIPEMD-160 and secp256k1 as Lean functions):
 
 * `Bytes.lean`: each script hashes to the fingerprint the scanner's `REGISTRY` recognises it by, so the
   script reasoned about is the script shipped.
-* `Generated/VectorTheorems.lean`: for each of 105 real transactions (241 inputs), every input's verdict
+* `Generated/VectorTheorems.lean`: for each of 107 real transactions (245 inputs), every input's verdict
   is the expected one. The honest lifecycles of both families verify; every red-team transaction
   (`test/lib/minSimpleAttack.test.ts` B1–B4; the fungible inflated balance, split over-take, merge overflow,
   cross-issuer merge, raw-byte extra output, wrong-key spend, melt by a non-owner) fails at exactly the
@@ -180,7 +180,7 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
   proved, carries the security.
 * `GpReal`, `GpRealF`, `GpRealB`: the grandparent a settle names is real, well-formed, with the token at the
   named index and the proof outputs of a commit. Per input an assumption; over a chain, proved.
-* SimpleMultiBOLT only: the six protocol types (Q4), the rebuilds' pieces named at their fields' widths
+* SimpleMultiBOLT only: the six protocol types (Q4, the restriction the probes back; see Open questions), the rebuilds' pieces named at their fields' widths
   (`HonestPiecesB`, both piece sets; Q7, a representation choice, not an enforcement gap: the covenant
   concatenates the pieces and hashes the result, so the binding is the hash, not the split), and the merge
   partner presenting a preimage (Q8).
@@ -222,10 +222,21 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
    rebuild; the index half comes from `GpReal`, over a chain from the run's layout. A settle at genesis takes the
    signing key as the new token's issuer, like a commit. A `0x25` token's `balanceCommit` is unanchored until its
    settle (Finding 5).
+9. An undefined next type cannot be committed (Q4, `smb_probe_type_oor_*`, `smb_probe_type27_commit`): the parity
+   check fixes only the next type's parity, and the issuer guard refuses `0x27` only when it fires, but a
+   mid-lineage commit to an undefined type (the guard silent) is refused at the covenant's own `OP_EQUALVERIFY`,
+   so the written type is pinned to the six. The `SmbType a.nty` restriction in the proofs is the modelling
+   boundary, not a gap the bytes leave open (see Open questions).
 
-**Open questions.** Q4: off genesis, the parity check lets a settled token's spend name any odd next type;
-whether a run with a type outside the six succeeds is open (the honest-shaped probe is refused), so
-`simpleMulti_sound` covers the six protocol types and states the restriction. Q7 is not an open enforcement
+**Open questions.** Q4: off genesis, the parity check only fixes the next type's parity, so a settled token's
+spend may name any odd byte. Whether an undefined next type can be committed is resolved by probe: the issuer
+guard refuses `0x25` and `0x27` only when it fires (genesis or no grandparent), but a mid-lineage commit whose
+spent token has a grandparent (the guard silent) and an undefined next type is refused at the covenant's own
+`OP_EQUALVERIFY` too (`smb_probe_type_oor_27_commit`, `smb_probe_type_oor_29_commit`, and the honest-shaped
+`smb_probe_type27_commit`), so no undefined-typed token can be committed. The covenant's own check pins the
+written type to the six. `simpleMulti_sound` and the refinement still carry the restriction `SmbType a.nty`
+rather than deriving that refusal: reading it off the bytes means driving a symbolic next type through the
+output builder (a path-family proof), deferred, with the probes as the standing evidence. Q7 is not an open enforcement
 question: the covenant concatenates the rebuild's pieces and hashes the result against the grandparent's
 txid, and never parses the concatenation back into fields, so no contract operation splits the bytes at the
 field boundaries and there is nothing for the bytes to force. `HonestPiecesB` names the pieces at their
@@ -237,7 +248,7 @@ had recorded a false literal fact; every probe is now scanned for them); Q8 is s
 and kept as the hypothesis `hpre'`.
 
 **Follow-ups.** Shed `BalsNonneg` by reading the grandparent token output's balance signs off the commit step
-that wrote them (it is narrowed to that one output); Q4 above.
+that wrote them (it is narrowed to that one output); and, if the `SmbType a.nty` restriction is to be dropped formally, the path-family proof that the output builder refuses an undefined next type (Q4, already resolved by probe).
 
 **Generators.** The long, regular files (the path theorems, the rebuilds' arms and parses, the gate items,
 the guards) are written by `scripts/*.py` (`scripts/README.md`); a generated file says so in its header.
@@ -248,7 +259,7 @@ glue lives under `BoltProof.Glue`, the `native_decide` guards under `BoltProof.B
 
 | Item | Status |
 |---|---|
-| That the script enforces the model on *every* input (A4 + L1–L7 fidelity) | **Proved for all four scripts, per input, under the assumptions listed above; proved over a chain for all four scripts.** Layer 2 still evidences all four on 241 inputs. |
+| That the script enforces the model on *every* input (A4 + L1–L7 fidelity) | **Proved for all four scripts, per input, under the assumptions listed above; proved over a chain for all four scripts.** Layer 2 still evidences all four on 245 inputs. |
 | A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound`, the fungible chain and `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |

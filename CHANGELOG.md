@@ -165,6 +165,15 @@ All notable changes to **b017** are documented here. The format is based on
   asks a proof output at 1 and, under the split type piece, at 2, instead of one at `i4`, and the second rebuild's
   weld identifies the pieces with the real other grandparent, so the chain asserts nothing of a merge settle beyond
   its spend.
+- **An undefined next type cannot be committed** (Q4; vectors `smb_probe_type_oor_27_commit`,
+  `smb_probe_type_oor_29_commit`, with `smb_probe_type27_commit`). The parity check fixes only the next type's
+  parity, so off genesis the spender may name any odd byte, and the issuer guard refuses `0x27` only when it fires
+  (genesis or no grandparent). But a mid-lineage commit whose spent token has a grandparent (the guard silent) and
+  an undefined next type is refused at the covenant's own `OP_EQUALVERIFY`, so the written type is pinned to the six
+  even off the guard. This resolves Q4 of `lean/README.md` empirically; the `SmbType a.nty` restriction the
+  soundness and refinement theorems carry is the modelling boundary, not a gap, with these probes as the standing
+  evidence (a formal derivation would drive a symbolic next type through the output builder, a path-family proof,
+  deferred).
 - **A split settle's output order is the spender's** (Q3; vectors `smb_probe_q3_*`). With `pkh1` set, the script
   accepts the settle with its two tokens swapped, each index byte off its position; both stay spendable with the
   committed recipients and balances. Harmless to value; the model admits either order (`Spend.OutsOK`) and the proof covers

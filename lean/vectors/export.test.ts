@@ -76,6 +76,8 @@ const PINNED: Record<string, string> = {
   'smb_wrong_key_commit#1': 'SCRIPT_ERR_EQUALVERIFY',
   // the glue's probes (lean/README.md, "The glue": the findings and the open questions)
   'smb_probe_type27_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the written type is derived from the mode flags, not copied
+  'smb_probe_type_oor_27_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // Q4: undefined next type refused even when the issuer guard is silent (mid-lineage)
+  'smb_probe_type_oor_29_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // Q4: undefined next type refused even when the issuer guard is silent (mid-lineage)
   'smb_probe_q8_melt_other_inflated_settle#0': 'SCRIPT_ERR_EQUALVERIFY', // the merge settle anchors the carried balance to the other lineage's rebuilt ancestor (the honest-balance control passes)
   'smb_probe_q9_i4_change_transfer_gp#0': 'SCRIPT_ERR_EQUALVERIFY', // the merge settle pins the other lineage's index argument i4 to the proof output (the proof controls pass)
   'smb_probe_q9_i4_change_split_gp#0': 'SCRIPT_ERR_EQUALVERIFY',
@@ -388,6 +390,35 @@ it('exports the Lean vectors', async () => {
     const parsed = Transaction.fromHex(commit.toHex())
     commit.inputs.forEach((inp, i) => { parsed.inputs[i].sourceTransaction = inp.sourceTransaction })
     add('smb_probe_type27_commit', 'SimpleMultiBOLT', parsed, 'Glue probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags')
+  }
+
+  // ---- Q4 (lean/README.md): does the covenant refuse an undefined next type when the issuer guard does NOT fire? ---
+  {
+    // The issuer guard only refuses 0x27 at genesis or when the spent token has no grandparent (`GuardF`). The open
+    // case is a mid-lineage commit whose spent token has both a parent and a grandparent (`GuardF` false), so the
+    // guard is silent and only the output builder can refuse an out-of-range next type. Two transfers give such a
+    // token (its `gp` is the genesis outpoint); commit it to 0x27 and 0x29 (odd, undefined), output type patched to
+    // match. Both are refused at the covenant's own OP_EQUALVERIFY, so the written type is pinned to the six even
+    // off the guard, closing Q4 empirically: no undefined-typed token can be committed.
+    const patchLock = (lock: Script, patches: Record<number, number[]>): LockingScript =>
+      new LockingScript(lock.chunks.map((c, i) => (patches[i] ? { op: patches[i].length, data: patches[i] } : c)))
+    for (const nty of [0x27, 0x29]) {
+      let t = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+      t = await t.transfer(child(smbIssuer, '1'))
+      t = await t.transfer(child(smbIssuer, '2'))
+      const to = child(smbIssuer, '3')
+      const inputs = (t as any).createTransferInputs(to, '', true, false, undefined, false)
+      inputs[0].unlockingScriptTemplate = (t as any).template().unlock((t as any).signer, to.toPublicKey().encode(true) as number[], t.prevTxs, false, false, [], [nty], [0x00], [], [])
+      const outputs = (t as any).createTransferOutputs(to, true, false)
+      outputs[0].lockingScript = patchLock(outputs[0].lockingScript, { 6: [nty] })
+      const commit = new Transaction(2, inputs, outputs)
+      await commit.fee(0)
+      await commit.sign()
+      const parsed = Transaction.fromHex(commit.toHex())
+      commit.inputs.forEach((inp, i) => { parsed.inputs[i].sourceTransaction = inp.sourceTransaction })
+      add(`smb_probe_type_oor_${nty.toString(16)}_commit`, 'SimpleMultiBOLT', parsed,
+        `Glue Q4 probe: a mid-lineage commit (the spent token has a grandparent, so the issuer guard is silent) with undefined nextTxoType 0x${nty.toString(16)} and a matching output type: refused at the covenant's OP_EQUALVERIFY, so no undefined-typed token can be committed`)
+    }
   }
 
   // ---- The glue's questions Q8 and Q3 (lean/README.md, Findings 5 and 6): probes --------------------------------

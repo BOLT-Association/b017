@@ -159,7 +159,7 @@ properties (melt outputs, the change blob, the melt's version). The fungible scr
 open question in `lean/README.md` (the six protocol types, the rebuild's piece widths, the merge
 partner presenting a preimage); the last is probed on the engine and judged in Lean, as are two quirks the
 model admits and the proof covers without assumption (the split settle's output order and the balance
-anchor's index). Layer 2 remains evidence on the transactions it covers (241
+anchor's index). Layer 2 remains evidence on the transactions it covers (245
 inputs at the time of writing), and Assumption 4 is still trusted. Everything about the script is under
 today's BSV rules (post-Chronicle); nothing is claimed for the old rules. The model contains only
 tokens the script created, so the fabricated-hop attack's own transactions are outside it and the
