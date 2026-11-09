@@ -74,7 +74,7 @@ const PINNED: Record<string, string> = {
   'smb_extra_output_settle#1': 'SCRIPT_ERR_EVAL_FALSE', // the funding P2PKH signature covered the outputs
   'smb_wrong_key_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the prologue's issuer guard (suffix 13): at genesis the signer must be the issuer
   'smb_wrong_key_commit#1': 'SCRIPT_ERR_EQUALVERIFY',
-  // the glue plan's probes (lean/GLUE-PLAN.md, M1 and §7)
+  // the glue's probes (lean/README.md, "The glue": the findings and the open questions)
   'smb_probe_type27_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the written type is derived from the mode flags, not copied
   'smb_probe_q8_melt_other_inflated_settle#0': 'SCRIPT_ERR_EQUALVERIFY', // the merge settle anchors the carried balance to the other lineage's rebuilt ancestor (the honest-balance control passes)
   'smb_probe_q9_i4_change_transfer_gp#0': 'SCRIPT_ERR_EQUALVERIFY', // the merge settle pins the other lineage's index argument i4 to the proof output (the proof controls pass)
@@ -318,7 +318,7 @@ it('exports the Lean vectors', async () => {
     add('smb_wrong_key_commit', 'SimpleMultiBOLT', t.prevTxs[1], '§8.2 the genesis spent with a key whose hash160 is not the owner: refused (Lemma 1)')
   }
 
-  // ---- The glue plan's probes (lean/GLUE-PLAN.md §2 Finding 1 and §4.1): what the bytes do NOT enforce -------
+  // ---- The glue's probes (lean/README.md, Finding 1): what the bytes do NOT enforce ----------------------------
   {
     // A melt whose transaction also carries a covenant-shaped output. The melt branch checks only the owner key
     // (singleSpend.ts: "a null CTX takes the lock's melt branch, which checks only the owner's signature and
@@ -332,7 +332,7 @@ it('exports the Lean vectors', async () => {
     tx.addOutput({ satoshis: sats - 1, lockingScript: new P2PKH().lock(uPkh) })
     tx.addOutput({ satoshis: 1, lockingScript: minSimple.lock(aPkh, ZERO20, [0x00], op(txs, 2, 0), op(txs, 1, 0)) })
     await tx.sign()
-    add('nft_probe_melt_token_output', type, tx, 'GLUE-PLAN probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes')
+    add('nft_probe_melt_token_output', type, tx, 'Glue probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes')
   }
   {
     // A commit whose `changeOutput` argument carries TWO serialised outputs, one of them covenant-shaped. The
@@ -350,7 +350,7 @@ it('exports the Lean vectors', async () => {
     const chunks = tx.inputs[0].unlockingScript!.chunks
     if (chunks[27].data!.length !== buildChangeOutput(tx, 2).length) throw new Error('unexpected unlock layout for the change blob probe')
     chunks[27] = new Script().writeBin(blob).chunks[0] // a PUSHDATA push: the blob is longer than 75 bytes
-    add('nft_probe_change_blob_token', type, tx, 'GLUE-PLAN probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes')
+    add('nft_probe_change_blob_token', type, tx, 'Glue probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes')
   }
   {
     // Variants that pin down what the covenant checks about the change slot: (a) the single change output is
@@ -361,18 +361,18 @@ it('exports the Lean vectors', async () => {
       outputs: [minSimple.lock(uPkh, bPkh, [0x21], op(txs, 2, 0), op(txs, 1, 0)), p2pb(bPkh),
         minSimple.lock(aPkh, ZERO20, [0x00], op(txs, 2, 0), op(txs, 1, 0))],
     })
-    add('nft_probe_change_single_token', type, single, 'GLUE-PLAN probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script?')
+    add('nft_probe_change_single_token', type, single, 'Glue probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script?')
     const two = await spendToken({
       fam: minSimple, txs, from: { tx: 2, vout: 0 }, actor: userKey, beneficiary: bPkh, fund: { tx: 2, vout: 1 }, change: true,
       outputs: [minSimple.lock(uPkh, bPkh, [0x21], op(txs, 2, 0), op(txs, 1, 0)), p2pb(bPkh), new P2PKH().lock(aPkh)],
     })
     const blob2 = [...buildChangeOutput(two, 2), ...buildChangeOutput(two, 3)]
     two.inputs[0].unlockingScript!.chunks[27] = new Script().writeBin(blob2).chunks[0]
-    add('nft_probe_change_two_p2pkh', type, two, 'GLUE-PLAN probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count?')
+    add('nft_probe_change_two_p2pkh', type, two, 'Glue probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count?')
   }
   {
     // A fungible transfer commit asking for nextTxoType 0x27 (undefined) off-genesis: refused, because the written
-    // type comes from the mode flags, not from the byte (GLUE-PLAN §2 Finding 3). Pinned as a regression.
+    // type comes from the mode flags, not from the byte (lean/README.md, Finding 3). Pinned as a regression.
     const patchLock = (lock: Script, patches: Record<number, number[]>): LockingScript =>
       new LockingScript(lock.chunks.map((c, i) => (patches[i] ? { op: patches[i].length, data: patches[i] } : c)))
     let t = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
@@ -387,10 +387,10 @@ it('exports the Lean vectors', async () => {
     await commit.sign()
     const parsed = Transaction.fromHex(commit.toHex())
     commit.inputs.forEach((inp, i) => { parsed.inputs[i].sourceTransaction = inp.sourceTransaction })
-    add('smb_probe_type27_commit', 'SimpleMultiBOLT', parsed, 'GLUE-PLAN probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags')
+    add('smb_probe_type27_commit', 'SimpleMultiBOLT', parsed, 'Glue probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags')
   }
 
-  // ---- The glue plan's open questions Q8 and Q3 (lean/GLUE-PLAN.md §7): probes -----------------------------------
+  // ---- The glue's questions Q8 and Q3 (lean/README.md, Findings 5 and 6): probes --------------------------------
   {
     // Q8. A merge commit whose second token input takes the melt branch (the six CTX pieces empty), while the first
     // input's covenant takes the other token's balance from the interop argument `nbc`. The first input's run
@@ -433,7 +433,7 @@ it('exports the Lean vectors', async () => {
       await commitTx.sign()
       const commit = clean(commitTx)
       add(`smb_probe_q8_melt_other_${tag}_commit`, 'SimpleMultiBOLT', commit,
-        `GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc ${what}`)
+        `Glue Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc ${what}`)
       const aTxs = [...a.prevTxs, commit]
       const bTxs = [...b.prevTxs, commit]
       const thisAnc = aTxs[aTxs.length - 3]
@@ -455,7 +455,7 @@ it('exports the Lean vectors', async () => {
       await settleTx.fee(0)
       await settleTx.sign()
       add(`smb_probe_q8_melt_other_${tag}_settle`, 'SimpleMultiBOLT', clean(settleTx),
-        `GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc ${what}`)
+        `Glue Q8 probe: the settle of that merged token, carrying nbc ${what}`)
     }
     await q8('honest_balance', b.balance, '= the other token\'s real balance (1), the control')
     await q8('inflated', bal(BigInt(1000000)), '= 1,000,000 for a token of balance 1, the attack')
@@ -505,7 +505,7 @@ it('exports the Lean vectors', async () => {
     await settleTx.sign()
     const swapped = clean(settleTx)
     add('smb_probe_q3_swapped_split_settle', 'SimpleMultiBOLT', swapped,
-      'GLUE-PLAN §7 Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position')
+      'Glue Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position')
     const tokA = new SimpleMultiBOLT()
     tokA.tx = swapped
     tokA.voutIdx = 1
@@ -521,12 +521,12 @@ it('exports the Lean vectors', async () => {
     await tokA.transfer(child(smbIssuer, '20'))
     const m = tokA.prevTxs.length
     add('smb_probe_q3_swapped_respend_commit', 'SimpleMultiBOLT', tokA.prevTxs[m - 2],
-      'GLUE-PLAN §7 Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit')
+      'Glue Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit')
     add('smb_probe_q3_swapped_respend_settle', 'SimpleMultiBOLT', tokA.prevTxs[m - 1],
-      'GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle')
+      'Glue Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle')
   }
 
-  // ---- Q9 (lean/GLUE-PLAN.md §7): does the merge settle pin the other lineage's index argument `i4`? -------------
+  // ---- Q9 (lean/README.md, Finding 7): does the merge settle pin the other lineage's index argument `i4`? -------
   {
     // A merge settle co-spends one output of the other lineage's grandparent, at the index the unlock argument `i4`
     // names, and the model asks that output to be a proof output (`l3_merge`). The first rebuild's anchor pins the
@@ -581,10 +581,10 @@ it('exports the Lean vectors', async () => {
       await settleTx.sign()
       if (control) {
         add(`smb_probe_q9_i4_proof_${tag}`, 'SimpleMultiBOLT', clean(settleTx),
-          `GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index ${otherProof}) and spending it; the other grandparent is ${what}`)
+          `Glue Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index ${otherProof}) and spending it; the other grandparent is ${what}`)
       } else {
         add(`smb_probe_q9_i4_change_${tag}`, 'SimpleMultiBOLT', clean(settleTx),
-          `GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index ${changeVout}) instead of its proof (index ${otherProof}), and spends it there; the other grandparent is ${what}`)
+          `Glue Q9 probe: a merge settle whose i4 names the other grandparent's change output (index ${changeVout}) instead of its proof (index ${otherProof}), and spends it there; the other grandparent is ${what}`)
       }
     }
     // the other grandparent a transfer commit: lineage B minted and transferred to keyB by the issuer, whose change it is

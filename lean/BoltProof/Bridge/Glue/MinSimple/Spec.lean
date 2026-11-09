@@ -4,7 +4,7 @@ import BoltProof.Bridge.Generated.Chunks
 /-!
 # What the `MinSimpleBOLT` suffix enforces
 
-The vocabulary of the glue theorem for the simplest NFT lock (`lean/GLUE-PLAN.md`, M3): the six
+The vocabulary of the glue theorem for the simplest NFT lock (`lean/README.md`, "The glue"): the six
 lock fields and the unlocking arguments as the stack carries them, the fields of the sighash
 preimage the covenant parses, the outputs it rebuilds, the grandparent transaction it rebuilds,
 and the two predicates the soundness theorem concludes:

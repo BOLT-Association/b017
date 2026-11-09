@@ -3,7 +3,7 @@ import BoltProof.Bridge.Glue.SimpleMulti.Outs
 /-!
 # `SimpleMultiBOLT`: the bytes refine `Accepts` (first stage)
 
-**The refinement theorem, first stage** (`lean/GLUE-PLAN.md`, M5): a spend the shipped `SimpleMultiBOLT` lock
+**The refinement theorem, first stage** (`lean/README.md`, "The glue"): a spend the shipped `SimpleMultiBOLT` lock
 accepts under the post-Chronicle consensus rules is a spend `Accepts` admits for the fungible family, once read
 into the model's vocabulary (`spendOf`, `Abs.lean`), for the spends this stage covers: the transfer and split
 commits, the transfer and split settles of a token without a grandparent, and the melt. The merges and the settles

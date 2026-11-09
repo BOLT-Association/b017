@@ -10,8 +10,7 @@ In the NFT family (`MinSimpleBOLT`, `AuthBOLT`, `SerialBOLT`) the produced token
 commit-typed and `01 21` (type `0x21`, commit-typed) otherwise. Two fragments were read as doing this:
 
 * the prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` (`76 81 92`, offset 6 of the `MinSimpleBOLT` and
-  `AuthBOLT` suffixes, 39 of `SerialBOLT`'s), `nftFlag`. *Correction (the glue, `lean/GLUE-PLAN.md`
-  Finding 2):* in the shipped suffixes this fragment runs on the grandparent outpoint field, not on
+  `AuthBOLT` suffixes, 39 of `SerialBOLT`'s), `nftFlag`. *Correction (the glue, `lean/README.md` Finding 2):* in the shipped suffixes this fragment runs on the grandparent outpoint field, not on
   `txoType` (the prologue before it is `2 OP_PICK OP_BIN2NUM OP_NOT OP_SWAP OP_2SWAP`), so it computes
   `gp ≠ 0`, the flag that decides whether a settle rebuilds an ancestor. `nftFlag_run` is true as stated
   for whatever item is on top; that item is not the type;

@@ -7,7 +7,7 @@ import BoltProof.Bridge.Glue.Refine.MinSimple
 What the fungible refinement assumes beyond the bytes, as `Refine/MinSimple.lean` states it for the NFT family:
 the lock's own `OP_PUSH_TX` block is sound (`PushTxSound`, over the fungible block), the byte strings the covenant
 hashes have no second preimage, the primitives agree with this spend's cryptography, and the scope assumptions of
-the plan's decisions: the change carries no token and a melt pays P2PKH only (Finding 1). A split settle's flags
+the decision for Finding 1 of `lean/README.md`: the change carries no token and a melt pays P2PKH only. A split settle's flags
 are not assumed: the model admits either output order (`Spend.OutsOK`) and `outs_settle_split` proves both. Also
 here: the push-tx block is reached by the prologue
 alone (`pushTxReached`), which is what lets the refinement derive the preimage before running the paths, and the

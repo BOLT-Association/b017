@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Generates lean/BoltProof/Bridge/Glue/Sym/Steps.lean, the inversion step lemmas of the glue proof
-# (lean/GLUE-PLAN.md, M2), from the table below. Every lemma has the same proof; edit the table, not the
+# (lean/README.md, "The glue"), from the table below. Every lemma has the same proof; edit the table, not the
 # Lean file. Run from the repository root: python3 scripts/gen-sym-steps.py
 from pathlib import Path
 

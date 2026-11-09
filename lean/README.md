@@ -1,227 +1,264 @@
 # BoltProof — the machine-checked companion to `docs/formal-proof.md`
 
-A Lean 4 development that checks the security argument of the BOLT token protocol as shipped
-in this package: the fungible `SimpleMultiBOLT` and the identity NFT family (`MinSimpleBOLT`,
-`AuthBOLT`, `SerialBOLT`). It uses [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean)
-v1.2.0, a Lean specification of BSV consensus, to run the real covenant scripts on real
-transactions inside Lean.
+A Lean 4 development that checks the security argument of the BOLT token protocol as shipped in this
+package: the fungible `SimpleMultiBOLT` and the identity NFT family (`MinSimpleBOLT`, `AuthBOLT`,
+`SerialBOLT`). It uses [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean) v1.2.0, a Lean
+specification of BSV consensus, to run and to reason about the real covenant scripts.
 
-Three terms are used throughout. The **model** is the hand proof's seven rules (Lemmas 1–7)
-written in Lean as `Accepts`, "the covenant accepts this spend". The **script** is each covenant's
-compiled bytecode as shipped. A result holds **per input** when it is proved of one token spend at a
-time, not yet of a token's whole history.
+Three terms are used throughout. The **model** is the hand proof's seven rules (Lemmas 1–7) written in
+Lean as `Accepts`, "the covenant accepts this spend". The **script** is each covenant's compiled bytecode
+as shipped. A result holds **per input** when it is proved of one token spend at a time, and **over a
+chain** when it is proved of a token's whole history.
 
-Read this file for **exactly** what is machine-checked and what is still trusted. In short:
+What is proved:
 
-* Theorems 1–5 of the hand proof are proved of the model (Layer 1).
-* The script is run inside Lean on 105 real transactions and each verdict is registered with the
-  kernel (Layer 2).
-* For each of the four scripts, a symbolic execution proves what it enforces on every possible
-  input, and that any spend the network accepts is one the model accepts, under assumptions listed
-  once per script (`BoltProof/Bridge/Glue/`, "What is still trusted" below).
+* **Theorems 1–5 of the hand proof hold of the model** (Layer 1, Lean's three standard axioms only).
+* **The script is run inside Lean** on 105 real transactions, 241 inputs, and each verdict is registered
+  with the kernel (Layer 2).
+* **The script enforces the model, per input.** For each of the four scripts a symbolic execution proves
+  what it enforces on every possible input, and that any spend the network accepts is one the model
+  accepts, under assumptions listed once per script ("The glue" below).
+* **A chain of real spends is a valid run**, for MinSimpleBOLT and SimpleMultiBOLT, so Theorems 1, 3, 4
+  and 5 hold of real tokens. The grandparent a settle names is read off the run, not assumed.
 
 Scope. Everything about the script is under today's BSV rules (post-Chronicle, `Bridge/Params.lean`);
 nothing is claimed for the old rules. The model contains only tokens the script created, so the
 fabricated-hop attack is covered by Theorem 5 at the ledger level and the off-chain checks a recipient
-runs (`docs/verification-scaling.md`) are not modelled. Chaining the per-input results along a real
-token's history is done for MinSimpleBOLT and SimpleMultiBOLT (`Glue/Refine/Chain.lean`,
-`Glue/SimpleMulti/Chain.lean`): a chain of real spends is a valid model run, so Theorems 1, 3, 4 and 5 hold
-of real tokens, with the grandparent's reality read off the run rather than assumed.
+runs (`docs/verification-scaling.md`) are not modelled. "What is still trusted" below is the exact
+boundary.
 
 ## Layout
 
 | Path | Layer | Depends on | What it is |
 |---|---|---|---|
 | `BoltProof/Model/*.lean` | 1 | core Lean only | The model: tokens, spends, `Accepts`, runs. |
-| `BoltProof/Theorems/*.lean` | 1 | core Lean only | Theorems 1–5, and a concrete valid run (`Example.lean`) showing the model is satisfiable. |
-| `BoltProof/Theorems/Chain.lean` | 1 | core Lean only | The Layer 1 half of the chaining step: validity step by step (`Run.ValidUpTo`, `Run.valid_of_stepwise`), and in a valid prefix a commit-typed token's grandparent is output 0 of an earlier commit step whose outputs are its token, the recipient's proof and, for a split, the second recipient's proof (`Run.grandparent_commit_upto`, `Run.grandparent_layout_upto`; `Run.other_grandparent_layout_upto` for a merge's other lineage). |
-| `BoltProof/Bridge/Params.lean` | 2 | bsv-script-lean | Judges one input of a real transaction under today's BSV rules (post-Chronicle mainnet). |
-| `BoltProof/Bridge/Generated/*.lean` | 2 | generated | The four scripts, whole and cut into named chunks; 105 real transactions with their prevouts and expected verdicts; one theorem per transaction. **Do not hand-edit**: `npm run lean:vectors`. |
-| `BoltProof/Bridge/Bytes.lean` | 2 | bsv-script-lean | The scanner's fingerprints (`REGISTRY`) recomputed from the scripts with bsv-script-lean's SHA-256. |
-| `BoltProof/Bridge/VectorsMain.lean` | 2 | bsv-script-lean | `lake exe boltvectors`: runs every vector natively and prints a verdict table. |
-| `BoltProof/Bridge/Gadgets/*.lean` | 2 | bsv-script-lean `Gadget` | Proofs about fragments of the script over the interpreter's own instruction loop: one lemma per instruction (`Steps.lean`) and the fragments proved from them. |
-| `BoltProof/Bridge/Glue/Sym/`, `Sections.lean` | 2 (standard axioms) | bsv-script-lean | The machinery of the symbolic execution: one inversion lemma per opcode, the `sym_all` driver that chains them over a chunked script, and each fragment located at its offset (`lean/GLUE-PLAN.md`). |
-| `BoltProof/Bridge/Glue/{MinSimple,SimpleMulti,AuthBolt,SerialBolt}/` | 2 (standard axioms) | Model, bsv-script-lean | Per script: `Spec`/`Enforced` (what it enforces); `Paths/` and `Sound.lean` (`*_sound`, and `reaches_*`: every run reaches the proved fragments with the stack their lemmas assume); `Abs.lean` (a real spend read into the model); `Refine*.lean` (`*_refines`: any spend the network accepts is one the model accepts); `Regress.lean` (the theorems applied to the real vectors, `native_decide`). |
-| `BoltProof/Bridge/Glue/Refine/` | 2 (standard axioms) | Model, bsv-script-lean | Shared by the `*_refines` proofs: a valid verdict as a run of the script, the node's serialisation round trip, the preimage fields; and `EndToEnd.lean`, Layer 1's per-input theorems of a real MinSimpleBOLT spend, Theorem 1's hop included. |
-| `BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean` | 2 (standard axioms) | Model, bsv-script-lean | The same for SimpleMultiBOLT: each proof stage's hypotheses as one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`, `RealMergeSettle`), and Lemma 1, Theorems 2, 3 and 4 per step, Theorem 1 per hop. |
-| `BoltProof/Bridge/Glue/Refine/Chain.lean` | 2 (standard axioms) | Model, bsv-script-lean | The Bridge half of the chaining step for MinSimpleBOLT: a chain of real spends with the UTXO model's bookkeeping is a valid run (`RealChain`, `valid_of_chain`), `GpReal` read off the run (`gpReal_of_chain`), and Theorems 1, 3, 4 and 5 of real tokens (`chain_*`). |
-| `BoltProof/Bridge/Glue/SimpleMulti/Chain.lean` | 2 (standard axioms) | Model, bsv-script-lean | The same for SimpleMultiBOLT, each step read by its refinement stage (`ChainStep`), under A1 and with the ancestors' balance fields read off their bytes (`BalsNonneg`); `GpRealF` and `GpRealB` read off the run (`gpRealF_of_chain`, `gpRealB_of_chain`). |
-| `AxiomCheck.lean`, `AXIOMS-ALLOWED` | — | — | The axiom audit (`node scripts/lean-axiom-check.mjs`): the three standard axioms for Layer 1 and the symbolic proofs (listed in `AxiomCheck.lean`); `native_decide`'s per-theorem axiom allowed for the rest of Layer 2 only, whose theorems Lean enumerates itself. |
-| `vectors/export.test.ts`, `vectors/sections.ts` | — | vitest | The exporter: builds the test suite's honest and adversarial transactions and writes `Generated/`, the scripts cut into the chunks the proofs name included (`Generated/Chunks.lean`). |
-| `scripts/*.py` | — | Python 3 | Generators of the long, regular proof files (the path theorems, the rebuilds' arms, the guards); each names the files it writes. |
+| `BoltProof/Theorems/*.lean` | 1 | core Lean only | Theorems 1–5; `Chain.lean`, validity step by step and the grandparent's layout in a valid run; `Example.lean`, a concrete valid run, so the model is satisfiable. |
+| `BoltProof/Bridge/Params.lean`, `Bytes.lean`, `VectorsMain.lean` | 2 | bsv-script-lean | Today's BSV rules; the scanner's fingerprints recomputed from the scripts; `lake exe boltvectors`. |
+| `BoltProof/Bridge/Generated/*.lean` | 2 | generated | The four scripts, whole and cut into named chunks; the real transactions with prevouts and expected verdicts; one theorem per transaction. **Do not hand-edit**: `npm run lean:vectors`. |
+| `BoltProof/Bridge/Gadgets/*.lean` | 2 (standard axioms) | bsv-script-lean `Gadget` | Fragments of the script proved over the interpreter's own instruction loop, for every input. |
+| `BoltProof/Bridge/Glue/Sym/`, `Sections.lean` | 2 (standard axioms) | bsv-script-lean | The symbolic execution: one inversion lemma per opcode, the `sym_all` driver, each fragment at its offset. |
+| `BoltProof/Bridge/Glue/{MinSimple,AuthBolt,SerialBolt,SimpleMulti}/` | 2 (standard axioms) | Model, bsv-script-lean | Per script: `Spec`/`Enforced` (what it enforces), `Paths/` and `Sound.lean` (`*_sound`, `reaches_*`), `Abs.lean` (a real spend read into the model), `Refine*.lean` (`*_refines`), `Regress.lean` (applied to the real vectors). The fungible directory also holds the two rebuilds' parses and welds (`Rebuilt*.lean`, `Anchor*.lean`, `GpWeld*.lean`, `L3.lean`). |
+| `BoltProof/Bridge/Glue/Refine/` | 2 (standard axioms) | Model, bsv-script-lean | Shared by the refinements: a valid verdict as a run of the script, the node's serialisation round trip, the preimage fields. `EndToEnd.lean` and `Chain.lean`: the per-input theorems and the chain for MinSimpleBOLT. |
+| `BoltProof/Bridge/Glue/SimpleMulti/EndToEnd.lean`, `Chain.lean` | 2 (standard axioms) | Model, bsv-script-lean | The same for SimpleMultiBOLT, each refinement stage's hypotheses as one structure. |
+| `AxiomCheck.lean`, `AXIOMS-ALLOWED` | — | — | The axiom audit (`node scripts/lean-axiom-check.mjs`): three standard axioms for Layer 1 and the symbolic proofs; `native_decide`'s per-theorem axiom for the rest of Layer 2 only. |
+| `vectors/export.test.ts`, `vectors/sections.ts` | — | vitest | The exporter: builds the suite's honest and adversarial transactions and writes `Generated/`. |
+| `scripts/*.py` | — | Python 3 | Generators of the long, regular proof files (`scripts/README.md`). |
 
 ## Layer 1 — the model and Theorems 1–5
 
-`Accepts P fam s` (`Model/Covenant.lean`) is the model: a `structure` of propositions, one field per
-clause of the seven lemmas of `docs/formal-proof.md` §3, each a constraint the covenant of family `fam`
-puts on the transaction `s` that spends a token:
+`Accepts P fam s` (`Model/Covenant.lean`) is a structure of propositions, one field per clause of the seven
+lemmas of `docs/formal-proof.md` §3, each a constraint the covenant of family `fam` puts on the
+transaction `s` that spends a token:
 
 | Field(s) | Lemma |
 |---|---|
 | `l1_owner`, `l1_sig`, `l1_type` | L1 signature binding: `H160(pk) = owner`, `Verify(pk, sighash, sig)`, flag `0x41` |
-| `l2_outs`, `l2_melt` | L2 output determinism: the outputs are exactly `expectedOuts` (the rebuilt token and proof outputs), a split settle's two tokens in either order (`Spend.OutsOK`), plus non-token change; a melt is P2PKH-only |
-| `l3_rebuild`, `l3_merge` | L3 ancestor integrity: a settle with a grandparent rebuilds it, matches its txid, co-spends one of its proof outputs, at index `j`, and (fungible) carries the settle result that proof selects, the one at `j − 1` (the §8.1 fabricated-hop defence) |
+| `l2_outs`, `l2_melt` | L2 output determinism: the outputs are exactly `expectedOuts`, a split settle's two tokens in either order (`Spend.OutsOK`), then non-token change; a melt is P2PKH-only |
+| `l3_rebuild`, `l3_merge` | L3 ancestor integrity: a settle with a grandparent rebuilds it, matches its txid, co-spends one of its proof outputs, at index `j`, and (fungible) carries the settle result that proof selects, the one at `j − 1` |
 | `l4_null` | L4 null ancestor arguments when no rebuild runs |
 | `l5_issuer`, `l5_no_merge_at_genesis` | L5 issuer enforcement, the NFT family's `is2ndTx` guard included |
 | `l6_*` | L6 balance bounds: over-take and overflow guards at the commit, re-asserted at the settle |
-| `commit_type`, `settle_type`, `commit_mode`, `settle_mode`, and the type of every produced token | L7 the `txoType` state machine |
+| `commit_type`, `settle_type`, `commit_mode`, `settle_mode` | L7 the `txoType` state machine |
 
-A **run** (`Model/Run.lean`) is a set of genesis tokens plus a sequence of spends; `Run.Valid` adds
-what the chain enforces around the covenant (inputs are live and carry the fields the spend claims;
-new transaction ids are fresh). The cryptographic assumptions are hypotheses, never axioms
+A **run** (`Model/Run.lean`) is a set of genesis tokens plus a sequence of spends; `Run.Valid` adds what
+the chain enforces around the covenant: inputs are live and carry the fields the spend claims, new
+transaction ids are fresh. The cryptographic assumptions are hypotheses, never axioms
 (`Model/Assumptions.lean`): `CollisionFree P` (A1) and `OwnerSecrecy P pk signed` (A2).
 
-| Hand proof | Lean theorem | Hypotheses beyond `Valid` |
+| Hand proof | Lean theorem | Beyond `Valid` |
 |---|---|---|
-| T4 State-machine integrity | `t4_step`, `t4_defined_types`, `t4_no_skip`, `Fam.fungible_edge_iff`, `Fam.nft_edge_iff` (`Theorems/StateMachine.lean`) | none |
+| T4 State machine | `t4_step`, `t4_defined_types`, `t4_no_skip` (`Theorems/StateMachine.lean`) | none |
 | T3 Balance conservation | `Run.t3_conservation`, `Run.t3_no_melt`, `Run.t3_single_genesis`, `Run.t3_nft_count` (`Theorems/Balance.lean`) | none |
 | T2 Ownership | `t2_presented`, `t2_ownership`, `t2_no_keyless_spend` (`Theorems/Ownership.lean`) | A2 for `t2_ownership` |
-| T1 Authenticity | `Run.t1_authenticity`, `Run.t1_issuer_invariant`, `Run.live_rooted`, `Run.t1_rebuild_sound`; per hop, `t1_step` (every token a spend produces carries the spent token's issuer and names it as parent) and `t1_genesis_signer` (a genesis moves only under the issuer's key) (`Theorems/Authenticity.lean`); `Run.grandparent_commit` (`Theorems/Chain.lean`), a settled token's grandparent is a real commit of the run with the honest output layout; of real tokens, `Glue.MinSimple.chain_authenticity` and `Glue.SimpleMulti.chain_authenticity` (`Bridge/Glue/*/Chain.lean`) | A1 for `t1_rebuild_sound` and the fungible chain only |
-| T5 Proof gating (the §8.1 fabricated-hop defence) | `Run.t5_proof_gating`, `Run.t5_balance_anchor`, `Run.t5_fabricated_hop_excluded` (`Theorems/ProofGating.lean`) | the UTXO rule `NoDoubleSpend` for gating; A1 for the balance anchor |
+| T1 Authenticity | `Run.t1_authenticity`, `Run.t1_issuer_invariant`, `Run.t1_rebuild_sound`; per hop `t1_step`, `t1_genesis_signer` (`Theorems/Authenticity.lean`); `Run.grandparent_commit` (`Theorems/Chain.lean`) | A1 for `t1_rebuild_sound` |
+| T5 Proof gating | `Run.t5_proof_gating`, `Run.t5_balance_anchor`, `Run.t5_fabricated_hop_excluded` (`Theorems/ProofGating.lean`) | the UTXO rule `NoDoubleSpend`; A1 for the balance anchor |
 
-Two statements are sharper than the prose:
+Three points where the Lean is sharper than the prose:
 
-* **T3 counts value in flight, over the set of genesis tokens a run starts from.** A merge-commit
-  token (`0x25`) carries the merged-in balance in `balanceCommit` until its settle adds it.
-  `float + melted = Σ genesis` holds at every step; the hand proof's "per genesis" form is the
-  single-genesis, no-melt corollary. Two mints of one issuer can be merged, so "per genesis" is not
-  well defined under merges.
-* **T1's "unique parentless root" is definitional.** `Run.root` is a function of the token and the
-  run: the parent walk through the outputs the run created. What is proved is that the walk is
-  well-founded, ends at a parentless genesis of the run, that every token on it carries the run's
-  issuer, and that every link is a real accepted spend whose types follow the state machine
-  (`Rooted`).
+* **T3 counts value in flight, over the set of genesis tokens a run starts from.** A merge-commit token
+  (`0x25`) carries the merged-in balance in `balanceCommit` until its settle adds it. `float + melted = Σ
+  genesis` holds at every step; the hand proof's "per genesis" form is the single-genesis, no-melt
+  corollary.
+* **T1's "unique parentless root" is definitional.** `Run.root` is the parent walk through the outputs
+  the run created; what is proved is that the walk is well-founded, ends at a genesis of the run, keeps
+  the issuer, and that every link is an accepted spend whose types follow the machine (`Rooted`).
+* **L2 and L3 admit exactly what the script admits.** A split settle's two tokens may come out in either
+  order, and the anchor names the proof a settle co-spends rather than a position: the balance carried
+  is the settle result at the index one below that proof. Both are safe: the order changes neither
+  recipient nor balance, only a proof's recipient can spend it, the script forces the proof to the
+  grandparent's first or, for a split, second output (`AnchorOK`), and T5 lets each proof admit one
+  settle, so every settle result of a real commit is claimed at most once. The earlier position-based
+  anchor was wrong in the swapped order (`smb_probe_idx_*`).
 
-**T5** is the §8.1 fabricated-hop defence at the ledger level, above the per-input model: under the
-UTXO rule that no outpoint is consumed twice, two settles of tokens with grandparents consume two
-distinct proof outpoints, so a commit's proof admits at most one settle, honest or forged; and under
-collision resistance the balance a settle carries is exactly the settle result of the real commit its
-grandparent names. A fabrication that runs no script can still exist on-chain (the model contains
-only tokens the script created; the off-chain checks refuse such an anchor), but it can extract
-nothing through a real proof beyond the real transition.
-
-**L2 and L3 admit exactly what the script admits.** A split settle's two tokens may come out in either
-order (`Spend.OutsOK`), and the anchor names the proof a settle co-spends rather than a position: the
-balance carried must be the settle result at the index one below that proof. Both are safe. The order
-changes neither recipient nor balance, a token's outpoint is wherever it sits, and no later check reads
-the order. The anchor is selected by a proof output only its recipient can spend, the script forces that
-proof to be the grandparent's first or, for a split, second (`AnchorOK`, `Bridge/Glue/SimpleMulti/Blocks.lean`),
-and Theorem 5 lets each proof admit one settle, so every settle result of a real commit is claimed at
-most once, by its recipient. The earlier position-based anchor agreed with this one in the honest order
-and was wrong in the other, as the swapped-order vectors show (`smb_probe_idx_*`).
-
-`Theorems/Example.lean` builds the test harness's five-transaction NFT lifecycle as a run and proves
-it `Valid`, so the model is not vacuous.
-
-Every Layer 1 theorem depends on at most `propext`, `Classical.choice` and `Quot.sound`
-(`lake env lean AxiomCheck.lean` after `lake build`; the file also lists the symbolic proofs, held to
-the same rule).
+**T5** is the §8.1 fabricated-hop defence at the ledger level: under the UTXO rule two settles with
+grandparents consume two distinct proof outpoints, so a commit's proof admits at most one settle, and
+under A1 the balance a settle carries is the settle result of the real commit its grandparent names. A
+fabrication that runs no script can exist on-chain, but it can extract nothing through a real proof
+beyond the real transition.
 
 ## Layer 2 — the script on real transactions
 
-Layer 1 says nothing about whether the script enforces the model. Layer 2 runs the script, with
-bsv-script-lean's consensus semantics (`BsvScript.Eval.verifyScript`: real SHA-256, RIPEMD-160 and
-secp256k1 ECDSA as Lean functions):
+Layer 2 runs the script with bsv-script-lean's consensus semantics (`BsvScript.Eval.verifyScript`: real
+SHA-256, RIPEMD-160 and secp256k1 as Lean functions):
 
-* `Bytes.lean`: each script hashes to the fingerprint the scanner's `REGISTRY` recognises it by, so
-  the script reasoned about is the script shipped.
-* `Generated/VectorTheorems.lean`: for each of 105 real transactions (241 inputs), every input's
-  verdict is the expected one. The honest lifecycles of both families verify (`buildChain`;
-  `SimpleMultiBOLT` mint → transfer → split / merge → melt). Every red-team transaction
-  (`test/lib/minSimpleAttack.test.ts` B1–B4; the fungible inflated balance, split over-take, merge
-  overflow, cross-issuer merge, raw-byte extra output, wrong-key spend, melt by a non-owner) fails at
-  exactly the input the hand proof names. The historical fabricated-hop chain
-  (`test/fixtures/fabricated-hop-chain.json`) is accepted by the pre-fix script it embeds,
-  reproducing in Lean what a regtest Teranode accepted.
+* `Bytes.lean`: each script hashes to the fingerprint the scanner's `REGISTRY` recognises it by, so the
+  script reasoned about is the script shipped.
+* `Generated/VectorTheorems.lean`: for each of 105 real transactions (241 inputs), every input's verdict
+  is the expected one. The honest lifecycles of both families verify; every red-team transaction
+  (`test/lib/minSimpleAttack.test.ts` B1–B4; the fungible inflated balance, split over-take, merge overflow,
+  cross-issuer merge, raw-byte extra output, wrong-key spend, melt by a non-owner) fails at exactly the
+  input the hand proof names; the probes of the open questions below are judged; the historical
+  fabricated-hop chain (`test/fixtures/fabricated-hop-chain.json`) is accepted by the pre-fix script it
+  embeds, reproducing what a regtest Teranode accepted.
 
-These theorems use `native_decide`: the kernel trusts Lean's compiled evaluator for them, recorded
-as one auxiliary axiom per theorem (`<theorem>._native.native_decide.ax_*`, the successor of
-`Lean.ofReduceBool`).
+These theorems use `native_decide`: the kernel trusts Lean's compiled evaluator for them, recorded as one
+auxiliary axiom per theorem.
 
-**Fragment proofs, no evaluator trust.** `Gadgets/` proves pieces of the script over the
-interpreter's own instruction loop (`Gadget.run`, the semantics' `Machine.loop` without the end
-test), with the three standard axioms only, in the style of bsv-script-lean's `Gadget/HashLock.lean`.
-Each fragment is proved for every possible input, not only the exported vectors:
+**Fragment proofs** (`Gadgets/`, no evaluator trust) prove pieces of the script over the interpreter's own
+instruction loop for every input: one lemma per instruction (`Steps.lean`); Lemma 4's null-ancestor tail
+(`NullAncestor.lean`); Lemma 6's commit guards and settle re-checks (`BalanceGuards.lean`,
+`BalanceBounds.lean`), which refuse an inflating split or an overflowing merge at the commit; Lemma 7's
+fungible parity check (`Parity.lean`: on the six type bytes it accepts iff `Fam.edge .fungible a b`) and
+the NFT type selector (`NftType.lean`: the NFT scripts write the next type rather than check it, and the
+written type is a `Fam.edge .nft` successor).
 
-* `Gadgets/Steps.lean`: what one instruction does to the machine state, for `OP_SIZE`, `OP_NIP`,
-  `OP_0`, `OP_1`, `OP_2`, `OP_11`, a one-byte push, `OP_EQUALVERIFY` (failing), `OP_VERIFY` (both
-  cases), `OP_GREATERTHANOREQUAL`, `OP_LESSTHANOREQUAL`, `OP_SUB`, `OP_ADD`, `OP_MOD`, `OP_1ADD`,
-  `OP_DUP`, `OP_SWAP`, `OP_PICK`, `OP_IF` (both outcomes), `OP_ELSE`, `OP_ENDIF`, and the
-  instructions an inactive branch skips; each under the interpreter's preconditions (an executing
-  branch, room under the op-count and memory limits, a post-Genesis UTXO, the block path's flags).
-* `Gadgets/NullAncestor.lean`, **Lemma 4.** The null-ancestor check's tail `OP_SIZE OP_NIP OP_0
-  OP_EQUALVERIFY` (`82 77 00 88`), run after the ancestor arguments are concatenated, passes exactly
-  when the concatenation is empty (`nullTail_accepts`, `nullTail_next_iff`) and fails with
-  `SCRIPT_ERR_EQUALVERIFY` otherwise (`nullTail_refuses`).
-* `Gadgets/BalanceGuards.lean`, **Lemma 6's commit guards.** The split commit's over-take guard
-  `2d OP_PICK 34 OP_PICK OP_SUB OP_0 OP_GREATERTHANOREQUAL OP_VERIFY` (`01 2d 79 01 34 79 94 00 a2
-  69`) passes, leaving stack and memory counter as it found them, exactly when `piece ≤ balance`
-  (`splitGuard_accepts`, `splitGuard_next_iff`) and fails with `SCRIPT_ERR_VERIFY` otherwise
-  (`splitGuard_refuses`). The merge commit's sum guard `2d OP_PICK 34 OP_PICK OP_ADD OP_11 OP_PICK
-  OP_LESSTHANOREQUAL OP_VERIFY` (`01 2d 79 01 34 79 93 5b 79 a1 69`) passes exactly when
-  `balance + other ≤ bound`, the bound being the value kept ten deep (`mergeGuard_accepts`,
-  `mergeGuard_refuses`, `mergeGuard_next_iff`). An inflating split or an overflowing merge is refused
-  at its commit.
-* `Gadgets/BalanceBounds.lean`, **Lemma 6's bounds and settle re-checks.** The bound check `d OP_PICK
-  OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_5 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` (offsets 610
-  and 621, on the spent and the other balance) passes exactly when `0 ≤ balance ≤ bound`, the bound
-  being the sixteen bytes `ff…ff7f` (`2¹²⁷ − 1`) pushed at offset 566 (`boundCheck_next_iff`). The
-  merge settle's `2f OP_PICK 2f OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_ADD OP_DUP
-  OP_14 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY` (offset 781) passes exactly when `0 ≤ other` and
-  `balance + other ≤ bound`, leaving the sum for the 16-byte field (`mergeSettle_next_iff`); the split
-  settle's `2f OP_PICK 2f OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_SUB OP_DUP OP_0
-  OP_GREATERTHANOREQUAL OP_VERIFY` (offset 935) exactly when `0 ≤ piece ≤ balance`, leaving the
-  remainder (`splitSettle_next_iff`); each fails with `SCRIPT_ERR_VERIFY` otherwise. With
-  `BalanceGuards.lean` this closes Lemma 6 at the fragment level.
-* `Gadgets/Parity.lean`, **Lemma 7, fungible.** The 29-byte parity check at offset 528 of
-  `SimpleMultiBOLT` (`1a OP_PICK OP_2 OP_MOD OP_DUP OP_IF 26 OP_PICK OP_1ADD 1c OP_PICK
-  OP_EQUALVERIFY OP_ENDIF OP_DUP 27 OP_PICK OP_2 OP_MOD OP_SWAP OP_IF OP_0 OP_ELSE OP_1 OP_ENDIF
-  OP_EQUALVERIFY`) passes exactly when the hand proof's predicate holds: a commit-typed (odd) spent
-  type forces the produced type to be one less, byte for byte, and a settle-typed (even) one forces an
-  odd type (`parityCheck_next_iff`; the state it leaves, `parityCheck_accepts_commit` and
-  `parityCheck_accepts_settle`). Otherwise `SCRIPT_ERR_EQUALVERIFY` (`parityCheck_refuses_commit`,
-  `parityCheck_refuses_settle`). On the six defined type bytes this is the model's own edge relation:
-  `parityCheck_edge_iff` says the fragment accepts iff `Fam.edge .fungible a b`, so the model's
-  `commit_type` and `settle_type` are, for this family, exactly what the script enforces. The proof
-  composes four sub-fragments with `run_append` and walks both outcomes of every conditional.
-* `Gadgets/NftType.lean`, **Lemma 7, NFT, by construction.** The NFT scripts do not check the
-  produced type: they write it. The selector `d OP_PICK OP_IF 0100 OP_ELSE 0121 OP_ENDIF OP_CAT`
-  (`01 d 79 63 02 01 00 67 02 01 21 68 7e`; depth `d = 0x17` at offset 534 of `MinSimpleBOLT` and 543
-  of `AuthBOLT`, `d = 0x18` at 589 of `SerialBOLT`) picks the raw spent type byte and appends the type
-  field `01 00` when it is true (`0x21`) and `01 21` otherwise (`0x00`), changing nothing else
-  (`nftTypeSel_run_commit`, `nftTypeSel_run_settle`, stated for the canonical booleans at that depth;
-  `reaches_nftTypeSel` shows the real stack carries the raw type byte there, and the path theorems run
-  the selector on it). On the family's two type bytes the written type is a `Fam.edge .nft` successor
-  of the spent one (`nftTypeSel_edge`); since `hashOutputs` binds the outputs (Lemma 2), the NFT
-  state machine holds with no spender input in the choice. *Correction:* this bullet once described
-  the prologue's `OP_DUP OP_BIN2NUM OP_0NOTEQUAL` (`76 81 92`, `nftFlag_run`) as the type flag
-  `txoType ≠ 0`; in the shipped scripts it runs on the grandparent outpoint and computes `gp ≠ 0`.
+## The glue — the script enforces the model
 
-`lake exe boltvectors` runs the same verdicts natively, under today's BSV rules (bsv-script-lean's
-`defaultSpendHeight`, block path).
+**How.** Every step lemma is an inversion lemma on the remaining program: `run env (op :: g) t st = r →
+r.IsOk → ⟨the fact the op checks⟩ ∧ ∃ m' k', run env g t st' = r` (`Glue/Sym/`). The `sym_all` driver
+chains them over the script cut into named chunks (`Generated/Chunks.lean`; `Sections.lean` locates each
+proved fragment at its offset), so a run of a whole suffix is a conjunction of facts about the stack it
+started from. Limits need no hypotheses: a violation returns `.err`, which `IsOk` refutes. The unlocking
+script is attacker-controlled and proves nothing (its own OP_PUSH_TX included): the proofs quantify over
+whatever stack phase 1 leaves and never run it; the binding check is the lock's own OP_PUSH_TX block on
+the preimage item.
+
+**Per script.** `*_sound` says what the suffix enforces whenever it does not fail, path by path (the NFT
+scripts' ten paths; the fungible script's commit, settle and melt paths by mode, with the twenty-four
+refused type pairs in `SimpleMulti/Refute.lean`). `reaches_*` shows each proved fragment of `Gadgets/` is
+reached with the stack its lemma assumes. `Abs.lean` reads a real spend into the model (`spendOf`: the
+lock's fields become a `Token`, outputs become `Out`s by their scripts, the transaction a `TxDesc`).
+`*_refines` proves `Accepts P fam (spendOf …)` from a valid verdict under the residual assumptions; the
+fungible refinement has four stages (a commit, a settle without a grandparent or a melt; a transfer or
+split settle with a grandparent; a merge commit with the partner input's run; a merge settle with both
+rebuilds). `Regress.lean` applies every refinement to the real honest spends with each decidable
+hypothesis discharged by `native_decide`. `EndToEnd.lean` states Lemma 1 and Theorems 1–4 per input of
+the shipped bytes.
+
+**The rebuilds.** A settle with a grandparent rebuilds it from pieces the unlocking script supplies, hashes
+the bytes against the token's grandparent txid and anchors the spent balance to the rebuilt token's.
+Under no second preimage of the real grandparent's serialisation, the bytes are that serialisation, so the
+proof parses them (`Rebuilt.lean`, `decode_rebuiltA`), identifies the parsed transaction with the real one
+(`GpWeld.lean`, `gp_eq_gpTxA`), reads its first output as the pieces' token (`Anchor.lean`) and turns the
+anchor into the model's `settledBalance` (`anchorOK_settled`); the anchor also fixes the co-spent index to
+1, or to 2 for a split-commit grandparent (`AnchorOK.index`). A merge settle's second rebuild, of the
+other lineage's grandparent, is welded the same way (`RebuiltBParse.lean`, `AnchorB.lean`,
+`GpWeldB.lean`; `anchorB_index` for its index argument `i4`).
+
+**The chain** (`Refine/Chain.lean`, `SimpleMulti/Chain.lean`). A run whose steps are real spends, each read
+by its refinement, with the UTXO model's bookkeeping (a well-formed genesis set, each step spending live
+tokens, each transaction id new: `RealChain`), is valid (`valid_of_chain`). The induction is
+`Run.valid_of_stepwise`; at each step the grandparent a settle names is read off the valid prefix: it is
+output 0 of an earlier commit step with the honest layout (`Run.grandparent_layout_upto`), which
+discharges `GpReal` outright for the NFT script and, under A1 to identify the ancestor the settle
+supplies with that step, `GpRealF` and `GpRealB` for the fungible one. Theorems 1, 3, 4 and 5 then hold
+of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `chain_defined_types`,
+`chain_proof_gating`, `chain_fabricated_hop_excluded`.
+
+**What each refinement assumes** (`Residual`, one per script; the fungible one adds `ResidualGp` and
+`GpRealB` on the settle stages):
+
+* `PushTxSound`: a preimage the lock's own OP_PUSH_TX block accepts hashes to this spend's digest (the
+  ECDSA algebra of the fixed-key signature, with the negligible root cases excluded).
+* `NoSecondPreimage` of what the spend hashes: the preimage, the serialised outputs and outpoints, the
+  grandparents' serialisations (A1 stated on the spend's own data).
+* `Agrees`: the primitives `P` compute `hash160` and this spend's `OP_CHECKSIG`, and the primitives' txid of
+  an ancestor's abstraction is its real txid.
+* `HonestOutputs`, `HonestMelt`: three model rules the script does not check and that are not security
+  properties (Finding 1 below): the change blob carries no token, a melt pays P2PKH only in a version-2
+  transaction. Anyone can create a token-shaped output anywhere; the lineage check at spend time, which is
+  proved, carries the security.
+* `GpReal`, `GpRealF`, `GpRealB`: the grandparent a settle names is real, well-formed, with the token at the
+  named index and the proof outputs of a commit. Per input an assumption; over a chain, proved.
+* SimpleMultiBOLT only: the six protocol types (Q4), the rebuilds' pieces at the widths of the fields they
+  stand for (`HonestPiecesB`, both piece sets, Q7), and the merge partner presenting a preimage (Q8).
+* Lock-data conditions every covenant-built token meets, asked of the spent token: a genesis token is settled-typed,
+  a non-merge token names no other lineage, the balance is in range, a split's second recipient is not the zero hash
+  (fungible); the recipient hash and the signing key at their widths, which the bytes copy into the new lock
+  unchecked (`ArgsWF`, all four). `Regress.lean` checks them on the vectors.
+* Over the fungible chain, also A1 and `BalsNonneg`: the ancestors' token outputs carry non-negative balance
+  fields (the script writes them so; decidable; a proof debt).
+
+**Findings.** What the glue found that the prose did not say, each pinned by a vector where one applies:
+
+1. Two model clauses are not enforced by the script: the melt branch constrains no output, and the change
+   blob is concatenated unparsed into `hashOutputs`, so it can carry several outputs, token-shaped ones
+   included (`nft_probe_melt_token_output`, `nft_probe_change_*`). The refinements take them as
+   `HonestMelt` and `HonestOutputs`; the model keeps the clauses.
+2. The NFT prologue fragment `76 81 92` tests the grandparent outpoint, not the type, and the type
+   selector reads the raw type byte.
+3. Both families require the issuer at the first settle as well as the first commit
+   (`docs/issuer-guard.md`); the fungible guard also refuses `0x25` and `0x27` as next types there, and
+   the written type comes from the mode flags, not the byte (`smb_probe_type27_commit`).
+4. `smb_wrong_key_commit#0` is refused by the issuer guard, `smb_extra_output_settle#0` by the unlocking
+   script's own OP_PUSH_TX, not the covenant.
+5. A merge's carried balance is checked at the settle, not the commit (Q8, `smb_probe_q8_*`): a merge
+   commit whose partner input takes the melt branch is accepted whatever balance it claims; the settle
+   claiming 1,000,000 for a token of balance 1 is refused. An inflated merge commit can exist but never
+   settles.
+6. A token's index byte is informational and no token dies of it (Q3, `smb_probe_idx_*`, 20 vectors;
+   `test/lib/indexByte.test.ts`): with `pkh1` set a split settle's tokens come out swapped, with `i2` or
+   `inputIndexN` set a token carries a byte that is not its position, and every later operation accepts
+   it. No spend reads the byte. Dropping it is recorded in `docs/ROADMAP.md`.
+7. A merge settle's other-lineage index is pinned to a proof output (Q9, `smb_probe_q9_*`): naming the
+   other grandparent's change output and spending it in the proof input's place is refused; the second
+   rebuild's anchor pins `i4` to 1 or, under the split type, to 2 (`anchorB_index`).
+8. Smaller byte-level facts. No script checks the `fd` of the preimage's scriptCode varint (the NFT scripts drop
+   the byte at 104, the fungible parse accepts any width), so the proofs take it from the preimage the lock's
+   OP_PUSH_TX block weighed (`preimage_varint`). Only the txid half of the grandparent outpoint is bound by the
+   rebuild; the index half comes from `GpReal`, over a chain from the run's layout. A settle at genesis takes the
+   signing key as the new token's issuer, like a commit. A `0x25` token's `balanceCommit` is unanchored until its
+   settle (Finding 5).
+
+**Open questions.** Q4: off genesis, the parity check lets a settled token's spend name any odd next type;
+whether a run with a type outside the six succeeds is open (the honest-shaped probe is refused), so
+`simpleMulti_sound` covers the six protocol types and states the restriction. Q7: whether the bytes force
+the rebuilds' piece widths, for instance through the grandparent's own structure, is open; the refinement
+reads them under `HonestPiecesB`. Q1 (Finding 1) was decided for the hypothesis route; Q2 (the token at
+input 0) is derived from the bytes; Q3, Q6 and Q9 are closed by model and lemma; Q5 was retracted (a probe
+had recorded a false literal fact; every probe is now scanned for them); Q8 is settled at the vector level
+and kept as the hypothesis `hpre'`.
+
+**Follow-ups.** Shed `BalsNonneg` by reading the balance signs off the commit paths' output bytes; state the
+chain for AuthBOLT and SerialBOLT (their refinements already ask `GpReal` of a settle only; the file is
+MinSimpleBOLT's over their abstraction); Q4 and Q7 above.
+
+**Generators.** The long, regular files (the path theorems, the rebuilds' arms and parses, the gate items,
+the guards) are written by `scripts/*.py` (`scripts/README.md`); a generated file says so in its header.
+The audit holds every theorem outside `BoltProof.Bridge.*` to the three standard axioms, so the symbolic
+glue lives under `BoltProof.Glue`, the `native_decide` guards under `BoltProof.Bridge.Glue`.
 
 ## What is still trusted
 
 | Item | Status |
 |---|---|
-| That the script enforces the model on *every* input (A4 + L1–L7 fidelity) | **Proved for all four scripts, per input, under listed assumptions** (`BoltProof/Bridge/Glue/`, `lean/GLUE-PLAN.md`). `*_sound` states what each script enforces whenever it does not fail; `reaches_*` shows each run reaches every proved fragment of `Gadgets/` with the stack its lemma assumes; `*_refines` (one per NFT script, four stages for the fungible one) shows that any spend the network accepts is one the model accepts. `Glue/Refine/EndToEnd.lean` and `Glue/SimpleMulti/EndToEnd.lean` state the consequences for MinSimpleBOLT and SimpleMultiBOLT, Theorem 1's hop included. Chaining real spends into a model `Run` is done for both pilots (`Glue/Refine/Chain.lean`, `Glue/SimpleMulti/Chain.lean`): a chain of real spends, each read by its refinement, with the UTXO model's bookkeeping (a well-formed genesis set, each step spending live tokens, each id new), is a valid run (`valid_of_chain`), so Theorems 1, 3, 4 and 5 hold of real tokens (`chain_authenticity`, `chain_count` / `chain_conservation`, `chain_defined_types`, `chain_proof_gating`, `chain_fabricated_hop_excluded`). The grandparent's reality is read off the run: in a valid prefix it is output 0 of an earlier commit step with the honest layout (`Theorems/Chain.lean`, `Run.grandparent_layout_upto`), which is `GpReal` for the NFT script outright and `GpRealF` for the fungible one under A1 (`CollisionFree`, identifying the ancestor the settle supplies with that step, as Lemma 3 does) plus one fact read off the ancestor's bytes, that its token outputs' balance fields are non-negative script numbers (`BalsNonneg`, decidable; the script writes them so). The assumptions, one `Residual` per script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; `GpReal`, the grandparent a settle names is the real commit two steps back (per input; the chain discharges it); `HonestOutputs`/`HonestMelt` for three model rules the script does not check and that are not security properties (melt outputs, the change blob, the melt's version: anyone can create a token-shaped output anywhere; the lineage check at spend time, which is proved, carries the security). SimpleMultiBOLT adds three, each an open question in `GLUE-PLAN.md` §7: the six protocol types only (Q4), the rebuild's piece widths (`HonestPiecesB`, Q7) and the merge partner presenting a preimage (Q8); over a chain, also that a merge settle's other-lineage index argument `i4` names a proof output of the other grandparent (Q9: read off the bytes by `anchorB_index`, the second rebuild's anchor pinning `i4` to 1 or, under the split type piece, to 2, as `AnchorOK.index` pins `i5`; the vectors `smb_probe_q9_*` show the refusal; what the chain still asserts of a merge settle is `typeB`, that the type piece it supplies for the other grandparent is that token's type, the second rebuild's weld). Two it once carried are gone: the model admits a split settle's two tokens in either order (`Spend.OutsOK`) and anchors a settle's balance at the co-spent proof's index (`l3_rebuild`), as the script does, so the refinement proves the swapped order from the script's own flag cases (`outs_settle_split`) and reads the anchor's index from the script's own check (`AnchorOK.index`), with no hypothesis on `pkh1`, `pkh2` or `i5`. Two are probed on the engine and judged in Lean (`smb_probe_q8_*`, `smb_probe_q3_*`): a merge whose partner input takes the melt branch is accepted, but its carried balance is checked at the settle, which refuses an inflated one (Q8: an unsettleable commit, not a spendable token); a split settle with `pkh1` set comes out with its two tokens swapped (Q3), and a token whose index byte disagrees with its position, by `pkh1`, `i2` or `inputIndexN`, is accepted by every later operation, transfer, split, merge at either input and melt (`smb_probe_idx_*`, 20 vectors): no spend reads the byte, so it is informational, and Q3 is an output-order quirk the model admits (`Spend.OutsOK`). The same shapes run under the fast TypeScript suite (`test/lib/indexByte.test.ts`, builders shared with the exporter). `Regress.lean` applies every `*_refines` to the real honest spends with each decidable hypothesis discharged. Layer 2 still evidences all four on 241 inputs. |
-| A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound` / `t2_ownership`; everything else is unconditional. |
+| That the script enforces the model on *every* input (A4 + L1–L7 fidelity) | **Proved for all four scripts, per input, under the assumptions listed above; proved over a chain for MinSimpleBOLT and SimpleMultiBOLT.** Layer 2 still evidences all four on 241 inputs. |
+| A1 collision resistance, A2 EUF-CMA | Hypotheses of `t1_rebuild_sound`, the fungible chain and `t2_ownership`; everything else is unconditional. |
 | A3 chain finality | Not modelled (inherited, as in the hand proof). |
 | bsv-script-lean's transcription of the node | Their `docs/HYPOTHESES.md`; pinned at v1.2.0, commit `6139161c`. |
-| The judging rules | **Today's BSV rules only** (post-Chronicle, `Bridge/Params.lean`: the block path, no `MINIMALIF`, FORKID signatures, the `codeSep ++ lock` scriptCode b017's OP_PUSH_TX signs). Nothing is claimed for the old rules; `paramsPreChronicle` is a control, printed beside each verdict by `lake exe boltvectors`. |
-| The native evaluator (`native_decide`'s per-theorem axiom) | Layer 2 only. Layer 1 never uses it. |
+| The judging rules | **Today's BSV rules only** (post-Chronicle, `Bridge/Params.lean`: the block path, no `MINIMALIF`, FORKID signatures, the `codeSep ++ lock` scriptCode b017's OP_PUSH_TX signs). `paramsPreChronicle` is a control, printed beside each verdict by `lake exe boltvectors`. |
+| The native evaluator (`native_decide`'s per-theorem axiom) | The vector checks and the regression guards only. Layer 1 and the glue never use it. |
 
 ## The issuer guards
 
 Both families require the issuer's signature at the first settle as well as the first commit.
-[`docs/issuer-guard.md`](../docs/issuer-guard.md) decodes both prologues and gives the history:
-`is2ndTx` is the NFT family's flag, the fungible rule (the F3 fix) is broader, and porting `is2ndTx`
-would close nothing. The symbolic execution proves both rules from the script for every input
-(`Enforced.issuer` in each `*_sound`): NFT, `parent = 0 ∨ (gp = 0 ∧ txoType = 0x21) → issuer = pubKey`;
-fungible, `parent = 0 ∨ gp = 0 → issuer = pubKey ∧ nextTxoType ∉ {0x25, 0x27}` (script offsets 0–29).
-The model's L5 clause asks the issuer at genesis only for the fungible family, weaker than the script,
-so the proof derives it; for the NFT family it states the guard exactly as the script has it.
-*Correction:* an earlier version of this section said the fungible family lacks the guard; it does not.
+[`docs/issuer-guard.md`](../docs/issuer-guard.md) decodes both prologues and gives the history: `is2ndTx`
+is the NFT family's flag, the fungible rule (the F3 fix) is broader, and porting `is2ndTx` would close
+nothing. The symbolic execution proves both rules from the script for every input (`Enforced.issuer` in
+each `*_sound`): NFT, `parent = 0 ∨ (gp = 0 ∧ txoType = 0x21) → issuer = pubKey`; fungible,
+`parent = 0 ∨ gp = 0 → issuer = pubKey ∧ nextTxoType ∉ {0x25, 0x27}`. The model's L5 clause asks the issuer
+at genesis only for the fungible family, weaker than the script, so the proof derives it; for the NFT
+family it states the guard as the script has it.
 
 ## Building
 
@@ -234,7 +271,12 @@ lake exe boltvectors    # every vector natively, with the control columns
 cd .. && node scripts/lean-axiom-check.mjs
 ```
 
-`lake build BoltProofCore` needs neither Mathlib nor bsv-script-lean and builds in seconds.
+`lake build BoltProofCore` needs neither Mathlib nor bsv-script-lean and builds in seconds. The glue takes about
+30 minutes of wall time on four cores and 15 GB; `SimpleMulti/Settle/Split.lean` peaks near 8 GB and the fungible
+`Refute.lean` needs several gigabytes, so on a smaller machine build it alone first
+(`lake build BoltProof.Bridge.Glue.SimpleMulti.Refute`). CI's `lean-proof` job restores the previous build from
+its cache and rebuilds only what depends on a change; a change to the model or a spec rebuilds the glue, 50 to 70
+minutes against the 90-minute limit.
 
 Regenerate the vectors after any change to a covenant template, a test helper, or an expectation:
 
@@ -242,16 +284,15 @@ Regenerate the vectors after any change to a covenant template, a test helper, o
 npm run lean:vectors    # rewrites lean/BoltProof/Bridge/Generated/ and lean/vectors/vectors.json
 ```
 
-The output is deterministic (fixed keys, RFC6979 signatures); CI regenerates and fails on drift.
-Exact bsv-script-lean error codes are pinned in `PINNED` in `vectors/export.test.ts` from a triage
-run of `boltvectors`; an unpinned rejection is `anyInvalid`.
+The output is deterministic (fixed keys, RFC6979 signatures); CI regenerates and fails on drift. Exact
+bsv-script-lean error codes are pinned in `PINNED` in `vectors/export.test.ts` from a triage run of
+`boltvectors`; an unpinned rejection is `anyInvalid`.
 
-Never run `lake update` casually: `lake-manifest.json` pins bsv-script-lean and, through it,
-Mathlib. To bump bsv-script-lean, change `rev` in `lakefile.toml`, copy its `lean-toolchain`, run
-`lake update bsvscript`, rebuild, and re-triage the vectors.
+Never run `lake update` casually: `lake-manifest.json` pins bsv-script-lean and, through it, Mathlib. To
+bump bsv-script-lean, change `rev` in `lakefile.toml`, copy its `lean-toolchain`, run `lake update
+bsvscript`, rebuild, and re-triage the vectors.
 
 ## Credits and license
 
-bsv-script-lean is consumed as a Lake dependency, not vendored. Its Lean sources are under the
-Open BSV License v5 (the same license as this package); its tooling is Apache-2.0. See its
-`NOTICE`.
+bsv-script-lean is consumed as a Lake dependency, not vendored. Its Lean sources are under the Open BSV
+License v5 (the same license as this package); its tooling is Apache-2.0. See its `NOTICE`.

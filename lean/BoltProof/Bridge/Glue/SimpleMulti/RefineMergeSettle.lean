@@ -1,5 +1,6 @@
 import BoltProof.Bridge.Glue.SimpleMulti.RefineMerge
 import BoltProof.Bridge.Glue.SimpleMulti.RebuiltB
+import BoltProof.Bridge.Glue.SimpleMulti.GpWeldB
 
 /-!
 # `SimpleMultiBOLT`: the bytes refine `Accepts` (third stage, the merge settle)
@@ -10,12 +11,14 @@ spent balance), and the second's, which hashes the other lineage's grandparent a
 `otherGrandparent` and names its co-spent outpoint in `hashPrevouts`, the other lineage's before this one's when
 the spent lock's index is not zero. The model's `l3_merge` asks of the second lineage only the ancestor's id, its
 token output and a co-spent proof output, so beyond `ResidualGp` for the first lineage the theorem assumes
-`GpRealB` for the second (a real transaction with the primitives' id, whose txid the token names, with a token at
-the named index, a proof output at index 1 and, when the piece the settle supplies as its token's type is the
-split commit type, at index 2). Which of those the fourth interop slot `i4` names is not assumed: the second
-rebuild's anchor pins it to 1, or to 2 under the split type, as the first rebuild's anchor pins `i5`
-(`anchorB_index`, `lean/GLUE-PLAN.md` §7 Q9). Every merged token a covenant builds has a grandparent (a merge
-commit is refused at genesis), so the merge settle without one is not a case.
+`GpRealB` for the second, the shape of `GpRealF`: a well-formed transaction whose txid the token names, with no
+second preimage of its serialisation and the primitives' id, a token at the named index, a proof output at index 1
+and, when that token is a split commit, at index 2, with the first piece set at its widths. The second rebuild is
+welded as the first is (`GpWeldB.lean`): its bytes are the other grandparent's serialisation, so the token at the
+named index is the pieces' token (`gpB_token_of_facts`), and its anchor pins the fourth interop slot `i4` to 1,
+or to 2 under the split type, as the first rebuild's anchor pins `i5` (`anchorB_index`). Every merged token a
+covenant builds has a grandparent (a merge commit is refused at genesis), so the merge settle without one is not
+a case.
 -/
 
 set_option autoImplicit false
@@ -27,14 +30,9 @@ open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Ga
   BsvScript.Sighash BsvScript.TxContext
 open BoltProof.Glue.Serial
 open BoltProof.Glue.MinSimple (sc preOutpoint preValue preVersion preHashOutputs preHashPrevouts outpointOf
-  getLast_eq_of_drop cleanupScriptCode_forkid two_le_of_decode_serVersion)
+  getLast_eq_of_drop cleanupScriptCode_forkid two_le_of_decode_serVersion NoSecondPreimage)
 open BoltProof.Bridge (params)
 open BoltProof.Bridge.Generated
-
-/-- The eighth piece of the first set, as the gate stack holds it: the type the settle supplies for the other
-grandparent's token, which the second rebuild hashes and anchors on. -/
-theorem gateT_item70 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 70 = a.psA.p8 := by
-  unfold gateT; split_ifs <;> rfl
 
 /-- The second rebuild's anchor, first case on the spent lock's index: `AnchorOK` on the other grandparent's
 token type and balances (the first piece set's items 70, 75 and 76), the spent token's carried balance (item 45)
@@ -52,7 +50,7 @@ theorem rebuildB_2_fact0_eq (t1 t0 a1 a2 : Bytes) (T : List Bytes)
       AnchorOK (if item T 70 = [37] then [1] else []) (item T 70) (encode (decode (item T 75)))
         (encode (decode (item T 76))) (encode (decode (item T 45))) (item T 60) := rfl
 
-/-- **The second rebuild pins `i4`** (`lean/GLUE-PLAN.md` §7 Q9). In either case on the spent lock's index, the
+/-- **The second rebuild pins `i4`** (`lean/README.md`, Finding 7). In either case on the spent lock's index, the
 anchor of the carried balance fixes the other lineage's index argument: it reads as 1, or as 2 when the piece the
 settle supplies as the other grandparent's type is the split commit type. The analogue of `AnchorOK.index` for
 `i5`; the vectors `smb_probe_q9_*` show the refusal on the bytes. -/
@@ -65,17 +63,54 @@ theorem anchorB_index {f : Fields} {a : Args} {S : List Bytes} {t1 t0 a1 a2 : By
   · rw [rebuildB_1_fact0_eq, gateT_item60, gateT_item70] at h; exact AnchorOK.index h
   · rw [rebuildB_2_fact0_eq, gateT_item60, gateT_item70] at h; exact AnchorOK.index h
 
-/-- The other lineage's grandparent is real: a transaction whose txid the token's `otherGrandparent` names, with
-the primitives' id, a token at the named index, a proof output at index 1 and, when the piece the settle supplies
-as its token's type is the split commit type, at index 2; the fourth interop slot is a 32-bit word. Which output
-that slot names is read off the bytes (`anchorB_index`), not assumed. -/
+/-- The other lineage's grandparent is real, as `GpRealF` has the first lineage's: a well-formed transaction whose
+txid the token's `otherGrandparent` names, with no second preimage of its serialisation and the primitives' id, a
+token at the named index, a proof output at index 1 and, when that token is a split commit, at index 2; the fourth
+interop slot is a 32-bit word and the first piece set is at its widths (the rebuild's pieces, Q7). Which output
+the slot names is read off the bytes (`anchorB_index`), as is the token's type (`gpB_token_of_facts`). -/
 structure GpRealB (P : Prims Bytes) (f : Fields) (a : Args) (G : Tx) : Prop where
+  wf : TxWF G
   txid : Sighash.txid G = List.take 32 f.ogp
+  nsp : NoSecondPreimage (serTx G)
   ptxid : P.txid (absTx G) = Sighash.txid G
   token : ∃ t, (absTx G).outputs[leNat (List.drop 32 f.ogp)]? = some (.token t)
   i4len : a.i4.length = 4
+  pieces : HonestPiecesB a.psA
   proof1 : ∃ pkh, (absTx G).outputs[1]? = some (.proof pkh)
-  proof2 : a.psA.p8 = [0x23] → ∃ pkh, (absTx G).outputs[2]? = some (.proof pkh)
+  proof2 : ∀ t, (absTx G).outputs[leNat (List.drop 32 f.ogp)]? = some (.token t) → t.txoType = 0x23 →
+    ∃ pkh, (absTx G).outputs[2]? = some (.proof pkh)
+
+/-- **The other grandparent's token is the pieces' token.** Under the second rebuild's facts (case 1; case 2 is the
+same up to the width names), the other grandparent, being real, is the parsed transaction (`gp_eq_gpTxB`), so the
+token output the model names is its first output, the token of the first piece set with the spend's issuer
+(`gpTxB_token`): its type is the type piece. -/
+theorem gpB_token_of_facts {P : Prims Bytes} {f : Fields} {a : Args} {S : List Bytes} {t1 t0 a1 a2 : Bytes}
+    {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 : Bytes} {GB : Tx}
+    (hwf : WF f) (hsc : sc a.pre = lockScript f) (hop : 104 ≤ a.pre.length)
+    (hval : (List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre)).length = 8)
+    (h24 : a.nty = [0x24])
+    (hlen24 : a.nty = [0x24] → (padN 16 (encode (decode f.bal + decode f.balCommit))).length = 16)
+    (hgb : GpRealB P f a GB) (ha2 : a2.length = 150) (ha1 : a1.length ≤ 414)
+    (h1 : rebuildB_1_fact1 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h2 : rebuildB_1_fact2 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h3 : rebuildB_1_fact3 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h5 : rebuildB_1_fact5 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h6 : rebuildB_1_fact6 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h7 : rebuildB_1_fact7 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h8 : rebuildB_1_fact8 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h9 : rebuildB_1_fact9 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23)
+    (h11 : rebuildB_1_fact11 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23) :
+    ∀ t, (absTx GB).outputs[leNat (List.drop 32 f.ogp)]? = some (.token t) →
+      leNat (List.drop 32 f.ogp) = 0 ∧ t = tokenOf (gpFieldsB (gateT f a S) f.issuer) := by
+  intro t ht
+  have hw := widthsB_gate hwf hsc hop hval (Or.inr (Or.inr h24)) (fun h => absurd h (by rw [h24]; decide)) hlen24
+    hgb.pieces h2 h3 h5 h6 h7 h8 h9 ha2 ha1 h11
+  have hGeq := gp_eq_gpTxB h1 hw hgb.wf hgb.nsp hgb.txid
+  have h15 : item (gateT f a S) 15 = 33 :: f.issuer := by rw [gateT_item15]; exact scPush_issuer hwf hsc
+  have h14 : item (gateT f a S) 14 = SimpleMulti.suffix := by rw [gateT_item14]; exact scSuffix_of_sc hwf hsc
+  have ht' := ht
+  rw [hGeq] at ht'
+  exact gpTxB_token hw (lockWidthsB_gate S hgb.pieces) hwf.issuer h15 h14 _ t ht'
 
 /-- A merge settle's outputs, read by the model: the settled token carrying the sum, then non-token change. -/
 theorem outs_settle_merge {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
@@ -183,28 +218,47 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
     have hsp := List.append_inj (by simpa [serOutPoint] using h : iB.prevHash ++ le32 iB.prevIndex =
       Hash.hash256 XB ++ a.i4) (by rw [h32B, BoltProof.Glue.MinSimple.hash256_length])
     exact ⟨hsp.1.trans hXB, hsp.2⟩
-  obtain ⟨hcoA, hcoB, hpin⟩ : (∃ i1 ∈ tx.inputs, serOutPoint i1 =
+  -- the alt-stack items the first rebuild left for the second: the 150 empty pushes and the key tail
+  have ha2 : (altA2 w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).length = 150 := by
+    show w46.length = 150
+    rw [num2bin_length _ _ _ h11]; decide
+  have ha1 : (altA1 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).length ≤ 414 := by
+    have hlt := List.length_take_le 381 (List.drop 41 (item (gateT f a S) 14))
+    simp only [altA1, List.length_cons, List.length_append, List.length_nil]; omega
+  obtain ⟨hcoA, hcoB, hpin, htok⟩ : (∃ i1 ∈ tx.inputs, serOutPoint i1 =
       Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ a.i5) ∧
       (∃ iB ∈ tx.inputs, iB.prevHash = List.take 32 f.ogp ∧ le32 iB.prevIndex = a.i4) ∧
-      (decode a.i4 = 1 ∨ (a.psA.p8 = [0x23] ∧ decode a.i4 = 2)) := by
+      (decode a.i4 = 1 ∨ (a.psA.p8 = [0x23] ∧ decode a.i4 = 2)) ∧
+      (∀ t, (absTx GB).outputs[leNat (List.drop 32 f.ogp)]? = some (.token t) →
+        leNat (List.drop 32 f.ogp) = 0 ∧ t = tokenOf (gpFieldsB (gateT f a S) f.issuer)) := by
     by_cases h39 : decode (item (gateT f a S) 39) = 0
     · rw [ite_eq_left h39] at hprevs
+      obtain ⟨-, hbf1, hbf2, hbf3, -, hbf5, hbf6, hbf7, hbf8, hbf9, -, hbf11⟩ := hB1 hflag h39
+      have htok := gpB_token_of_facts hwf hsc hop hval8 h24 hlen24 hgb ha2 ha1 hbf1 hbf2 hbf3 hbf5 hbf6 hbf7 hbf8
+        hbf9 hbf11
       have hb1 := (hB1 hflag h39).2.1
       rw [rebuildB_1_fact1_eq, gateT_item41] at hb1
       have hlenB : (gpOutB_1 (gpOutA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (preOutpoint a.pre) (altA1 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (altA2 w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (gateT f a S) w10c1 w11c1 w12c1 w13c1 w14c1 w17c1 w18c1 w19c1 w20c1 w23c1).length = 36 := by
         rw [gpOutB_1_eq, List.length_append, BoltProof.Glue.MinSimple.hash256_length, gateT_item60, hgb.i4len]
       obtain ⟨⟨i1, hi1, hs1⟩, ⟨iB, hiB, hsB⟩⟩ := coSpent_third htx h32 hlenA hlenB
         (by have := hflatP _ hprevs; simpa only [List.append_assoc] using this)
-      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb1 ?_⟩, anchorB_index (Or.inl (hB1 hflag h39).1)⟩
+      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb1 ?_⟩, anchorB_index (Or.inl (hB1 hflag h39).1),
+        htok⟩
       rw [hsB, gpOutB_1_eq, gateT_item60]
     · rw [ite_eq_right h39] at hprevs
+      obtain ⟨-, hbf1, hbf2, hbf3, -, hbf5, hbf6, hbf7, hbf8, hbf9, -, hbf11⟩ := hB2 hflag h39
+      have htok := gpB_token_of_facts hwf hsc hop hval8 h24 hlen24 hgb ha2 ha1 (rebuildB_2_fact1_iff.mp hbf1)
+        (rebuildB_2_fact2_iff.mp hbf2) (rebuildB_2_fact3_iff.mp hbf3) (rebuildB_2_fact5_iff.mp hbf5)
+        (rebuildB_2_fact6_iff.mp hbf6) (rebuildB_2_fact7_iff.mp hbf7) (rebuildB_2_fact8_iff.mp hbf8)
+        (rebuildB_2_fact9_iff.mp hbf9) (rebuildB_2_fact11_iff.mp hbf11)
       have hb2 := (hB2 hflag h39).2.1
       rw [rebuildB_2_fact1_eq, gateT_item41] at hb2
       have hlenB : (gpOutB_2 (gpOutA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (preOutpoint a.pre) (altA1 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (altA2 w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (gateT f a S) w10c2 w11c2 w12c2 w13c2 w14c2 w17c2 w18c2 w19c2 w20c2 w23c2).length = 36 := by
         rw [gpOutB_2_eq, List.length_append, BoltProof.Glue.MinSimple.hash256_length, gateT_item60, hgb.i4len]
       obtain ⟨⟨iB, hiB, hsB⟩, ⟨i1, hi1, hs1⟩⟩ := coSpent_third htx h32 hlenB hlenA
         (by have := hflatP _ hprevs; simpa only [List.append_assoc] using this)
-      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb2 ?_⟩, anchorB_index (Or.inr (hB2 hflag h39).1)⟩
+      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb2 ?_⟩, anchorB_index (Or.inr (hB2 hflag h39).1),
+        htok⟩
       rw [hsB, gpOutB_2_eq, gateT_item60]
   have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none (some GB) hwf hsc hop hval8 (Or.inr (Or.inr h24))
     (fun h => absurd h (by rw [h24]; decide)) hlen24 hgr.pieces
@@ -251,7 +305,9 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
       · have h1' : leNat a.i4 = 1 := by omega
         rw [h1']; exact hgb.proof1
       · have h2' : leNat a.i4 = 2 := by omega
-        rw [h2']; exact hgb.proof2 h8
+        obtain ⟨-, htt⟩ := htok t ht
+        have hty : t.txoType = 0x23 := by rw [htt]; simp [tokenOf, gpFieldsB, gateT_item70, h8]
+        rw [h2']; exact hgb.proof2 t ht hty
     refine ⟨absTx GB, t, by simp [spendOf], by rw [hgb.ptxid, hgb.txid], ht, leNat a.i4, pkh, hpr, ?_⟩
     simp only [absTx, List.mem_map]
     exact ⟨iB, hiB, by rw [htB, ← hlB, leNat_le32 _ hidxB]⟩

@@ -145,7 +145,7 @@ shipped; a result holds **per input** when it is proved of one token spend at a 
    (`lean/BoltProof/Bridge/`, via `native_decide`). The scripts reasoned about hash to the scanner's
    fingerprints.
 3. **The script is proved to enforce the model, per input.** For each of the four scripts a symbolic
-   execution (`lean/BoltProof/Bridge/Glue/`, planned in `lean/GLUE-PLAN.md`) proves what it enforces
+   execution (`lean/BoltProof/Bridge/Glue/`, `lean/README.md`) proves what it enforces
    on every possible input, that it reaches each fragment proved at the byte level with the stack that
    proof assumes, and that any spend the network accepts is one the model accepts. Standard axioms only.
 
@@ -153,10 +153,10 @@ What this does **not** establish. Point 3 is per input and rests on assumptions 
 script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; the
 grandparent a settle names is the real commit two steps back, per input (chaining real spends into a run
 discharges it: a chain of real spends is a valid run, `lean/BoltProof/Bridge/Glue/*/Chain.lean`, so
-Theorems 1, 3, 4 and 5 hold of real tokens, for the fungible script under A1 and two facts read off the
-ancestors' bytes); and three model rules the script does not check and that are not security
+Theorems 1, 3, 4 and 5 hold of real tokens, for the fungible script under A1 and one fact read off the
+ancestors' bytes, that their balance fields are non-negative); and three model rules the script does not check and that are not security
 properties (melt outputs, the change blob, the melt's version). The fungible script adds three, each an
-open question in `lean/GLUE-PLAN.md` §7 (the six protocol types, the rebuild's piece widths, the merge
+open question in `lean/README.md` (the six protocol types, the rebuild's piece widths, the merge
 partner presenting a preimage); the last is probed on the engine and judged in Lean, as are two quirks the
 model admits and the proof covers without assumption (the split settle's output order and the balance
 anchor's index). Layer 2 remains evidence on the transactions it covers (241

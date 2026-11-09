@@ -123,7 +123,7 @@ ancestor's bytes as supplied; the balance anchor's index comes from the proof-vo
 the one place a lock's byte is read, the merge settle's choice between its two prevouts orders, reads
 the spent merge-commit token's byte, which both merge paths write as 0, so only that branch ever runs.
 Off chain, `multiBoltLib` copies the byte as a rebuild piece and the scanner and the builders locate
-tokens by position and proofs by key hash. The Lean development found this (`lean/GLUE-PLAN.md` §7 Q3);
+tokens by position and proofs by key hash. The Lean development found this (`lean/README.md`, Finding 6);
 twenty vectors (`smb_probe_idx_*`) and `test/lib/indexByte.test.ts` show that a token whose byte
 disagrees with its position stays spendable through every operation. The byte is dead weight: one push
 per token output and the write that fills it on every path. `inputIndexN` is **not** dead: it is the

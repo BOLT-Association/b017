@@ -151,7 +151,7 @@ def expectedOuts (fam : Fam) (s : Spend Txid) : List (Out Txid) :=
 
 /-- The outputs a spend may carry before its change (Lemma 2): the reconstructed ones in the covenant's
 order or, for a split settle only, its two settled tokens in the other order. The fungible script lets
-the spender choose that order (`lean/GLUE-PLAN.md` §7 Q3). It is safe to admit: both tokens still go to
+the spender choose that order (`lean/README.md`, Finding 6). It is safe to admit: both tokens still go to
 the committed recipients with the committed balances, a token's outpoint is wherever it sits, and no
 later check reads the order (the anchor names its proof, not a position, `Accepts.l3_rebuild`), so
 nothing a theorem depends on changes. -/

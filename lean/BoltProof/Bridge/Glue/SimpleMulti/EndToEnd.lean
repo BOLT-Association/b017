@@ -24,11 +24,11 @@ melt), `RealSettleGp` (a transfer or split settle with a grandparent), `RealMerg
 at its first token input, with the second token input's run) and `RealMergeSettle` (a merge settle). They
 carry the spend's well-formedness, its verdict, and the residual assumptions `Residual`, `ResidualGp`
 and `GpRealB` as the refinement files lay them out: the cryptographic ones, the lineage links, the clauses
-the bytes do not enforce, and the fungible family's open questions (`lean/GLUE-PLAN.md` §7). The
+the bytes do not enforce, and the fungible family's open questions (`lean/README.md`, "The glue"). The
 consequences are stated once, of any spend read from the bytes, so each stage reaches them through its
 `accepts_of_*` theorem. The run-level theorems (Theorem 1's authenticity over a chain, Theorem 3's
 conservation over a history, Theorem 5's proof gating) follow once a chain of real spends is read as a
-model `Run`, the composition the plan leaves open.
+model `Run` (`Chain.lean`).
 -/
 
 set_option autoImplicit false
@@ -111,7 +111,7 @@ theorem accepts_of_real_settle_gp {P : Prims Bytes} {tx : Tx} {i amt : Nat} {f :
 
 /-- A real merge commit at its first token input, as `simpleMulti_refines_merge_commit` takes it: this
 input's spend and the second token input's (`i'`, `f'`, `a'`), both valid, each with its residuals. That
-the second input presents a preimage (`hpre'`) is the plan's open question Q8: the bytes accept a merge
+the second input presents a preimage (`hpre'`) is open question Q8 of `lean/README.md`: the bytes accept a merge
 commit whose other input takes the melt branch, and anchor the carried balance only at the settle. -/
 structure RealMergeCommit (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : Args) (S : List Bytes)
     (scriptSig : Bytes) (i' amt' : Nat) (f' : Fields) (a' : Args) (S' : List Bytes) (scriptSig' : Bytes) :

@@ -8,7 +8,7 @@ The eleven path theorems of `AuthBolt/Paths.lean` assembled: whatever the lock f
 of either type) and the unlocking arguments, a run of the suffix that does not fail enforces
 `Enforced` (with a preimage) or `EnforcedMelt` (without), passes the two proved fragments, and
 ends with the owner's `OP_CHECKSIG` result on top. The two `reaches_*` corollaries are the
-reviewer's literal ask (`lean/GLUE-PLAN.md`, Finding 2 and M3): the run reaches each proved
+reviewer's literal ask (`lean/README.md`, Finding 2): the run reaches each proved
 fragment literal with the stack its lemma assumes.
 -/
 

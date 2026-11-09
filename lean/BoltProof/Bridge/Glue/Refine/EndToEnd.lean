@@ -17,8 +17,8 @@ key) hold of the shipped bytes. The hypotheses are
 `RealSpend`: the spend's well-formedness, its verdict, and `Residual` (the cryptographic
 assumptions, the lineage link, and the clauses the bytes do not enforce, as
 `Refine/MinSimple.lean` lays them out). The run-level theorems (Theorem 1's authenticity over a
-chain, Theorem 5's proof gating) follow once a chain of real spends is read as a model `Run`,
-the composition `lean/GLUE-PLAN.md` leaves open.
+chain, Theorem 5's proof gating) follow once a chain of real spends is read as a model `Run`
+(`Refine/Chain.lean`).
 -/
 
 set_option autoImplicit false

@@ -201,52 +201,52 @@ theorem check_smb_extra_output_settle : smb_extra_output_settle.check params = t
 /-- §8.2 the genesis spent with a key whose hash160 is not the owner: refused (Lemma 1) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e)] -/
 theorem check_smb_wrong_key_commit : smb_wrong_key_commit.check params = true := by native_decide
 
-/-- GLUE-PLAN probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes [sdk: 0:valid 1:valid] -/
+/-- Glue probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes [sdk: 0:valid 1:valid] -/
 theorem check_nft_probe_melt_token_output : nft_probe_melt_token_output.check params = true := by native_decide
 
-/-- GLUE-PLAN probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes [sdk: 0:valid 1:valid] -/
+/-- Glue probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes [sdk: 0:valid 1:valid] -/
 theorem check_nft_probe_change_blob_token : nft_probe_change_blob_token.check params = true := by native_decide
 
-/-- GLUE-PLAN probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script? [sdk: 0:valid 1:valid] -/
+/-- Glue probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script? [sdk: 0:valid 1:valid] -/
 theorem check_nft_probe_change_single_token : nft_probe_change_single_token.check params = true := by native_decide
 
-/-- GLUE-PLAN probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count? [sdk: 0:valid 1:valid] -/
+/-- Glue probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count? [sdk: 0:valid 1:valid] -/
 theorem check_nft_probe_change_two_p2pkh : nft_probe_change_two_p2pkh.check params = true := by native_decide
 
-/-- GLUE-PLAN probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid] -/
+/-- Glue probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid] -/
 theorem check_smb_probe_type27_commit : smb_probe_type27_commit.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid] -/
+/-- Glue Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_q8_melt_other_honest_balance_commit : smb_probe_q8_melt_other_honest_balance_commit.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+/-- Glue Q8 probe: the settle of that merged token, carrying nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid 3:valid] -/
 theorem check_smb_probe_q8_melt_other_honest_balance_settle : smb_probe_q8_melt_other_honest_balance_settle.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:valid 1:valid 2:valid] -/
+/-- Glue Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_q8_melt_other_inflated_commit : smb_probe_q8_melt_other_inflated_commit.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
+/-- Glue Q8 probe: the settle of that merged token, carrying nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
 theorem check_smb_probe_q8_melt_other_inflated_settle : smb_probe_q8_melt_other_inflated_settle.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position [sdk: 0:valid 1:valid 2:valid] -/
+/-- Glue Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_q3_swapped_split_settle : smb_probe_q3_swapped_split_settle.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit [sdk: 0:valid 1:valid] -/
+/-- Glue Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit [sdk: 0:valid 1:valid] -/
 theorem check_smb_probe_q3_swapped_respend_commit : smb_probe_q3_swapped_respend_commit.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid] -/
+/-- Glue Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_q3_swapped_respend_settle : smb_probe_q3_swapped_respend_settle.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 2) instead of its proof (index 1), and spends it there; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
+/-- Glue Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 2) instead of its proof (index 1), and spends it there; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
 theorem check_smb_probe_q9_i4_change_transfer_gp : smb_probe_q9_i4_change_transfer_gp.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 1) and spending it; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+/-- Glue Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 1) and spending it; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid] -/
 theorem check_smb_probe_q9_i4_proof_transfer_gp : smb_probe_q9_i4_proof_transfer_gp.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 3) instead of its proof (index 2), and spends it there; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
+/-- Glue Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 3) instead of its proof (index 2), and spends it there; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
 theorem check_smb_probe_q9_i4_change_split_gp : smb_probe_q9_i4_change_split_gp.check params = true := by native_decide
 
-/-- GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 2) and spending it; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+/-- Glue Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 2) and spending it; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid] -/
 theorem check_smb_probe_q9_i4_proof_split_gp : smb_probe_q9_i4_proof_split_gp.check params = true := by native_decide
 
 /-- index-byte probe S1: the swapped split settle (pkh1 set); the second token sits at output 0 with index byte 1 [sdk: 0:valid 1:valid 2:valid] -/

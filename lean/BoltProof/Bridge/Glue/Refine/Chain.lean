@@ -5,7 +5,7 @@ import BoltProof.Theorems.ProofGating
 /-!
 # `MinSimpleBOLT`: a chain of real spends is a valid run
 
-The chaining step, Bridge half (`lean/GLUE-PLAN.md`, M4's Option A). `Refine/EndToEnd.lean` states what
+The chaining step, Bridge half (`lean/README.md`, "The chain"). `Refine/EndToEnd.lean` states what
 holds of one real spend; this file reads a whole chain of real spends as a model `Run` and proves the
 run valid, so Layer 1's run-level theorems hold of real tokens: Theorem 1 over a history (every live
 token is rooted at a genesis token of the run and carries the issuer along its lineage), Theorem 3's

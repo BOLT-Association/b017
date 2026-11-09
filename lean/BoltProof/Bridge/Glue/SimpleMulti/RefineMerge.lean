@@ -11,7 +11,7 @@ input's run supplies what the first input's covenant takes on trust: by `other_m
 settle-typed and it builds the merged token from its own fields, so by `merge_fields_eq` the first input's interop
 arguments are the other token's balance and parent and the issuers are one. Beyond both inputs' `Residual`, it
 assumes the two inputs spend distinct outpoints (the consensus rule against duplicate inputs) and that the second
-input presents a preimage (§7's eighth question).
+input presents a preimage (Q8 of `lean/README.md`).
 -/
 
 set_option autoImplicit false

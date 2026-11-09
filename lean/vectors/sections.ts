@@ -1,4 +1,4 @@
-// Section cutting for the Lean glue proof (lean/GLUE-PLAN.md, M1).
+// Section cutting for the Lean glue proof (lean/README.md, "The glue").
 //
 // Each shipped covenant suffix is cut into chunks so that
 //   * every fragment literal proved in lean/BoltProof/Bridge/Gadgets/ (a "landmark") is exactly one chunk,

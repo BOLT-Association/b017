@@ -39,7 +39,7 @@ open BoltProof
 #print axioms Run.other_grandparent_layout_upto
 #print axioms t1_genesis_signer
 
--- The glue (`lean/GLUE-PLAN.md`): what each shipped suffix enforces on every input (`*_sound`), the proved fragments
+-- The glue (`lean/README.md`): what each shipped suffix enforces on every input (`*_sound`), the proved fragments
 -- it reaches (`reaches_*`), and the refinement of a valid spend to `Accepts` (`*_refines`).
 #print axioms Glue.MinSimple.minSimple_sound
 #print axioms Glue.MinSimple.reaches_nftTypeSel
@@ -72,6 +72,9 @@ open BoltProof
 #print axioms Glue.SimpleMulti.simpleMulti_refines_merge_commit
 #print axioms Glue.SimpleMulti.simpleMulti_refines_merge_settle
 #print axioms Glue.SimpleMulti.anchorB_index
+#print axioms Glue.SimpleMulti.decode_rebuiltB
+#print axioms Glue.SimpleMulti.gp_eq_gpTxB
+#print axioms Glue.SimpleMulti.gpB_token_of_facts
 #print axioms Glue.SimpleMulti.accepts_of_real
 #print axioms Glue.SimpleMulti.accepts_of_real_settle_gp
 #print axioms Glue.SimpleMulti.accepts_of_real_merge_commit

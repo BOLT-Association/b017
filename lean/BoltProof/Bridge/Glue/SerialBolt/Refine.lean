@@ -6,7 +6,7 @@ import BoltProof.Bridge.Glue.SerialBolt.Weld
 /-!
 # `SerialBOLT`: the bytes refine `Accepts`
 
-**The refinement theorem** (`lean/GLUE-PLAN.md`, M4, route B): a spend the shipped
+**The refinement theorem** (`lean/README.md`, "The glue"): a spend the shipped
 `SerialBOLT` lock accepts under the post-Chronicle consensus rules is a spend the covenant
 interface `Accepts` (`Model/Covenant.lean`) accepts, for the NFT family, once the spend is read
 into the model's vocabulary (`spendOf`, `SerialBolt/Abs.lean`). Everything Layer 1 proves of
@@ -26,7 +26,7 @@ What is assumed beyond the bytes is stated once, in `Residual`:
   discharges it (`Refine/Chain.lean` reads a chain of real spends as a valid run);
 * `Agrees`: the primitives compute `hash160` and this spend's `OP_CHECKSIG`;
 * `HonestOutputs`/`HonestMelt`: the change outputs carry no token, and a melt pays P2PKH only and
-  has version 2 (Finding 1 of the plan: the bytes do not enforce these clauses).
+  has version 2 (Finding 1 of `lean/README.md`: the bytes do not enforce these clauses).
 
 `ArgsWF` is the width of the recipient hash and the signing key, which the bytes copy into the
 new token's pushes unchecked (a melt reads neither, so it is asked only of a spend with a preimage);

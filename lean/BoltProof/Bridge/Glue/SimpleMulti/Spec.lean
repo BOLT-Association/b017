@@ -3,7 +3,7 @@ import BoltProof.Bridge.Glue.MinSimple.Spec
 /-!
 # The `SimpleMultiBOLT` lock as the stack carries it
 
-The fungible family's vocabulary (`lean/GLUE-PLAN.md`, M5): the eleven lock fields
+The fungible family's vocabulary (`lean/README.md`, "The glue"): the eleven lock fields
 (`src/tokens/MultiBOLT.ts`, `templates/SimpleMulti.sx.template.ts`), the unlocking arguments above
 the 150 ancestor pieces (the pieces themselves stay abstract until the rebuild is run), the lock's
 own `OP_PUSH_TX` block, and `Reaches`, the statement that the run of the suffix passes an offset in

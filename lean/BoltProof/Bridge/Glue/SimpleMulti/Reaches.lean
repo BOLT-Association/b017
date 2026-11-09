@@ -5,7 +5,7 @@ import BoltProof.Bridge.Glue.Sections
 /-!
 # The fungible fragments are reached
 
-The reviewer's literal ask for `SimpleMultiBOLT` (`lean/GLUE-PLAN.md`, Finding 2 and M5): the run
+The reviewer's literal ask for `SimpleMultiBOLT` (`lean/README.md`, Finding 2): the run
 of the shipped suffix reaches each of the five fragments proved in `Gadgets/` (the parity check at
 528, the two balance bounds at 610 and 621, the merge and split guards at 672 and 687, the merge
 and split settle re-checks at 781 and 935) with the stack their lemmas assume: the type bytes at

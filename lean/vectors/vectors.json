@@ -1340,7 +1340,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes [sdk: 0:valid 1:valid]"
+   "note": "Glue probe: a melt that also emits a covenant-shaped token output; the melt branch constrains no output, so `l2_melt` is not enforced by the bytes [sdk: 0:valid 1:valid]"
   },
   {
    "name": "nft_probe_change_blob_token",
@@ -1360,7 +1360,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes [sdk: 0:valid 1:valid]"
+   "note": "Glue probe: a commit whose change blob carries two outputs, one covenant-shaped; the blob is unparsed, so the change half of `l2_outs` is not enforced by the bytes [sdk: 0:valid 1:valid]"
   },
   {
    "name": "nft_probe_change_single_token",
@@ -1380,7 +1380,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script? [sdk: 0:valid 1:valid]"
+   "note": "Glue probe: the single change output is covenant-shaped (honest unlock): does the covenant constrain the change script? [sdk: 0:valid 1:valid]"
   },
   {
    "name": "nft_probe_change_two_p2pkh",
@@ -1400,7 +1400,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count? [sdk: 0:valid 1:valid]"
+   "note": "Glue probe: the change blob carries two P2PKH outputs: does the covenant constrain the change count? [sdk: 0:valid 1:valid]"
   },
   {
    "name": "smb_probe_type27_commit",
@@ -1422,7 +1422,7 @@
     },
     "valid"
    ],
-   "note": "GLUE-PLAN probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid]"
+   "note": "Glue probe: an off-genesis transfer commit with nextTxoType 0x27 (undefined) and a matching output type: refused, the written type is derived from the mode flags [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid]"
   },
   {
    "name": "smb_probe_q8_melt_other_honest_balance_commit",
@@ -1447,7 +1447,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid]"
+   "note": "Glue Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid]"
   },
   {
    "name": "smb_probe_q8_melt_other_honest_balance_settle",
@@ -1477,7 +1477,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid 3:valid]"
+   "note": "Glue Q8 probe: the settle of that merged token, carrying nbc = the other token's real balance (1), the control [sdk: 0:valid 1:valid 2:valid 3:valid]"
   },
   {
    "name": "smb_probe_q8_melt_other_inflated_commit",
@@ -1502,7 +1502,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:valid 1:valid 2:valid]"
+   "note": "Glue Q8 probe: a merge commit whose other token input takes the melt branch, this input's nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:valid 1:valid 2:valid]"
   },
   {
    "name": "smb_probe_q8_melt_other_inflated_settle",
@@ -1534,7 +1534,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q8 probe: the settle of that merged token, carrying nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid]"
+   "note": "Glue Q8 probe: the settle of that merged token, carrying nbc = 1,000,000 for a token of balance 1, the attack [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid]"
   },
   {
    "name": "smb_probe_q3_swapped_split_settle",
@@ -1559,7 +1559,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position [sdk: 0:valid 1:valid 2:valid]"
+   "note": "Glue Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position [sdk: 0:valid 1:valid 2:valid]"
   },
   {
    "name": "smb_probe_q3_swapped_respend_commit",
@@ -1579,7 +1579,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit [sdk: 0:valid 1:valid]"
+   "note": "Glue Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit [sdk: 0:valid 1:valid]"
   },
   {
    "name": "smb_probe_q3_swapped_respend_settle",
@@ -1604,7 +1604,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid]"
+   "note": "Glue Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid]"
   },
   {
    "name": "smb_probe_q9_i4_change_transfer_gp",
@@ -1636,7 +1636,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 2) instead of its proof (index 1), and spends it there; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid]"
+   "note": "Glue Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 2) instead of its proof (index 1), and spends it there; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid]"
   },
   {
    "name": "smb_probe_q9_i4_proof_transfer_gp",
@@ -1666,7 +1666,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 1) and spending it; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid]"
+   "note": "Glue Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 1) and spending it; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid]"
   },
   {
    "name": "smb_probe_q9_i4_change_split_gp",
@@ -1698,7 +1698,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 3) instead of its proof (index 2), and spends it there; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid]"
+   "note": "Glue Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 3) instead of its proof (index 2), and spends it there; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid]"
   },
   {
    "name": "smb_probe_q9_i4_proof_split_gp",
@@ -1728,7 +1728,7 @@
     "valid",
     "valid"
    ],
-   "note": "GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 2) and spending it; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid]"
+   "note": "Glue Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 2) and spending it; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid]"
   },
   {
    "name": "smb_probe_idx_s1_swapped_settle",

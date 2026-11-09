@@ -4,13 +4,13 @@ import BoltProof.Bridge.Glue.SimpleMulti.L3
 /-!
 # `SimpleMultiBOLT`: the bytes refine `Accepts` (second stage, the settles with a grandparent)
 
-The second stage of the refinement (`lean/GLUE-PLAN.md`, M5): a transfer or split settle of a token with a
+The second stage of the refinement (`lean/README.md`, "The glue"): a transfer or split settle of a token with a
 grandparent that the shipped lock accepts is a spend `Accepts .fungible` admits, read through `spendOf` with the
 real grandparent as the first ancestor, whatever commit the grandparent was (a transfer, a split with its
 second proof output, a merge with its second token input: the rebuild's two optional arms). Beyond the
 first stage's `Residual` it assumes `ResidualGp`: the grandparent is real (`GpRealF`), the second piece set has
 the widths of the fields it stands for (`HonestPiecesB`), and the fifth interop slot is the parent's output
-index plus one as a 32-bit word (the anchor's index, §7's sixth question). `refine_run` is the run prefix both
+index plus one as a 32-bit word (the anchor's index, Q6 of `lean/README.md`). `refine_run` is the run prefix both
 stages share.
 -/
 

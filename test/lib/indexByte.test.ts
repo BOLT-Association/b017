@@ -3,7 +3,7 @@
 // The fungible script writes a token's index byte (lock chunk 7, `outputIndexN`) from the spender's `inputIndexN`
 // argument, or from the `i2` interop slot for a split settle's second token, and never reads it back; with `pkh1`
 // set a split settle's two tokens come out swapped. The Lean development found this and proved the script's
-// reading (lean/GLUE-PLAN.md §7 Q3); its `smb_probe_idx_*` vectors judge the same transactions in Lean. This suite
+// reading (lean/README.md, Finding 6); its `smb_probe_idx_*` vectors judge the same transactions in Lean. This suite
 // keeps the fact under the fast test run: every shape of mismatch, then every later operation on the mismatched
 // token, built with the honest builders and judged by verifyTx (the @bsv/sdk Spend engine).
 import { describe, it, expect } from 'vitest'

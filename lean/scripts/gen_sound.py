@@ -48,8 +48,8 @@ shape and ends with the owner's signature check on top. With a preimage, a settl
 committed (`Enforced`, the nine commit paths), a commit-typed (odd) token is settled into its own settle type
 (`EnforcedSettle` with a grandparent, `EnforcedSettle0` without), and every other pair is refused by the parity
 check (`Refute.lean`); without one the token is melted (`EnforcedMelt`). No hypothesis constrains an unlock
-argument except the next type, and that one only to the family's six types: a next type outside them is the
-plan's open question 4 (§7).
+argument except the next type, and that one only to the family's six types: a next type outside them is
+open question Q4 of `lean/README.md`.
 -/
 
 set_option autoImplicit false

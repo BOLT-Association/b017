@@ -234,6 +234,7 @@ theorem b_mergeCommit_refines (P : Prims Bytes) (hres : Residual P (Vec.inputD s
 theorem b_mergeSettle_refines (P : Prims Bytes) (hres : Residual P (Vec.inputD smb_honest_b_mergeSettle 0).tx 0 (Vec.inputD smb_honest_b_mergeSettle 0).amt (smFieldsD smb_honest_b_mergeSettle 0) (smArgsD smb_honest_b_mergeSettle 0))
     (hnsp : BoltProof.Glue.MinSimple.NoSecondPreimage (serTx (txD smb_honest_b_commit1)))
     (hptxid : P.txid (absTx (txD smb_honest_b_commit1)) = Sighash.txid (txD smb_honest_b_commit1))
+    (hnspB : BoltProof.Glue.MinSimple.NoSecondPreimage (serTx (txD smb_honest_b_lineageB_commit1)))
     (hptxidB : P.txid (absTx (txD smb_honest_b_lineageB_commit1)) = Sighash.txid (txD smb_honest_b_lineageB_commit1)) :
     Accepts P .fungible (spendOf (Vec.inputD smb_honest_b_mergeSettle 0).tx 0 (smFieldsD smb_honest_b_mergeSettle 0) (smArgsD smb_honest_b_mergeSettle 0) none (some (txD smb_honest_b_commit1)) (some (txD smb_honest_b_lineageB_commit1))) :=
   simpleMulti_refines_merge_settle P _ 0 _ _ _ [] (Vec.inputD smb_honest_b_mergeSettle 0).scriptSig (txD smb_honest_b_commit1) (txD smb_honest_b_lineageB_commit1) ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩ (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -242,7 +243,8 @@ theorem b_mergeSettle_refines (P : Prims Bytes) (hres : Residual P (Vec.inputD s
       of_isProofAt (by native_decide), of_proof2At (by native_decide),
       of_balsNonneg (by native_decide)⟩,
       ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide⟩
-    ⟨by native_decide, hptxidB, of_isTokenAt (by native_decide), by native_decide, of_isProofAt (by native_decide),
-      fun h => absurd h (by native_decide)⟩ (by native_decide) (by native_decide)
+    ⟨⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide, hnspB, hptxidB, of_isTokenAt (by native_decide), by native_decide,
+      ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩,
+      of_isProofAt (by native_decide), of_proof2At (by native_decide)⟩ (by native_decide) (by native_decide)
 
 end BoltProof.Bridge.Glue.SimpleMulti

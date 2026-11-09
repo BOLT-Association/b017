@@ -3,7 +3,7 @@ import BoltProof.Bridge.Glue.MinSimple.Spec
 /-!
 # What the `AuthBOLT` suffix enforces
 
-The vocabulary of the glue theorem for the identity NFT lock (`lean/GLUE-PLAN.md`, M6), `MinSimpleBOLT`'s with
+The vocabulary of the glue theorem for the identity NFT lock (`lean/README.md`, "The glue"), `MinSimpleBOLT`'s with
 the differences the bytes make: the unlocking script carries an `authOrMiscData` push below everything else (a
 direct push, at most 75 bytes: the guard at suffix 25) and a 27th ancestor piece (the grandparent commit's own
 `authOrMiscData`, which leads its rebuilt unlocking script), and the suffix is 1145 bytes. As for `MinSimpleBOLT`: the six

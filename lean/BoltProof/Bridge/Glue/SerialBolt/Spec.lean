@@ -3,7 +3,7 @@ import BoltProof.Bridge.Glue.SerialBolt.Arms
 /-!
 # What the `SerialBOLT` suffix enforces
 
-The vocabulary of the glue theorem for the serial-number NFT lock (`lean/GLUE-PLAN.md`, M6), `MinSimpleBOLT`'s with
+The vocabulary of the glue theorem for the serial-number NFT lock (`lean/README.md`, "The glue"), `MinSimpleBOLT`'s with
 the differences the bytes make: the lock carries two more pushes below `MinSimpleBOLT`'s six, `genesisOutpoint`
 (the mint's outpoint from the first spend on, null before) and `mintData` (the issuer's bytes at genesis, empty
 after), so every scriptCode offset past them moves by the `mintData` push's width (`mintW`); every new token is
