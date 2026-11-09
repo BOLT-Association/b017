@@ -68,10 +68,11 @@ live at that point and each step's transaction id is new. The first is the UTXO 
 others the ledger's; none is the covenant's to check. -/
 structure RealChain (P : Prims Bytes) (r : Run Bytes) : Prop where
   genesis : r.GenesisOK .nft
-  steps : ∀ k s, r.steps[k]? = some s → ∃ (tx : Tx) (i amt : Nat) (f : Fields) (a : Args) (S : List Bytes)
-    (scriptSig : Bytes), s = spendOf tx i f a ∧ ChainSpend P tx i amt f a S scriptSig
-  spent_live : ∀ k s, r.steps[k]? = some s → (s.spentOutpoint, s.spent) ∈ r.liveAfter P k
-  fresh : ∀ k s, r.steps[k]? = some s → ∀ x ∈ r.everAfter P k, x.1.txid ≠ P.txid s.tx
+  steps : ∀ (k : Nat) (s : Spend Bytes), r.steps[k]? = some s →
+    ∃ (tx : Tx) (i amt : Nat) (f : Fields) (a : Args) (S : List Bytes) (scriptSig : Bytes),
+      s = spendOf tx i f a ∧ ChainSpend P tx i amt f a S scriptSig
+  spent_live : ∀ (k : Nat) (s : Spend Bytes), r.steps[k]? = some s → (s.spentOutpoint, s.spent) ∈ r.liveAfter P k
+  fresh : ∀ (k : Nat) (s : Spend Bytes), r.steps[k]? = some s → ∀ x ∈ r.everAfter P k, x.1.txid ≠ P.txid s.tx
 
 variable {P : Prims Bytes} {r : Run Bytes}
 
@@ -136,7 +137,7 @@ theorem chain_issuer_invariant (h : RealChain P r) : ∀ x ∈ r.live P, x.2.iss
 count plus the melts is the number minted. -/
 theorem chain_count (h : RealChain P r) (k : Nat) :
     (r.liveAfter P k).length + r.meltCount k = r.genesis.length :=
-  t3_nft_count (valid_of_chain h) k
+  Run.t3_nft_count (valid_of_chain h) k
 
 /-- **Theorem 4 of the shipped bytes, over a history.** Every token a real chain ever created carries one of
 the NFT machine's two type bytes. -/

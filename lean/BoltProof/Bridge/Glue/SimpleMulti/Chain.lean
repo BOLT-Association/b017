@@ -141,10 +141,11 @@ read by its stage (`ChainStep`), and whose ledger bookkeeping holds: each step s
 point and each step's transaction id is new. -/
 structure RealChain (P : Prims Bytes) (r : Run Bytes) : Prop where
   genesis : r.GenesisOK .fungible
-  steps : ∀ k s, r.steps[k]? = some s → ChainStep P s
-  spent_live : ∀ k s, r.steps[k]? = some s → (s.spentOutpoint, s.spent) ∈ r.liveAfter P k
-  other_live : ∀ k s, r.steps[k]? = some s → ∀ o, s.other = some o → (o.2, o.1) ∈ r.liveAfter P k
-  fresh : ∀ k s, r.steps[k]? = some s → ∀ x ∈ r.everAfter P k, x.1.txid ≠ P.txid s.tx
+  steps : ∀ (k : Nat) (s : Spend Bytes), r.steps[k]? = some s → ChainStep P s
+  spent_live : ∀ (k : Nat) (s : Spend Bytes), r.steps[k]? = some s → (s.spentOutpoint, s.spent) ∈ r.liveAfter P k
+  other_live : ∀ (k : Nat) (s : Spend Bytes), r.steps[k]? = some s →
+    ∀ o, s.other = some o → (o.2, o.1) ∈ r.liveAfter P k
+  fresh : ∀ (k : Nat) (s : Spend Bytes), r.steps[k]? = some s → ∀ x ∈ r.everAfter P k, x.1.txid ≠ P.txid s.tx
 
 /-! ## The grandparents, read off the run -/
 
