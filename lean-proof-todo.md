@@ -50,7 +50,8 @@ Follow-ups (the residual trust boundary, in order of value):
       ancestors' bytes (`BalsNonneg`, and Q9's `i4` naming a proof output).
 - [ ] Shed the two byte-level facts the fungible chain still reads off the ancestors: the balance signs from the
       commit paths' output bytes (`BalsNonneg`), and the second rebuild's index `i4` from `rebuildB_k` (Q9), as
-      `AnchorOK.index` did for `i5`.
+      `AnchorOK.index` did for `i5`. The vectors already show the bytes pin `i4` (`smb_probe_q9_*`: a settle whose
+      `i4` names the change output is refused, the proof control passes), so both are proof debts, not gaps.
 - [ ] State the chain for AuthBOLT and SerialBOLT: their `Residual.gp` is already settle-only, and the file is
       MinSimple's over their abstraction.
 - [x] Decide the model's reading of the two probed quirks (`GLUE-PLAN.md` §7). Done for Q3 and Q6: the model admits

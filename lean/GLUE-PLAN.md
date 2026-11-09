@@ -414,6 +414,12 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    output. The first rebuild's anchor fixes its index (`AnchorOK.index`, Q6); whether the second rebuild fixes `i4`
    the same way is not yet read off the bytes, so the chain (`SimpleMulti/Chain.lean`) takes it as the step's own
    assertion (`ChainMergeSettle.proofB`). Reading it off `rebuildB_k` would shed it, as `AnchorOK.index` shed `i5`.
+   Probed on the engine and judged in Lean (`smb_probe_q9_i4_change_*`, with `smb_probe_q9_i4_proof_*` as controls):
+   a merge settle whose `i4` names the other grandparent's change output, and spends it there with its owner's key in
+   the proof input's place, is refused at the covenant input with `SCRIPT_ERR_EQUALVERIFY`, for a transfer-commit
+   other grandparent (change at 2) and for a split-commit one (change at 3); the same settle with `i4` on the proof
+   is accepted. So the bytes pin `i4` as they pin `i5`, and the other lineage's proof cannot be left unspent. What
+   remains is the Lean lemma that reads the pin off the second rebuild's anchor, which would shed `proofB`.
 
 ## 8. Milestones and effort
 
@@ -933,3 +939,9 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   well-formed genesis set, live inputs, fresh ids). Theorems 1, 3, 4 and 5 then hold of real tokens
   (`chain_authenticity`, `chain_count`, `chain_conservation`, `chain_defined_types`, `chain_proof_gating`,
   `chain_fabricated_hop_excluded`). No lossless `TxDesc` was needed.
+- **Q9 probed (the other-lineage index):** four vectors. A merge settle whose `i4` names the other grandparent's
+  change output instead of its proof, and spends it there, is refused at the covenant input
+  (`SCRIPT_ERR_EQUALVERIFY`) for a transfer-commit and for a split-commit other grandparent; the same settle with `i4`
+  on the proof passes (the controls). The second rebuild pins `i4` as the first pins `i5`, so proof gating holds on
+  both sides of a merge; `ChainMergeSettle.proofB` stays until a lemma reads the pin off `rebuildB_k`. 105 vectors,
+  241 inputs.

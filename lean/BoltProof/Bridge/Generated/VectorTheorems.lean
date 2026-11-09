@@ -237,6 +237,18 @@ theorem check_smb_probe_q3_swapped_respend_commit : smb_probe_q3_swapped_respend
 /-- GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_q3_swapped_respend_settle : smb_probe_q3_swapped_respend_settle.check params = true := by native_decide
 
+/-- GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 2) instead of its proof (index 1), and spends it there; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_q9_i4_change_transfer_gp : smb_probe_q9_i4_change_transfer_gp.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 1) and spending it; the other grandparent is a transfer commit (token, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_q9_i4_proof_transfer_gp : smb_probe_q9_i4_proof_transfer_gp.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index 3) instead of its proof (index 2), and spends it there; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:invalid(Script evaluation error: OP_EQUALVERIFY requires the top two stack items to be e) 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_q9_i4_change_split_gp : smb_probe_q9_i4_change_split_gp.check params = true := by native_decide
+
+/-- GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index 2) and spending it; the other grandparent is a split commit (token, proof, proof, change) [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_q9_i4_proof_split_gp : smb_probe_q9_i4_proof_split_gp.check params = true := by native_decide
+
 /-- index-byte probe S1: the swapped split settle (pkh1 set); the second token sits at output 0 with index byte 1 [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_idx_s1_swapped_settle : smb_probe_idx_s1_swapped_settle.check params = true := by native_decide
 

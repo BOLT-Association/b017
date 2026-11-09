@@ -77,6 +77,8 @@ const PINNED: Record<string, string> = {
   // the glue plan's probes (lean/GLUE-PLAN.md, M1 and §7)
   'smb_probe_type27_commit#0': 'SCRIPT_ERR_EQUALVERIFY', // the written type is derived from the mode flags, not copied
   'smb_probe_q8_melt_other_inflated_settle#0': 'SCRIPT_ERR_EQUALVERIFY', // the merge settle anchors the carried balance to the other lineage's rebuilt ancestor (the honest-balance control passes)
+  'smb_probe_q9_i4_change_transfer_gp#0': 'SCRIPT_ERR_EQUALVERIFY', // the merge settle pins the other lineage's index argument i4 to the proof output (the proof controls pass)
+  'smb_probe_q9_i4_change_split_gp#0': 'SCRIPT_ERR_EQUALVERIFY',
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -522,6 +524,111 @@ it('exports the Lean vectors', async () => {
       'GLUE-PLAN §7 Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit')
     add('smb_probe_q3_swapped_respend_settle', 'SimpleMultiBOLT', tokA.prevTxs[m - 1],
       'GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle')
+  }
+
+  // ---- Q9 (lean/GLUE-PLAN.md §7): does the merge settle pin the other lineage's index argument `i4`? -------------
+  {
+    // A merge settle co-spends one output of the other lineage's grandparent, at the index the unlock argument `i4`
+    // names, and the model asks that output to be a proof output (`l3_merge`). The first rebuild's anchor pins the
+    // own-lineage index `i5` to the proof (`AnchorOK.index`); whether the second rebuild pins `i4` the same way is
+    // Q9. Here `i4` names the other grandparent's CHANGE output instead of its proof, and the settle spends that
+    // change output (P2PKH, with its owner's key) in the proof input's place, leaving the proof unspent. The merge
+    // commit is the honest builder's; only the settle is rebuilt. Twice: with a transfer commit as the other
+    // grandparent (outputs token, proof, change: `i4` = 2) and with a split commit (token, proof, proof, change:
+    // `i4` = 3), the two shapes the anchor tells apart.
+    const tpl = new SimpleMultiTemplate()
+    const proofTpl = new Pay2ProofTemplate()
+    const z = (n: number): number[] => new Array(n).fill(0x00)
+    const clean = (tx: Transaction): Transaction => {
+      const c = Transaction.fromHex(tx.toHex())
+      tx.inputs.forEach((inp, i) => { c.inputs[i].sourceTransaction = inp.sourceTransaction })
+      return c
+    }
+    const q9 = async (tag: string, a: SimpleMultiBOLT, aKey: PrivateKey, other: SimpleMultiBOLT, changeKey: PrivateKey,
+      what: string, control: boolean): Promise<void> => {
+      const toKey = child(smbIssuer, '9' + tag.length)
+      const toPub = pub(toKey)
+      const toPkh = Hash.hash160(toPub)
+      const balA = a.balance, balB = other.balance
+      await a.merge(other, toKey) // the honest merge: its commit is reused, its settle replaced
+      const n = a.prevTxs.length
+      const commit = a.prevTxs[n - 2]
+      const aTxs = a.prevTxs.slice(0, n - 1) // up to and including the merge commit
+      const bi = other.prevTxs.indexOf(commit)
+      const thisAnc = aTxs[aTxs.length - 3]
+      const otherAnc = other.prevTxs[bi - 2]
+      const thisProof = (a as any).findProofVout(thisAnc, aKey) as number
+      const otherProof = (a as any).findProofVout(otherAnc, other.signer) as number
+      const changeVout = otherAnc.outputs.length - 1
+      if (changeVout === otherProof) throw new Error('q9: the change output is the proof output')
+      const merged = (a as any).addBalances(balA, balB) as number[]
+      // the probe spends the change output at i4 = its index; the control, the proof output at i4 = its index, as the
+      // honest builder does, through this same construction
+      const i4Vout = control ? otherProof : changeVout
+      const settleTx = new Transaction(2, [
+        { sourceTransaction: commit, sourceOutputIndex: 0, sequence: 0xffffffff,
+          unlockingScriptTemplate: tpl.unlock(aKey, toPub, aTxs, false, false, z(16), [0x24], [0x00], [],
+            (a as any).voutLE(thisProof), (a as any).voutLE(i4Vout), [], [], [], otherAnc) },
+        { sourceTransaction: thisAnc, sourceOutputIndex: thisProof, sequence: 0xffffffff, unlockingScriptTemplate: proofTpl.unlock(aKey) },
+        { sourceTransaction: otherAnc, sourceOutputIndex: i4Vout, sequence: 0xffffffff,
+          unlockingScriptTemplate: control ? proofTpl.unlock(other.signer) : new P2PKH().unlock(changeKey) },
+        { sourceTransaction: commit, sourceOutputIndex: commit.outputs.length - 1, sequence: 0xffffffff, unlockingScriptTemplate: new P2PKH().unlock(aKey) },
+      ], [
+        { satoshis: 1, lockingScript: tpl.lock(toPub, aTxs, merged, z(16), z(20), z(20), z(36), [0x24], [0x00], 0) },
+        { change: true, lockingScript: new P2PKH().lock(toPkh) },
+      ])
+      await settleTx.fee(0)
+      await settleTx.sign()
+      if (control) {
+        add(`smb_probe_q9_i4_proof_${tag}`, 'SimpleMultiBOLT', clean(settleTx),
+          `GLUE-PLAN §7 Q9 control: the same merge settle with i4 naming the other grandparent's proof output (index ${otherProof}) and spending it; the other grandparent is ${what}`)
+      } else {
+        add(`smb_probe_q9_i4_change_${tag}`, 'SimpleMultiBOLT', clean(settleTx),
+          `GLUE-PLAN §7 Q9 probe: a merge settle whose i4 names the other grandparent's change output (index ${changeVout}) instead of its proof (index ${otherProof}), and spends it there; the other grandparent is ${what}`)
+      }
+    }
+    // the other grandparent a transfer commit: lineage B minted and transferred to keyB by the issuer, whose change it is
+    {
+      const keyA = child(smbIssuer, '91'), keyB = child(smbIssuer, '92')
+      let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+      let b = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(10)))
+      a = await a.transfer(keyA)
+      b = await b.transfer(keyB)
+      a.skipVerify = true
+      await q9('transfer_gp', a, keyA, b, smbIssuer, 'a transfer commit (token, proof, change)', false)
+    }
+    {
+      const keyA = child(smbIssuer, '97'), keyB = child(smbIssuer, '98')
+      let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+      let b = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(10)))
+      a = await a.transfer(keyA)
+      b = await b.transfer(keyB)
+      a.skipVerify = true
+      await q9('transfer_gp', a, keyA, b, smbIssuer, 'a transfer commit (token, proof, change)', true)
+    }
+    // the other grandparent a split commit: lineage B split by ownerB into two pieces, the second piece merged
+    {
+      const keyA = child(smbIssuer, '93'), ownerB = child(smbIssuer, '94'), keyB1 = child(smbIssuer, '95'), keyB2 = child(smbIssuer, '96')
+      let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+      let b = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(10)))
+      a = await a.transfer(keyA)
+      b = await b.transfer(ownerB)
+      const [, second] = await b.split(keyB1, keyB2, bal(BigInt(4)))
+      a.skipVerify = true
+      second.skipVerify = true
+      await q9('split_gp', a, keyA, second, ownerB, 'a split commit (token, proof, proof, change)', false)
+    }
+    {
+      const keyA = child(smbIssuer, '99'), ownerB = child(smbIssuer, '100'), keyB1 = child(smbIssuer, '101'), keyB2 = child(smbIssuer, '102')
+      let a = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(1000)))
+      let b = await new SimpleMultiBOLT().mint(smbIssuer, freshSource(), '', bal(BigInt(10)))
+      a = await a.transfer(keyA)
+      b = await b.transfer(ownerB)
+      const [, second] = await b.split(keyB1, keyB2, bal(BigInt(4)))
+      a.skipVerify = true
+      second.skipVerify = true
+      await q9('split_gp', a, keyA, second, ownerB, 'a split commit (token, proof, proof, change)', true)
+    }
   }
 
   // ---- Q3 follow-up: a token whose index byte is not its output position stays spendable (no dead tokens) --------

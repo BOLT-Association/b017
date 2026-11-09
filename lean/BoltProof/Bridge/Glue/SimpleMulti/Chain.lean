@@ -25,8 +25,9 @@ What stays assumed, per step: the fungible `Residual` (the cryptographic assumpt
 bytes do not check), the rebuild's piece widths (`HonestPiecesB`, §7 Q7), the index arguments' widths, Q8's
 preimage at a merge's partner input, and two facts about ancestors that the bytes write but the proof
 reads off the chain: `BalsNonneg`, and that a merge settle's other-lineage index argument `i4` names a proof
-output of the other grandparent (`proofB`; the first rebuild's anchor fixes its index, `AnchorOK.index`, and
-whether the second rebuild fixes `i4` the same way is for the bytes to say). The chain's own hypotheses
+output of the other grandparent (`proofB`; the first rebuild's anchor fixes its index, `AnchorOK.index`, and the
+vectors `smb_probe_q9_*` show the second rebuild pins `i4` the same way, a settle naming the change output being
+refused and the proof control accepted, so `proofB` is a proof debt until a lemma reads that pin off the bytes). The chain's own hypotheses
 are the UTXO model's (`RealChain`): a well-formed genesis set, each step spending live tokens, each step's
 id new.
 -/

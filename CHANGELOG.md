@@ -135,6 +135,13 @@ All notable changes to **b017** are documented here. The format is based on
   balance 1 is refused (`SCRIPT_ERR_EQUALVERIFY`). An inflated merge commit can exist but never settles; no settled
   token carries value nobody minted. The proofs keep the assumption that the partner presents a preimage, and a
   `0x25` token's `balanceCommit` is unchecked until its settle.
+- **A merge settle's other-lineage index is pinned to a proof output** (§7 Q9; vectors `smb_probe_q9_i4_change_*`,
+  controls `smb_probe_q9_i4_proof_*`). A merge settle whose `i4` names the other grandparent's change output instead
+  of its proof, and spends that output in the proof input's place with its owner's key, is refused at the covenant
+  input (`SCRIPT_ERR_EQUALVERIFY`), whether the other grandparent is a transfer commit or a split commit; the same
+  settle with `i4` on the proof passes. The other lineage's proof cannot be left unspent, so proof gating holds on
+  both sides of a merge. The chain's `proofB` assertion is a proof debt (the lemma reading the pin off the second
+  rebuild), not a gap in the bytes.
 - **A split settle's output order is the spender's** (§7 Q3; vectors `smb_probe_q3_*`). With `pkh1` set, the script
   accepts the settle with its two tokens swapped, each index byte off its position; both stay spendable with the
   committed recipients and balances. Harmless to value; the model admits either order (`Spend.OutsOK`) and the proof covers
