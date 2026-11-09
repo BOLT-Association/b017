@@ -1,4 +1,5 @@
 import BoltProof.Bridge.Glue.SimpleMulti.EndToEnd
+import BoltProof.Bridge.Glue.SimpleMulti.ChainBals
 import BoltProof.Theorems.Chain
 import BoltProof.Theorems.ProofGating
 
@@ -14,17 +15,22 @@ token ever created, and Theorem 5 (proof gating, the fabricated-hop exclusion).
 The grandparents' reality is read off the run instead of assumed. For a settle with a grandparent the
 refinement wants `GpRealF` of the ancestor `G` it is given; the chain asserts of `G` only that it is a
 well-formed transaction whose id the token names, with no second preimage of its serialisation and the
-primitives' id (`ChainTx`), and that its grandparent token output's balance fields are non-negative script
-numbers (`BalsNonneg`, narrowed to the one output the anchor reads). In a valid prefix the grandparent outpoint is output 0 of an earlier commit step whose
-outputs are its token and the recipients' proof outputs (`Run.grandparent_layout_upto`,
+primitives' id (`ChainTx`). In a valid prefix the grandparent outpoint is output 0 of an earlier commit step
+whose outputs are its token and the recipients' proof outputs (`Run.grandparent_commit_upto`,
 `Theorems/Chain.lean`), and A1 (`CollisionFree`) identifies `G`'s abstraction with that step's transaction,
-as the hand proof's Lemma 3 does, so `GpRealF` follows (`gpRealF_of_chain`). A merge settle's other
-grandparent is read the same way (`Run.other_grandparent_layout_upto`, `gpRealB_of_chain`).
+as the hand proof's Lemma 3 does, so `GpRealF` follows (`gpRealF_of_chain`). Its last field, the grandparent
+token output's balance signs, is read off that creating commit's own bound check rather than assumed: the
+step is identified with `G` byte for byte (`tx_eq_of_txid`, under `ChainTx`'s no-second-preimage and each
+step's txid agreement `hptxid`), and a real commit's produced token carries non-negative balance bytes
+(`chainStep_commit_bals`, `ChainBals.lean`). A merge settle's other grandparent is read the same way
+(`Run.other_grandparent_layout_upto`, `gpRealB_of_chain`).
 
 What stays assumed, per step: the fungible `Residual` (the cryptographic assumptions and the clauses the
 bytes do not check), the rebuilds' piece widths (`HonestPiecesB` of both piece sets, Q7 of `lean/README.md`),
-the index arguments' widths, Q8's preimage at a merge's partner input, and one fact about ancestors that the
-bytes write but the proof reads off the chain: `BalsNonneg`. A merge settle's other grandparent is read off
+the index arguments' widths, Q8's preimage at a merge's partner input, and each step's txid agreement
+(`hptxid`, that the primitives compute the step transaction's real txid, an A1-style fact the NFT chain's
+`ChainSpend` carries too). No byte-level balance fact is assumed any more: `BalsNonneg` is gone, derived from
+the creating commit. A merge settle's other grandparent is read off
 the run like the first (`gpRealB_of_chain`): the second rebuild is welded (`GpWeldB.lean`) and its anchor pins
 the other-lineage index `i4` (`anchorB_index`), so nothing else is asserted of it. The chain's own hypotheses
 are the UTXO model's (`RealChain`): a well-formed genesis set, each step spending live tokens, each step's
@@ -49,14 +55,6 @@ structure ChainTx (P : Prims Bytes) (G : Tx) : Prop where
   wf : TxWF G
   nsp : NoSecondPreimage (serTx G)
   ptxid : P.txid (absTx G) = Sighash.txid G
-
-/-- The grandparent token output's balance fields are non-negative script numbers: what the covenant
-writes (a sixteen-byte pad of a value below `2^127`), decidable on the bytes, and the one fact about an
-ancestor the composition reads off its bytes rather than derives from the run. Narrowed to the one output
-`l3_settle` reads (the token at the grandparent index), the minimal form the anchor needs. -/
-def BalsNonneg (f : Fields) (G : Tx) : Prop :=
-  ∀ o, G.outputs[leNat (List.drop 32 f.gp)]? = some o → ∀ g, decodeLock o.scriptPubKey = some g →
-    0 ≤ decode g.bal ∧ 0 ≤ decode g.balCommit
 
 /-- A transfer or split settle with a grandparent, as `RealSettleGp` takes it, with the grandparent's reality
 (`GpRealF`) left out: the chain supplies it. Of `ResidualGp` the rebuild's piece widths (Q7) and the index
@@ -84,7 +82,6 @@ structure ChainSettleGp (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (
   i5len : a.i5.length = 4
   hG : ChainTx P G
   hGtxid : Sighash.txid G = List.take 32 f.gp
-  hGbals : BalsNonneg f G
   hstack : ((evalScript Eval.opExec (mkEnv params (txContext tx i amt) params.flags.forkAdjust
     (some (lockScript f))) scriptSig [] 0).2).stack = a.stack ++ S
   hvalid : Eval.verifyScript params (txContext tx i amt) scriptSig (lockScript f) = .valid
@@ -111,7 +108,6 @@ structure ChainMergeSettle (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields
   i5len : a.i5.length = 4
   hG : ChainTx P G
   hGtxid : Sighash.txid G = List.take 32 f.gp
-  hGbals : BalsNonneg f G
   hogp : decode f.ogp ≠ 0
   hGB : ChainTx P GB
   hGBtxid : Sighash.txid GB = List.take 32 f.ogp
@@ -127,15 +123,18 @@ without a grandparent or a melt (`RealSpend`); a transfer or split settle with a
 (`ChainMergeSettle`). -/
 inductive ChainStep (P : Prims Bytes) : Spend Bytes → Prop
   | basic {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} {S : List Bytes} {scriptSig : Bytes}
-      (h : RealSpend P tx i amt f a S scriptSig) : ChainStep P (spendOf tx i f a none none none)
+      (h : RealSpend P tx i amt f a S scriptSig) (hptxid : P.txid (absTx tx) = Sighash.txid tx) :
+      ChainStep P (spendOf tx i f a none none none)
   | settleGp {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} {S : List Bytes} {scriptSig : Bytes} {G : Tx}
-      (h : ChainSettleGp P tx i amt f a S scriptSig G) : ChainStep P (spendOf tx i f a none (some G) none)
+      (h : ChainSettleGp P tx i amt f a S scriptSig G) (hptxid : P.txid (absTx tx) = Sighash.txid tx) :
+      ChainStep P (spendOf tx i f a none (some G) none)
   | mergeCommit {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} {S : List Bytes} {scriptSig : Bytes}
       {i' amt' : Nat} {f' : Fields} {a' : Args} {S' : List Bytes} {scriptSig' : Bytes}
-      (h : RealMergeCommit P tx i amt f a S scriptSig i' amt' f' a' S' scriptSig') :
+      (h : RealMergeCommit P tx i amt f a S scriptSig i' amt' f' a' S' scriptSig')
+      (hptxid : P.txid (absTx tx) = Sighash.txid tx) :
       ChainStep P (spendOf tx i f a (some (f', ⟨(inputAt tx i').prevHash, (inputAt tx i').prevIndex⟩)) none none)
   | mergeSettle {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} {S : List Bytes} {scriptSig : Bytes} {G GB : Tx}
-      (h : ChainMergeSettle P tx i amt f a S scriptSig G GB) :
+      (h : ChainMergeSettle P tx i amt f a S scriptSig G GB) (hptxid : P.txid (absTx tx) = Sighash.txid tx) :
       ChainStep P (spendOf tx i f a none (some G) (some GB))
 
 /-- A real `SimpleMultiBOLT` chain: a run whose genesis set is well-formed, whose every step is a real spend
@@ -184,26 +183,68 @@ theorem spent_otherGrandparent {tx : Tx} {i : Nat} {f : Fields} {a : Args}
 
 variable {P : Prims Bytes} {r : Run Bytes}
 
+/-- **A commit step's produced token output has non-negative balance bytes.** Reads it off the creating
+commit's own run (`ChainBals.lean`), which the covenant's bound check establishes. The settle steps are
+excluded by their kind. Returns the step's concrete transaction and that output, for the identification in
+`gpRealF_of_chain`. -/
+theorem chainStep_commit_bals {s : Spend Bytes} (hstep : ChainStep P s) (hkind : s.kind = .commit) :
+    ∃ txc : Tx, s.tx = absTx txc ∧ TxWF txc ∧ P.txid (absTx txc) = Sighash.txid txc ∧
+      ∃ (amt : Nat) (gout : Fields), txc.outputs[0]? = some ⟨amt, lockScript gout⟩ ∧ WF gout ∧
+        0 ≤ decode gout.bal ∧ 0 ≤ decode gout.balCommit := by
+  cases hstep with
+  | @basic tx i amt f a S scriptSig hs hptxid =>
+    obtain ⟨hpre, hset⟩ := kindOf_commit_iff.mp hkind
+    obtain ⟨gout, hgo, hgwf, hgb, hgbc⟩ := commit_out_bals_basic P tx i amt f a S scriptSig hs.hwf hs.hargs
+      hs.hty hs.hnty hs.hnm hs.hgp0 hs.hgen hs.hogp hs.hbal hs.hcom2 hs.hpkh2 hs.htx hs.hamt hs.hi hs.hnz
+      hs.hres hs.hstack hs.hvalid hpre hset
+    exact ⟨tx, rfl, hs.htx, hptxid, amt, gout, hgo, hgwf, hgb, hgbc⟩
+  | @mergeCommit tx i amt f a S scriptSig i' amt' f' a' S' scriptSig' hs hptxid =>
+    obtain ⟨gout, hgo, hgwf, hgb, hgbc⟩ := commit_out_bals_merge P tx i amt f a S scriptSig hs.hwf hs.hA
+      hs.hty hs.hnty hs.htx hs.hamt hs.hi hs.hnz hs.hres hs.hstack hs.hvalid hs.hpre hs.hset hs.hmrg hs.hidx0
+    exact ⟨tx, rfl, hs.htx, hptxid, amt, gout, hgo, hgwf, hgb, hgbc⟩
+  | @settleGp tx i amt f a S scriptSig G hs hptxid =>
+    simp only [spendOf, kindOf_settle hs.hpre hs.hset] at hkind
+    exact absurd hkind (by decide)
+  | @mergeSettle tx i amt f a S scriptSig G GB hs hptxid =>
+    simp only [spendOf, kindOf_settle hs.hpre (by rw [hs.hmrg]; decide)] at hkind
+    exact absurd hkind (by decide)
+
 /-- **The grandparent a settle names is real** (`GpRealF`), read off the valid prefix. The grandparent
 outpoint is output 0 of an earlier commit step whose outputs are its token and the recipients' proof
-outputs; A1 identifies the ancestor's abstraction with that step's transaction. -/
-theorem gpRealF_of_chain (hc : CollisionFree P) {k : Nat} (hv : r.ValidUpTo P .fungible k) {tx : Tx} {i : Nat}
+outputs; A1 identifies the ancestor's abstraction with that step's transaction, and the grandparent token
+output's balance signs are read off that commit's own run (`chainStep_commit_bals`). -/
+theorem gpRealF_of_chain (hc : CollisionFree P) (h : RealChain P r) {k : Nat} (hv : r.ValidUpTo P .fungible k)
+    {tx : Tx} {i : Nat}
     {f : Fields} {a : Args} {other : Option (Fields × Outpoint Bytes)} {ancA ancB : Option Tx}
     (hlive : ((spendOf tx i f a other ancA ancB).spentOutpoint, (spendOf tx i f a other ancA ancB).spent) ∈
       r.liveAfter P k)
     (hty : f.ty = [0x21] ∨ f.ty = [0x23] ∨ f.ty = [0x25]) (hgp0 : decode f.gp ≠ 0) {G : Tx} (hG : ChainTx P G)
-    (hGtxid : Sighash.txid G = List.take 32 f.gp) (hGbals : BalsNonneg f G) : GpRealF P f G := by
-  obtain ⟨c, -, sc, -, hid, hvout, ⟨t, ht⟩, ⟨pkh, hpk⟩, h2⟩ :=
-    Run.grandparent_layout_upto hv hlive (spent_commitTyped hty) (spent_grandparent hgp0)
+    (hGtxid : Sighash.txid G = List.take 32 f.gp) : GpRealF P f G := by
+  obtain ⟨c, -, sc, hcmem, hckind, hid, hvout, hout0, hout1, hout2⟩ :=
+    Run.grandparent_commit_upto hv hlive (spent_commitTyped hty) (spent_grandparent hgp0)
   have hvout' : leNat (List.drop 32 f.gp) = 0 := hvout
   have hA : absTx G = sc.tx := hc _ _ (by rw [hG.ptxid, hGtxid]; exact hid.symm)
-  refine ⟨hG.wf, hGtxid, hG.nsp, hG.ptxid, ⟨t, ?_⟩, ⟨pkh, ?_⟩, ?_, hGbals⟩
-  · rw [hA, hvout']; exact ht
-  · rw [hA]; exact hpk
+  obtain ⟨txc, hsctx, hwftxc, hptxidtxc, amt, gout, hgo, hgwf, hgb, hgbc⟩ :=
+    chainStep_commit_bals (h.steps c sc hcmem) hckind
+  have htxideq : Sighash.txid txc = Sighash.txid G := by rw [← hptxidtxc, ← hsctx, hid, hGtxid]
+  have hGtxc : txc = G := tx_eq_of_txid hG.wf hwftxc hG.nsp htxideq
+  refine ⟨hG.wf, hGtxid, hG.nsp, hG.ptxid, ⟨sc.commitToken, ?_⟩, ⟨sc.recipient, ?_⟩, ?_, ?_⟩
+  · rw [hA, hvout']; exact hout0
+  · rw [hA]; exact hout1
   · intro t' ht' hty'
     rw [hA, hvout'] at ht'
     rw [hA]
-    exact h2 t' ht' hty'
+    have hteq : t' = sc.commitToken := by rw [hout0] at ht'; exact (Out.token.inj (Option.some.inj ht')).symm
+    rw [hteq, Spend.commitToken_txoType] at hty'
+    exact ⟨sc.recipient2, hout2 (Mode.eq_split_of_commitType hty')⟩
+  · intro o ho g hdec
+    rw [show G = txc from hGtxc.symm, hvout'] at ho
+    rw [hgo] at ho
+    obtain rfl : o = ⟨amt, lockScript gout⟩ := (Option.some.inj ho).symm
+    rw [show (⟨amt, lockScript gout⟩ : TxOut).scriptPubKey = lockScript gout from rfl,
+      decodeLock_lockScript hgwf] at hdec
+    obtain rfl : gout = g := Option.some.inj hdec
+    exact ⟨hgb, hgbc⟩
 
 /-- **The other grandparent a merge settle names is real** (`GpRealB`), read off the valid prefix: its
 outpoint is output 0 of an earlier commit step, the other lineage's, with the honest layout, and A1 identifies
@@ -239,22 +280,22 @@ theorem valid_of_chain (hc : CollisionFree P) (h : RealChain P r) : r.Valid P .f
   have hlive := h.spent_live k s hk
   refine ⟨?_, hlive, h.other_live k s hk, h.fresh k s hk⟩
   cases h.steps k s hk with
-  | basic hs => exact accepts_of_real hs
-  | @settleGp tx i amt f a S scriptSig G hs =>
+  | basic hs hptxid => exact accepts_of_real hs
+  | @settleGp tx i amt f a S scriptSig G hs hptxid =>
     exact @accepts_of_real_settle_gp P tx i amt f a S scriptSig G
       { hwf := hs.hwf, hA := hs.hA, hty := hs.hty, hnty := hs.hnty, hpre := hs.hpre, hset := hs.hset,
         hnm := hs.hnm, hgp := hs.hgp, hgen := hs.hgen, hogp := hs.hogp, hcom2 := hs.hcom2, htx := hs.htx,
         hamt := hs.hamt, hi := hs.hi, hnz := hs.hnz, hres := hs.hres,
-        hgr := ⟨gpRealF_of_chain hc hv hlive ((commitTy_of_settleGp hs.hty hs.hset hs.hnm).imp_right Or.inl)
-          hs.hgp hs.hG hs.hGtxid hs.hGbals, hs.pieces, hs.i5len⟩,
+        hgr := ⟨gpRealF_of_chain hc h hv hlive ((commitTy_of_settleGp hs.hty hs.hset hs.hnm).imp_right Or.inl)
+          hs.hgp hs.hG hs.hGtxid, hs.pieces, hs.i5len⟩,
         hstack := hs.hstack, hvalid := hs.hvalid }
-  | mergeCommit hs => exact accepts_of_real_merge_commit hs
-  | @mergeSettle tx i amt f a S scriptSig G GB hs =>
+  | mergeCommit hs hptxid => exact accepts_of_real_merge_commit hs
+  | @mergeSettle tx i amt f a S scriptSig G GB hs hptxid =>
     exact @accepts_of_real_merge_settle P tx i amt f a S scriptSig G GB
       { hwf := hs.hwf, hA := hs.hA, hty := hs.hty, hnty := hs.hnty, hpre := hs.hpre, hmrg := hs.hmrg,
         hgp := hs.hgp, hgen := hs.hgen, htx := hs.htx, hamt := hs.hamt, hi := hs.hi, hnz := hs.hnz,
         hres := hs.hres,
-        hgr := ⟨gpRealF_of_chain hc hv hlive (Or.inr (Or.inr hs.hmrg)) hs.hgp hs.hG hs.hGtxid hs.hGbals,
+        hgr := ⟨gpRealF_of_chain hc h hv hlive (Or.inr (Or.inr hs.hmrg)) hs.hgp hs.hG hs.hGtxid,
           hs.pieces, hs.i5len⟩,
         hgb := gpRealB_of_chain hc hv hlive hs.hmrg hs.hogp hs.hGB hs.hGBtxid hs.i4len hs.piecesB,
         hstack := hs.hstack, hvalid := hs.hvalid }

@@ -153,8 +153,8 @@ What this does **not** establish. Point 3 is per input and rests on assumptions 
 script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; the
 grandparent a settle names is the real commit two steps back, per input (chaining real spends into a run
 discharges it: a chain of real spends is a valid run, `lean/BoltProof/Bridge/Glue/*/Chain.lean`, so
-Theorems 1, 3, 4 and 5 hold of real tokens, for the fungible script under A1 and one fact read off the
-ancestors' bytes, that their balance fields are non-negative); and three model rules the script does not check and that are not security
+Theorems 1, 3, 4 and 5 hold of real tokens, for the fungible script under A1 (the grandparent's balance signs
+are derived from its creating commit, not assumed)); and three model rules the script does not check and that are not security
 properties (melt outputs, the change blob, the melt's version). The fungible script adds three, each an
 open question in `lean/README.md` (the six protocol types, the rebuild's piece widths, the merge
 partner presenting a preimage); the last is probed on the engine and judged in Lean, as are two quirks the

@@ -161,7 +161,9 @@ tokens, each transaction id new: `RealChain`), is valid (`valid_of_chain`). The 
 `Run.valid_of_stepwise`; at each step the grandparent a settle names is read off the valid prefix: it is
 output 0 of an earlier commit step with the honest layout (`Run.grandparent_layout_upto`), which
 discharges `GpReal` outright for the three NFT scripts and, under A1 to identify the ancestor the settle
-supplies with that step, `GpRealF` and `GpRealB` for the fungible one. Theorems 1, 3, 4 and 5 then hold
+supplies with that step, `GpRealF` and `GpRealB` for the fungible one; the grandparent token output's balance
+signs `GpRealF` needs are read off that creating commit's own bound check (`chainStep_commit_bals`), not assumed,
+after the grandparent is identified with the commit's transaction byte for byte (`tx_eq_of_txid`). Theorems 1, 3, 4 and 5 then hold
 of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `chain_defined_types`,
 `chain_proof_gating`, `chain_fabricated_hop_excluded`.
 
@@ -188,9 +190,10 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
   a non-merge token names no other lineage, the balance is in range, a split's second recipient is not the zero hash
   (fungible); the recipient hash and the signing key at their widths, which the bytes copy into the new lock
   unchecked (`ArgsWF`, all four). `Regress.lean` checks them on the vectors.
-* Over the fungible chain, also A1 and `BalsNonneg`: the grandparent token output's balance fields, read as
-  signed script numbers, are non-negative (the covenant writes them so, from a value below `2^127`; decidable, and
-  discharged on every vector in `Regress.lean`; narrowed to the one output the anchor reads).
+* Over the fungible chain, also A1, and each step's txid agreement (that the primitives compute the step
+  transaction's real txid, `hptxid`, the A1-style fact the NFT chain's `ChainSpend` also carries). No byte-level
+  balance fact is assumed: the grandparent token output's balance signs are read off the commit step that wrote
+  them (`chainStep_commit_bals`, `ChainBals.lean`), from the covenant's own bound check.
 
 **Findings.** What the glue found that the prose did not say, each pinned by a vector where one applies:
 
@@ -247,8 +250,9 @@ input 0) is derived from the bytes; Q3, Q6 and Q9 are closed by model and lemma;
 had recorded a false literal fact; every probe is now scanned for them); Q8 is settled at the vector level
 and kept as the hypothesis `hpre'`.
 
-**Follow-ups.** Shed `BalsNonneg` by reading the grandparent token output's balance signs off the commit step
-that wrote them (it is narrowed to that one output); and, if the `SmbType a.nty` restriction is to be dropped formally, the path-family proof that the output builder refuses an undefined next type (Q4, already resolved by probe).
+**Follow-ups.** If the `SmbType a.nty` restriction is to be dropped formally, the path-family proof that the
+output builder refuses an undefined next type (Q4, already resolved by probe). `BalsNonneg` is shed: the
+grandparent's balance signs are now derived from its creating commit (`chainStep_commit_bals`).
 
 **Generators.** The long, regular files (the path theorems, the rebuilds' arms and parses, the gate items,
 the guards) are written by `scripts/*.py` (`scripts/README.md`); a generated file says so in its header.
