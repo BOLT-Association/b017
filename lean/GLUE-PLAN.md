@@ -378,13 +378,25 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    two tokens are swapped or whose second token carries index byte 0. The balances are the honest ones. Open:
    whether such a token can be spent again (the next spend's rebuild reads its parent's output at the index byte),
    and whether the refinement maps these spends to the model's split settle, needs a hypothesis, or should be
-   reported as a covenant defect with a probe vector. Probed (`smb_probe_q3_swapped_split_settle`,
-   `smb_probe_q3_swapped_respend_{commit,settle}`): the swapped settle is accepted, and the first token, at output 1
-   with index byte 0, is spent again by the honest builder, its commit and its settle (which rebuilds the swapped
-   settle as the grandparent) both accepted. The recipients and balances are the committed ones in every case, so
-   this is an output-order quirk, not a value defect. The model's `l2_outs` fixes the order, so the refinement keeps
-   `splitFlags` as a hypothesis; admitting either order in the model's split settle would discharge it. A reader of
-   the index byte should not take it for the output's position.
+   reported as a covenant defect with a probe vector. Probed, first on the swapped settle
+   (`smb_probe_q3_swapped_split_settle`, `smb_probe_q3_swapped_respend_{commit,settle}`), then on every shape and
+   every later operation (`smb_probe_idx_*`, 20 vectors): the swapped settle; the honest-order settle with `i2` set,
+   its second token at output 1 with index byte 0; a transfer commit with `inputIndexN` = 1, its token at output 0
+   with index byte 1; a transfer settle with `inputIndexN` = 1; and the mismatched token then transferred (the
+   settle rebuilding the split settle as the grandparent), split, merged as the second token input, merged as the
+   first token input, and melted, each with the honest builder. Every input of every vector is accepted: no token
+   dies of its index byte. The paths say why. A spend writes the new token's byte from its own `inputIndexN`
+   (`inIdxByte`) or, for a split settle's second token, from `i2` (`splitIdx`), never from the spent token's; the
+   ancestor rebuild hashes the ancestor's bytes as supplied; the balance anchor's index comes from the proof-vout
+   argument `i5` (Q6), not from the byte and not from the position; and the one place a lock's byte is read, the
+   merge settle's choice between its two prevouts orders, reads the merge-commit token's byte, which both merge
+   paths write as 0. The byte is informational. The off-chain code never reads it either: `multiBoltLib` copies it
+   as a rebuild piece, and the scanner and the builders locate tokens by position and proofs by key hash. The
+   recipients and balances are the committed ones in every case, so Q3 is an output-order quirk, not a value
+   defect. The model is stricter than the bytes in two places here: `l2_outs` fixes the split settle's output order,
+   and `l3_rebuild` anchors at the parent's position where the bytes anchor at `i5 − 1`. The refinement keeps
+   `splitFlags` and `i5 = parent.vout + 1` as hypotheses; a model whose split settle admits either order and whose
+   anchor names the co-spent proof's index would discharge both.
 
 ## 8. Milestones and effort
 
@@ -870,3 +882,8 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   hypotheses into one structure (`RealSpend`, `RealSettleGp`, `RealMergeCommit`, `RealMergeSettle`) and states
   Lemma 1, Theorems 2, 3 and 4 per step and Theorem 1 per hop of any spend read from the bytes. The probes of §7
   Q8 and Q3 are in the vectors (`smb_probe_q8_*`, `smb_probe_q3_*`), with the findings recorded there.
+- **The index-byte probes (§7 Q3 closed at the vector level):** `smb_probe_idx_*`, twenty vectors, follow a token
+  whose index byte is not its output position, by `pkh1`, `i2` or `inputIndexN`, through a transfer, a split, a merge
+  at either input and a melt; every input is accepted. The exporter builds them with the honest builders over a
+  by-hand split settle (`splitSettle`), a by-hand index-1 commit or settle (`spendIdx1`) and a token object placed on
+  any output (`tokenAt`). 101 vectors, 225 inputs.

@@ -45,8 +45,12 @@ Follow-ups (the residual trust boundary, in order of value):
 - [ ] Compose real spends into a model `Run` (`lean/GLUE-PLAN.md` M4's Option A): discharges `GpReal` and lifts the
       per-input results of the two `EndToEnd.lean` files to Theorems 1 and 5 for real tokens.
 - [ ] Decide the model's reading of the two probed quirks (`GLUE-PLAN.md` §7): a merge commit's carried balance is
-      anchored at the settle, not the commit (Q8); a split settle's output order is the spender's (Q3). Either
-      generalise `Accepts` or keep the hypotheses `hpre'` and `splitFlags` and say so where the claim appears.
+      anchored at the settle, not the commit (Q8); a split settle's output order is the spender's and a token's
+      index byte is informational (Q3, twenty vectors: no token dies of it). The model is stricter than the script in
+      `l2_outs` (the split settle's output order) and `l3_rebuild` (the anchor at the parent's position, where the
+      script anchors at `i5 − 1`); a model whose split settle admits either order and whose anchor names the
+      co-spent proof's index would discharge `splitFlags` and the `i5` hypothesis. Otherwise keep the hypotheses
+      `hpre'`, `splitFlags` and `i5` and say so where the claim appears.
 - [x] Decide the issuer-guard question: decided in `docs/issuer-guard.md`. Both families have the second-spend
       guard (the glue proves it from the bytes); `is2ndTx` is not to be ported; aligning the NFT rule with the
       fungible one is deferred to the next NFT bytecode rebuild (`docs/ROADMAP.md`).

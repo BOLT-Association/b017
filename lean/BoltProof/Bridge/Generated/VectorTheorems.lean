@@ -237,6 +237,66 @@ theorem check_smb_probe_q3_swapped_respend_commit : smb_probe_q3_swapped_respend
 /-- GLUE-PLAN §7 Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid] -/
 theorem check_smb_probe_q3_swapped_respend_settle : smb_probe_q3_swapped_respend_settle.check params = true := by native_decide
 
+/-- index-byte probe S1: the swapped split settle (pkh1 set); the second token sits at output 0 with index byte 1 [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s1_swapped_settle : smb_probe_idx_s1_swapped_settle.check params = true := by native_decide
+
+/-- index-byte probe S1: the second token (output 0, index byte 1) transferred, the commit [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_idx_s1_second_commit : smb_probe_idx_s1_second_commit.check params = true := by native_decide
+
+/-- index-byte probe S1: the second token transferred, the settle that rebuilds the swapped split settle [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s1_second_settle : smb_probe_idx_s1_second_settle.check params = true := by native_decide
+
+/-- index-byte probe S2: the split settle with the interop-outpoint slot (i2) set; the second token sits at output 1 with index byte 0 [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s2_i2_settle : smb_probe_idx_s2_i2_settle.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 second token transferred, the commit [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_idx_s2_transfer_commit : smb_probe_idx_s2_transfer_commit.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 second token transferred, the settle that rebuilds the split settle [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s2_transfer_settle : smb_probe_idx_s2_transfer_settle.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 second token split, the commit [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_idx_s2_split_commit : smb_probe_idx_s2_split_commit.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 second token split, the settle [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s2_split_settle : smb_probe_idx_s2_split_settle.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 token as the SECOND token input of a merge, the commit [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s2_merge_second_commit : smb_probe_idx_s2_merge_second_commit.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 token as the second token input of a merge, the settle that rebuilds both lineages [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_idx_s2_merge_second_settle : smb_probe_idx_s2_merge_second_settle.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 token as the FIRST token input of a merge, the commit [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s2_merge_first_commit : smb_probe_idx_s2_merge_first_commit.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 token as the first token input of a merge, the settle that rebuilds both lineages [sdk: 0:valid 1:valid 2:valid 3:valid] -/
+theorem check_smb_probe_idx_s2_merge_first_settle : smb_probe_idx_s2_merge_first_settle.check params = true := by native_decide
+
+/-- index-byte probe S2: the index-0 second token melted [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_idx_s2_melt : smb_probe_idx_s2_melt.check params = true := by native_decide
+
+/-- index-byte probe S3: a transfer commit with inputIndexN = 1; the commit token sits at output 0 with index byte 1 [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_idx_s3_commit_idx1 : smb_probe_idx_s3_commit_idx1.check params = true := by native_decide
+
+/-- index-byte probe S3: the honest settle of the index-1 commit [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s3_settle : smb_probe_idx_s3_settle.check params = true := by native_decide
+
+/-- index-byte probe S3: the settled token transferred again, the commit [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_idx_s3_next_commit : smb_probe_idx_s3_next_commit.check params = true := by native_decide
+
+/-- index-byte probe S3: the settle that rebuilds the index-1 commit as the grandparent [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s3_next_settle : smb_probe_idx_s3_next_settle.check params = true := by native_decide
+
+/-- index-byte probe S4: a transfer settle with inputIndexN = 1; the settled token sits at output 0 with index byte 1 [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s4_settle_idx1 : smb_probe_idx_s4_settle_idx1.check params = true := by native_decide
+
+/-- index-byte probe S4: the index-1 settled token transferred, the commit [sdk: 0:valid 1:valid] -/
+theorem check_smb_probe_idx_s4_next_commit : smb_probe_idx_s4_next_commit.check params = true := by native_decide
+
+/-- index-byte probe S4: the index-1 settled token transferred, the settle [sdk: 0:valid 1:valid 2:valid] -/
+theorem check_smb_probe_idx_s4_next_settle : smb_probe_idx_s4_next_settle.check params = true := by native_decide
+
 /-- test/fixtures/fabricated-hop-chain.json mintTx_#0: the historical chain a regtest Teranode ACCEPTED against the pre-fix covenant; valid here reproduces that acceptance in Lean [sdk: ] -/
 theorem check_fabhop_prefix_mintTx_0 : fabhop_prefix_mintTx_0.check params = true := by native_decide
 

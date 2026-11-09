@@ -98,7 +98,10 @@ All notable changes to **b017** are documented here. The format is based on
 - **A split settle's output order is the spender's** (§7 Q3; vectors `smb_probe_q3_*`). With `pkh1` set, the script
   accepts the settle with its two tokens swapped, each index byte off its position; both stay spendable with the
   committed recipients and balances. Harmless to value; the model fixes the order, so this stays the `splitFlags`
-  assumption. The index byte is not the output's position.
+  assumption. Followed through every later operation (`smb_probe_idx_*`, 20 vectors): a token whose index byte
+  disagrees with its position, by `pkh1`, `i2` or `inputIndexN`, is transferred, split, merged as either input and
+  melted by the honest builder with every input accepted. No spend reads the byte: each spend writes it afresh, the
+  rebuild hashes it as supplied, and the anchor's index comes from the proof-vout argument. No token dies of it.
 - **A cross-issuer merge is refused by the other token's covenant** (input 1 of the merge commit,
   `SCRIPT_ERR_EQUALVERIFY`): both covenants pin the output's `issuerPubKey` to their own, as the interface clause
   `l_merge_same_issuer` states.
