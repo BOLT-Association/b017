@@ -23,11 +23,12 @@ grandparent is read the same way (`Run.other_grandparent_layout_upto`, `gpRealB_
 
 What stays assumed, per step: the fungible `Residual` (the cryptographic assumptions and the clauses the
 bytes do not check), the rebuild's piece widths (`HonestPiecesB`, §7 Q7), the index arguments' widths, Q8's
-preimage at a merge's partner input, and two facts about ancestors that the bytes write but the proof
-reads off the chain: `BalsNonneg`, and that a merge settle's other-lineage index argument `i4` names a proof
-output of the other grandparent (`proofB`; the first rebuild's anchor fixes its index, `AnchorOK.index`, and the
-vectors `smb_probe_q9_*` show the second rebuild pins `i4` the same way, a settle naming the change output being
-refused and the proof control accepted, so `proofB` is a proof debt until a lemma reads that pin off the bytes). The chain's own hypotheses
+preimage at a merge's partner input, and two facts about ancestors that the bytes establish but the proof
+reads off the chain: `BalsNonneg`, and that the type piece a merge settle supplies for the other grandparent is
+that grandparent's token's type (`typeB`). The second rebuild's anchor pins the other-lineage index `i4` to 1, or
+to 2 under the split type (`anchorB_index`, as `AnchorOK.index` pins `i5`), so which output `i4` names is read off
+the bytes; `typeB` is what the hash check enforces (the pieces serialise the grandparent) and what welding the
+second rebuild as `GpWeld.lean` welds the first would prove. The chain's own hypotheses
 are the UTXO model's (`RealChain`): a well-formed genesis set, each step spending live tokens, each step's
 id new.
 -/
@@ -90,7 +91,8 @@ structure ChainSettleGp (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (
 
 /-- A merge settle, as `RealMergeSettle` takes it, with both grandparents' reality (`GpRealF`, `GpRealB`) left
 out: the chain supplies it. Of the other grandparent `GB` the step asserts its id and the primitives'
-agreement on it, the width of the index argument `i4`, and that `i4` names one of its proof outputs. -/
+agreement on it, the width of the index argument `i4`, and that the type piece the settle supplies for its token
+is that token's type (`typeB`, what the second rebuild's hash check enforces). -/
 structure ChainMergeSettle (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields) (a : Args) (S : List Bytes)
     (scriptSig : Bytes) (G GB : Tx) : Prop where
   hwf : WF f
@@ -115,7 +117,7 @@ structure ChainMergeSettle (P : Prims Bytes) (tx : Tx) (i amt : Nat) (f : Fields
   hGBtxid : Sighash.txid GB = List.take 32 f.ogp
   hGBptxid : P.txid (absTx GB) = Sighash.txid GB
   i4len : a.i4.length = 4
-  proofB : ∃ pkh, (absTx GB).outputs[leNat a.i4]? = some (.proof pkh)
+  typeB : ∀ t, (absTx GB).outputs[0]? = some (.token t) → t.txoType = a.psA.p8.headD 0
   hstack : ((evalScript Eval.opExec (mkEnv params (txContext tx i amt) params.flags.forkAdjust
     (some (lockScript f))) scriptSig [] 0).2).stack = a.stack ++ S
   hvalid : Eval.verifyScript params (txContext tx i amt) scriptSig (lockScript f) = .valid
@@ -205,23 +207,28 @@ theorem gpRealF_of_chain (hc : CollisionFree P) {k : Nat} (hv : r.ValidUpTo P .f
     exact h2 t' ht' hty'
 
 /-- **The other grandparent a merge settle names is real** (`GpRealB`), read off the valid prefix: its
-outpoint is output 0 of an earlier commit step, the other lineage's, and A1 identifies the ancestor's
-abstraction with that step's transaction. Which of its outputs the index argument names is the step's
-own assertion (`proofB`). -/
+outpoint is output 0 of an earlier commit step, the other lineage's, with the honest layout, and A1 identifies
+the ancestor's abstraction with that step's transaction. The proof output at 2 is asked only under the split
+type, which `typeB` carries over to the token the run knows. -/
 theorem gpRealB_of_chain (hc : CollisionFree P) {k : Nat} (hv : r.ValidUpTo P .fungible k) {tx : Tx} {i : Nat}
     {f : Fields} {a : Args} {other : Option (Fields × Outpoint Bytes)} {ancA ancB : Option Tx}
     (hlive : ((spendOf tx i f a other ancA ancB).spentOutpoint, (spendOf tx i f a other ancA ancB).spent) ∈
       r.liveAfter P k)
     (hmrg : f.ty = [0x25]) (hogp0 : decode f.ogp ≠ 0) {GB : Tx}
     (hGBtxid : Sighash.txid GB = List.take 32 f.ogp) (hGBptxid : P.txid (absTx GB) = Sighash.txid GB)
-    (i4len : a.i4.length = 4) (proofB : ∃ pkh, (absTx GB).outputs[leNat a.i4]? = some (.proof pkh)) :
+    (i4len : a.i4.length = 4)
+    (typeB : ∀ t, (absTx GB).outputs[0]? = some (.token t) → t.txoType = a.psA.p8.headD 0) :
     GpRealB P f a GB := by
-  obtain ⟨c, -, sc, -, hid, hvout, t, ht⟩ :=
+  obtain ⟨c, -, sc, -, hid, hvout, ⟨t, ht⟩, ⟨pkh, hpk⟩, h2⟩ :=
     Run.other_grandparent_layout_upto hv hlive (spent_commitTyped (Or.inr (Or.inr hmrg)))
       (spent_otherGrandparent hogp0)
   have hvout' : leNat (List.drop 32 f.ogp) = 0 := hvout
   have hB : absTx GB = sc.tx := hc _ _ (by rw [hGBptxid, hGBtxid]; exact hid.symm)
-  exact ⟨hGBtxid, hGBptxid, ⟨t, by rw [hB, hvout']; exact ht⟩, i4len, proofB⟩
+  refine ⟨hGBtxid, hGBptxid, ⟨t, by rw [hB, hvout']; exact ht⟩, i4len, ⟨pkh, by rw [hB]; exact hpk⟩, fun h8 => ?_⟩
+  have hty : t.txoType = 0x23 := by
+    have := typeB t (by rw [hB]; exact ht)
+    rw [this, h8]; rfl
+  rw [hB]; exact h2 t ht hty
 
 /-! ## The chain is a valid run -/
 
@@ -252,7 +259,7 @@ theorem valid_of_chain (hc : CollisionFree P) (h : RealChain P r) : r.Valid P .f
         hres := hs.hres,
         hgr := ⟨gpRealF_of_chain hc hv hlive (Or.inr (Or.inr hs.hmrg)) hs.hgp hs.hG hs.hGtxid hs.hGbals,
           hs.pieces, hs.i5len⟩,
-        hgb := gpRealB_of_chain hc hv hlive hs.hmrg hs.hogp hs.hGBtxid hs.hGBptxid hs.i4len hs.proofB,
+        hgb := gpRealB_of_chain hc hv hlive hs.hmrg hs.hogp hs.hGBtxid hs.hGBptxid hs.i4len hs.typeB,
         hstack := hs.hstack, hvalid := hs.hvalid }
 
 /-! ## What holds of real tokens

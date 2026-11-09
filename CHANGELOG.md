@@ -140,8 +140,11 @@ All notable changes to **b017** are documented here. The format is based on
   of its proof, and spends that output in the proof input's place with its owner's key, is refused at the covenant
   input (`SCRIPT_ERR_EQUALVERIFY`), whether the other grandparent is a transfer commit or a split commit; the same
   settle with `i4` on the proof passes. The other lineage's proof cannot be left unspent, so proof gating holds on
-  both sides of a merge. The chain's `proofB` assertion is a proof debt (the lemma reading the pin off the second
-  rebuild), not a gap in the bytes.
+  both sides of a merge. The pin is read off the bytes by `anchorB_index` (`RefineMergeSettle.lean`): the second
+  rebuild's anchor fixes `i4` to 1, or to 2 under the split type piece, as `AnchorOK.index` fixes `i5`. `GpRealB`
+  asks a proof output at 1 and, under the split type piece, at 2, instead of one at `i4`; the chain's assertion for a
+  merge settle narrows to `typeB`, that the type piece supplied for the other grandparent is its token's type, what
+  the hash check enforces and the second rebuild's weld would prove.
 - **A split settle's output order is the spender's** (§7 Q3; vectors `smb_probe_q3_*`). With `pkh1` set, the script
   accepts the settle with its two tokens swapped, each index byte off its position; both stay spendable with the
   committed recipients and balances. Harmless to value; the model admits either order (`Spend.OutsOK`) and the proof covers

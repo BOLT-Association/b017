@@ -318,12 +318,15 @@ theorem grandparent_layout_upto {k : Nat} (hv : r.ValidUpTo P fam k) {s : Spend 
 
 /-- **The other grandparent is a real commit of the run.** A commit-typed token live after `k` valid steps
 that names an other grandparent (a merge commit's token) names output 0 of the transaction of an earlier
-commit step, the other lineage's, and that output holds a token: the shape the Bridge's `GpRealB` asks. -/
+commit step, the other lineage's, with the honest layout: the shape the Bridge's `GpRealB` asks (the token at
+0, a proof output at 1, and at 2 when the token at 0 is a split commit). -/
 theorem other_grandparent_layout_upto {k : Nat} (hv : r.ValidUpTo P fam k) {s : Spend Txid}
     (hlive : (s.spentOutpoint, s.spent) ∈ r.liveAfter P k) (hXty : s.spent.txoType ∈ fam.commitTypes)
     {ogp : Outpoint Txid} (hogp : s.spent.otherGrandparent = some ogp) :
     ∃ c < k, ∃ sc : Spend Txid, r.steps[c]? = some sc ∧ P.txid sc.tx = ogp.txid ∧ ogp.vout = 0 ∧
-      ∃ t, sc.tx.outputs[0]? = some (.token t) := by
+      (∃ t, sc.tx.outputs[0]? = some (.token t)) ∧ (∃ pkh, sc.tx.outputs[1]? = some (.proof pkh)) ∧
+      (∀ t, sc.tx.outputs[0]? = some (.token t) → t.txoType = 0x23 →
+        ∃ pkh, sc.tx.outputs[2]? = some (.proof pkh)) := by
   -- the token is the commit token of an earlier commit step j, a merge
   rcases mem_cases_of_live hlive with hg | ⟨j, hjk, sj, hj, hXj⟩
   · exact absurd (hv.1.settleTyped _ hg) (Fam.not_settle_of_commit hXty)
@@ -350,13 +353,18 @@ theorem other_grandparent_layout_upto {k : Nat} (hv : r.ValidUpTo P fam k) {s : 
   · exact absurd (hv.1.settleTyped _ hgY) (Fam.not_settle_of_commit hYty)
   obtain ⟨hcc, -⟩ := produced_commit_typed_upto hv (by omega) hc hYc hYty
   have hsc := hv.2 c (by omega) sc hc
-  obtain ⟨h0, -, -, hidx⟩ := Spend.commit_outputs hsc.accepts hcc
+  obtain ⟨h0, h1, h2, hidx⟩ := Spend.commit_outputs hsc.accepts hcc
   have htxid : ogp.txid = P.txid sc.tx := by
     rw [hogpY]; exact mem_producedFrom_txid hYc
   have hget : sc.tx.outputs[ogp.vout]? = some (.token si.spent) := by
     have := getElem?_of_mem_producedFrom hYc
     rw [hogpY]; simpa using this
-  exact ⟨c, by omega, sc, hc, htxid.symm, hidx _ _ hget, sc.commitToken, h0⟩
+  refine ⟨c, by omega, sc, hc, htxid.symm, hidx _ _ hget, ⟨_, h0⟩, ⟨_, h1⟩, fun t ht hty => ⟨_, h2 ?_⟩⟩
+  have hteq : t = sc.commitToken := by
+    rw [h0] at ht
+    exact (Out.token.inj (Option.some.inj ht)).symm
+  rw [hteq, Spend.commitToken_txoType] at hty
+  exact Mode.eq_split_of_commitType hty
 
 end Run
 

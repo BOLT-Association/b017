@@ -418,8 +418,15 @@ vectors decide whether the finding holds by execution; the route is chosen then 
    a merge settle whose `i4` names the other grandparent's change output, and spends it there with its owner's key in
    the proof input's place, is refused at the covenant input with `SCRIPT_ERR_EQUALVERIFY`, for a transfer-commit
    other grandparent (change at 2) and for a split-commit one (change at 3); the same settle with `i4` on the proof
-   is accepted. So the bytes pin `i4` as they pin `i5`, and the other lineage's proof cannot be left unspent. What
-   remains is the Lean lemma that reads the pin off the second rebuild's anchor, which would shed `proofB`.
+   is accepted. So the bytes pin `i4` as they pin `i5`, and the other lineage's proof cannot be left unspent. Read
+   off the bytes: `anchorB_index` (`RefineMergeSettle.lean`) reads the pin from the second rebuild's own anchor
+   (`rebuildB_k_fact0`, in either case on the spent lock's index: an `AnchorOK` on the first piece set's type and
+   balances, items 70, 75 and 76, the carried balance, item 45, and `i4`, item 60), so `GpRealB` now asks a proof
+   output at 1 and, under the split type piece, at 2, as `GpRealF` does, and the refinement derives the proof at
+   `i4` from them. The chain's assertion for a merge settle narrows from `proofB` to `typeB`: the type piece the
+   settle supplies for the other grandparent is that grandparent's token's type. The hash check enforces it (the
+   pieces serialise the grandparent); proving it is the second rebuild's weld, `GpWeld.lean` for the first piece
+   set.
 
 ## 8. Milestones and effort
 
@@ -943,5 +950,10 @@ grep -oP '(?<!UN)LOCK_SCRIPT_SUFFIX = "[^"]{0,220}' src/tokens/templates/MinSimp
   change output instead of its proof, and spends it there, is refused at the covenant input
   (`SCRIPT_ERR_EQUALVERIFY`) for a transfer-commit and for a split-commit other grandparent; the same settle with `i4`
   on the proof passes (the controls). The second rebuild pins `i4` as the first pins `i5`, so proof gating holds on
-  both sides of a merge; `ChainMergeSettle.proofB` stays until a lemma reads the pin off `rebuildB_k`. 105 vectors,
-  241 inputs.
+  both sides of a merge. 105 vectors, 241 inputs.
+- **Q9 read off the bytes:** `anchorB_index` reads the pin from the second rebuild's anchor (`rebuildB_k_fact0_eq`,
+  the analogue of `rebuildA_fact0_eq`; `gateT_item70` names the type piece): `i4` reads as 1, or as 2 under the
+  split type piece. `GpRealB` asks `proof1` and `proof2` (under the split type piece) instead of a proof at `i4`,
+  and the merge-settle refinement derives the proof at `i4` from the pin and the co-spent input. The chain's
+  `ChainMergeSettle` carries `typeB` (the type piece is the other grandparent's token's type) in place of
+  `proofB`; welding the second rebuild as `GpWeld.lean` welds the first would shed it.

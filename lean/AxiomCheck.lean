@@ -71,6 +71,7 @@ open BoltProof
 #print axioms Glue.SimpleMulti.simpleMulti_refines_settle_gp
 #print axioms Glue.SimpleMulti.simpleMulti_refines_merge_commit
 #print axioms Glue.SimpleMulti.simpleMulti_refines_merge_settle
+#print axioms Glue.SimpleMulti.anchorB_index
 #print axioms Glue.SimpleMulti.accepts_of_real
 #print axioms Glue.SimpleMulti.accepts_of_real_settle_gp
 #print axioms Glue.SimpleMulti.accepts_of_real_merge_commit

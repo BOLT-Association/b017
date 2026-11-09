@@ -242,6 +242,7 @@ theorem b_mergeSettle_refines (P : Prims Bytes) (hres : Residual P (Vec.inputD s
       of_isProofAt (by native_decide), of_proof2At (by native_decide),
       of_balsNonneg (by native_decide)⟩,
       ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩, by native_decide⟩
-    ⟨by native_decide, hptxidB, of_isTokenAt (by native_decide), by native_decide, of_isProofAt (by native_decide)⟩ (by native_decide) (by native_decide)
+    ⟨by native_decide, hptxidB, of_isTokenAt (by native_decide), by native_decide, of_isProofAt (by native_decide),
+      fun h => absurd h (by native_decide)⟩ (by native_decide) (by native_decide)
 
 end BoltProof.Bridge.Glue.SimpleMulti

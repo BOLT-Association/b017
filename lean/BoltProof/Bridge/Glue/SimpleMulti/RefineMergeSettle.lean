@@ -11,9 +11,11 @@ spent balance), and the second's, which hashes the other lineage's grandparent a
 the spent lock's index is not zero. The model's `l3_merge` asks of the second lineage only the ancestor's id, its
 token output and a co-spent proof output, so beyond `ResidualGp` for the first lineage the theorem assumes
 `GpRealB` for the second (a real transaction with the primitives' id, whose txid the token names, with a token at
-the named index and a proof output at the index the fourth interop slot names, a 32-bit word). Every merged token
-a covenant builds has a grandparent (a merge commit is refused at genesis), so the merge settle without one is
-not a case.
+the named index, a proof output at index 1 and, when the piece the settle supplies as its token's type is the
+split commit type, at index 2). Which of those the fourth interop slot `i4` names is not assumed: the second
+rebuild's anchor pins it to 1, or to 2 under the split type, as the first rebuild's anchor pins `i5`
+(`anchorB_index`, `lean/GLUE-PLAN.md` §7 Q9). Every merged token a covenant builds has a grandparent (a merge
+commit is refused at genesis), so the merge settle without one is not a case.
 -/
 
 set_option autoImplicit false
@@ -29,15 +31,51 @@ open BoltProof.Glue.MinSimple (sc preOutpoint preValue preVersion preHashOutputs
 open BoltProof.Bridge (params)
 open BoltProof.Bridge.Generated
 
+/-- The eighth piece of the first set, as the gate stack holds it: the type the settle supplies for the other
+grandparent's token, which the second rebuild hashes and anchors on. -/
+theorem gateT_item70 (f : Fields) (a : Args) (S : List Bytes) : item (gateT f a S) 70 = a.psA.p8 := by
+  unfold gateT; split_ifs <;> rfl
+
+/-- The second rebuild's anchor, first case on the spent lock's index: `AnchorOK` on the other grandparent's
+token type and balances (the first piece set's items 70, 75 and 76), the spent token's carried balance (item 45)
+and the index argument `i4` (item 60), as `rebuildA_fact0_eq` reads the first rebuild's. -/
+theorem rebuildB_1_fact0_eq (t1 t0 a1 a2 : Bytes) (T : List Bytes)
+    (w10c1 w11c1 w12c1 w13c1 w14c1 w17c1 w18c1 w19c1 w20c1 w23c1 : Bytes) :
+    rebuildB_1_fact0 t1 t0 a1 a2 T w10c1 w11c1 w12c1 w13c1 w14c1 w17c1 w18c1 w19c1 w20c1 w23c1 =
+      AnchorOK (if item T 70 = [37] then [1] else []) (item T 70) (encode (decode (item T 75)))
+        (encode (decode (item T 76))) (encode (decode (item T 45))) (item T 60) := rfl
+
+/-- The second rebuild's anchor, second case. -/
+theorem rebuildB_2_fact0_eq (t1 t0 a1 a2 : Bytes) (T : List Bytes)
+    (w10c2 w11c2 w12c2 w13c2 w14c2 w17c2 w18c2 w19c2 w20c2 w23c2 : Bytes) :
+    rebuildB_2_fact0 t1 t0 a1 a2 T w10c2 w11c2 w12c2 w13c2 w14c2 w17c2 w18c2 w19c2 w20c2 w23c2 =
+      AnchorOK (if item T 70 = [37] then [1] else []) (item T 70) (encode (decode (item T 75)))
+        (encode (decode (item T 76))) (encode (decode (item T 45))) (item T 60) := rfl
+
+/-- **The second rebuild pins `i4`** (`lean/GLUE-PLAN.md` §7 Q9). In either case on the spent lock's index, the
+anchor of the carried balance fixes the other lineage's index argument: it reads as 1, or as 2 when the piece the
+settle supplies as the other grandparent's type is the split commit type. The analogue of `AnchorOK.index` for
+`i5`; the vectors `smb_probe_q9_*` show the refusal on the bytes. -/
+theorem anchorB_index {f : Fields} {a : Args} {S : List Bytes} {t1 t0 a1 a2 : Bytes}
+    {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 : Bytes}
+    (h : rebuildB_1_fact0 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 ∨
+      rebuildB_2_fact0 t1 t0 a1 a2 (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23) :
+    decode a.i4 = 1 ∨ (a.psA.p8 = [0x23] ∧ decode a.i4 = 2) := by
+  rcases h with h | h
+  · rw [rebuildB_1_fact0_eq, gateT_item60, gateT_item70] at h; exact AnchorOK.index h
+  · rw [rebuildB_2_fact0_eq, gateT_item60, gateT_item70] at h; exact AnchorOK.index h
+
 /-- The other lineage's grandparent is real: a transaction whose txid the token's `otherGrandparent` names, with
-the primitives' id, a token at the named index, and a proof output at the index the fourth interop slot names,
-a 32-bit word. -/
+the primitives' id, a token at the named index, a proof output at index 1 and, when the piece the settle supplies
+as its token's type is the split commit type, at index 2; the fourth interop slot is a 32-bit word. Which output
+that slot names is read off the bytes (`anchorB_index`), not assumed. -/
 structure GpRealB (P : Prims Bytes) (f : Fields) (a : Args) (G : Tx) : Prop where
   txid : Sighash.txid G = List.take 32 f.ogp
   ptxid : P.txid (absTx G) = Sighash.txid G
   token : ∃ t, (absTx G).outputs[leNat (List.drop 32 f.ogp)]? = some (.token t)
   i4len : a.i4.length = 4
-  proof : ∃ pkh, (absTx G).outputs[leNat a.i4]? = some (.proof pkh)
+  proof1 : ∃ pkh, (absTx G).outputs[1]? = some (.proof pkh)
+  proof2 : a.psA.p8 = [0x23] → ∃ pkh, (absTx G).outputs[2]? = some (.proof pkh)
 
 /-- A merge settle's outputs, read by the model: the settled token carrying the sum, then non-token change. -/
 theorem outs_settle_merge {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (other : Option (Fields × Outpoint Bytes))
@@ -145,9 +183,10 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
     have hsp := List.append_inj (by simpa [serOutPoint] using h : iB.prevHash ++ le32 iB.prevIndex =
       Hash.hash256 XB ++ a.i4) (by rw [h32B, BoltProof.Glue.MinSimple.hash256_length])
     exact ⟨hsp.1.trans hXB, hsp.2⟩
-  obtain ⟨hcoA, hcoB⟩ : (∃ i1 ∈ tx.inputs, serOutPoint i1 =
+  obtain ⟨hcoA, hcoB, hpin⟩ : (∃ i1 ∈ tx.inputs, serOutPoint i1 =
       Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ a.i5) ∧
-      (∃ iB ∈ tx.inputs, iB.prevHash = List.take 32 f.ogp ∧ le32 iB.prevIndex = a.i4) := by
+      (∃ iB ∈ tx.inputs, iB.prevHash = List.take 32 f.ogp ∧ le32 iB.prevIndex = a.i4) ∧
+      (decode a.i4 = 1 ∨ (a.psA.p8 = [0x23] ∧ decode a.i4 = 2)) := by
     by_cases h39 : decode (item (gateT f a S) 39) = 0
     · rw [ite_eq_left h39] at hprevs
       have hb1 := (hB1 hflag h39).2.1
@@ -156,7 +195,7 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
         rw [gpOutB_1_eq, List.length_append, BoltProof.Glue.MinSimple.hash256_length, gateT_item60, hgb.i4len]
       obtain ⟨⟨i1, hi1, hs1⟩, ⟨iB, hiB, hsB⟩⟩ := coSpent_third htx h32 hlenA hlenB
         (by have := hflatP _ hprevs; simpa only [List.append_assoc] using this)
-      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb1 ?_⟩⟩
+      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb1 ?_⟩, anchorB_index (Or.inl (hB1 hflag h39).1)⟩
       rw [hsB, gpOutB_1_eq, gateT_item60]
     · rw [ite_eq_right h39] at hprevs
       have hb2 := (hB2 hflag h39).2.1
@@ -165,7 +204,7 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
         rw [gpOutB_2_eq, List.length_append, BoltProof.Glue.MinSimple.hash256_length, gateT_item60, hgb.i4len]
       obtain ⟨⟨iB, hiB, hsB⟩, ⟨i1, hi1, hs1⟩⟩ := coSpent_third htx h32 hlenB hlenA
         (by have := hflatP _ hprevs; simpa only [List.append_assoc] using this)
-      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb2 ?_⟩⟩
+      refine ⟨⟨i1, hi1, hcoA_of i1 hs1⟩, ⟨iB, hiB, hcoB_of iB _ hiB hb2 ?_⟩, anchorB_index (Or.inr (hB2 hflag h39).1)⟩
       rw [hsB, gpOutB_2_eq, gateT_item60]
   have hreb := l3_settle (P := P) (tx := tx) (i := i) (G := G) none (some GB) hwf hsc hop hval8 (Or.inr (Or.inr h24))
     (fun h => absurd h (by rw [h24]; decide)) hlen24 hgr.pieces
@@ -199,10 +238,20 @@ theorem simpleMulti_refines_merge_settle (P : Prims Bytes) (tx : Tx) (i amt : Na
       simp [outpointOf, hogp0] at hogp; exact hogp.symm
     subst hogpeq
     obtain ⟨t, ht⟩ := hgb.token
-    obtain ⟨pkh, hpr⟩ := hgb.proof
     obtain ⟨iB, hiB, htB, hlB⟩ := hcoB
     have hidxB : iB.prevIndex < 2 ^ 32 := (htx.inputs iB hiB).2.1
     have h32B : iB.prevHash.length = 32 := (htx.inputs iB hiB).1
+    -- the pin: `i4` is the co-spent index, 1 or (under the split type) 2, and names a proof output
+    have hpos : 0 < decode a.i4 := by rcases hpin with h | ⟨-, h⟩ <;> omega
+    have hdec : decode a.i4 = (iB.prevIndex : Int) := by
+      rw [← hlB]; exact decode_le32_of_pos hidxB (by rw [hlB]; exact hpos)
+    have hle : leNat a.i4 = iB.prevIndex := by rw [← hlB]; exact leNat_le32 _ hidxB
+    obtain ⟨pkh, hpr⟩ : ∃ pkh, (absTx GB).outputs[leNat a.i4]? = some (.proof pkh) := by
+      rcases hpin with h1 | ⟨h8, h2⟩
+      · have h1' : leNat a.i4 = 1 := by omega
+        rw [h1']; exact hgb.proof1
+      · have h2' : leNat a.i4 = 2 := by omega
+        rw [h2']; exact hgb.proof2 h8
     refine ⟨absTx GB, t, by simp [spendOf], by rw [hgb.ptxid, hgb.txid], ht, leNat a.i4, pkh, hpr, ?_⟩
     simp only [absTx, List.mem_map]
     exact ⟨iB, hiB, by rw [htB, ← hlB, leNat_le32 _ hidxB]⟩
