@@ -225,16 +225,20 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
    rebuild; the index half comes from `GpReal`, over a chain from the run's layout. A settle at genesis takes the
    signing key as the new token's issuer, like a commit. A `0x25` token's `balanceCommit` is unanchored until its
    settle (Finding 5).
-9. An undefined next type cannot be committed (Q4, `smb_probe_type_oor_*`, `smb_probe_type27_commit`): the parity
-   check fixes only the next type's parity, and the issuer guard refuses `0x27` only when it fires, but a
-   mid-lineage commit to an undefined type (the guard silent) is refused at the covenant's own output
-   `OP_EQUALVERIFY`: the token the covenant rebuilds carries the mode-flag-derived type, one of the six
-   (Finding 3), so an output claiming an undefined type cannot match `hashOutputs`. The written type is thus
-   pinned to the six. The `SmbType a.nty` restriction in the proofs is the modelling boundary, not a gap the
-   bytes leave open (see Open questions).
+9. **BENIGN — not an attack vector, SimpleMultiBOLT only.** An undefined next type cannot be committed (Q4,
+   `smb_probe_type_oor_*`, `smb_probe_type27_commit`): the parity check fixes only the next type's parity, and
+   the issuer guard refuses `0x27` only when it fires, but a mid-lineage commit to an undefined type (the guard
+   silent) is refused at the covenant's own output `OP_EQUALVERIFY`: the token the covenant rebuilds carries the
+   mode-flag-derived type, one of the six (Finding 3), so an output claiming an undefined type cannot match
+   `hashOutputs`. The written type is thus pinned to the six. This is a spender malforming the successor of their
+   own token — refused by the script, counterfeiting nothing. It is SimpleMultiBOLT only: the NFT scripts
+   (MinSimpleBOLT, AuthBOLT, SerialBOLT) write the next type rather than check a claimed one (`NftType.lean`), so
+   they carry no such seam. The `SmbType a.nty` restriction in the proofs is the modelling boundary, not a gap
+   the bytes leave open (see Open questions).
 
-**Open questions.** Q4: off genesis, the parity check only fixes the next type's parity, so a settled token's
-spend may name any odd byte. Whether an undefined next type can be committed is resolved by probe: the issuer
+**Open questions.** Q4 (**BENIGN — SimpleMultiBOLT only; a spender malforming their own token's successor,
+refused by the script and counterfeiting nothing; the NFT family writes the type and has no such seam**): off
+genesis, the parity check only fixes the next type's parity, so a settled token's spend may name any odd byte. Whether an undefined next type can be committed is resolved by probe: the issuer
 guard refuses `0x25` and `0x27` only when it fires (genesis or no grandparent), but a mid-lineage commit whose
 spent token has a grandparent (the guard silent) and an undefined next type is refused at the covenant's own
 `OP_EQUALVERIFY` too (`smb_probe_type_oor_27_commit`, `smb_probe_type_oor_29_commit`, and the honest-shaped
@@ -268,6 +272,12 @@ The audit holds every theorem outside `BoltProof.Bridge.*` to the three standard
 glue lives under `BoltProof.Glue`, the `native_decide` guards under `BoltProof.Bridge.Glue`.
 
 ## What is still trusted
+
+**BY DESIGN — this is the proof's trust base, not a defect list, and it is compressed to its irreducible core.**
+You cannot prove a hash collision-free (A1/A2), you must judge against some consensus ruleset, and you need the
+kernel's axioms and bsv-script-lean's transcription of the node. The development has actively shed assumptions
+into derivations rather than parking them (the grandparent's balance signs, its reality over a chain, the split
+order and the proof and merge indices), leaving only what no proof of this kind can remove.
 
 | Item | Status |
 |---|---|
