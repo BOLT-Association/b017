@@ -139,6 +139,26 @@ merge-role flag that orders `hashPrevouts` for a merge commit's second token inp
 - **Do it when** the fungible bytecode is being rebuilt for another reason (the descriptor work above or a
   genesis-family change), never on its own.
 
+## Deferred: shrink the vector checks' trust base (drop `native_decide`)
+The transaction-replay checks — the 107 vectors / 245 inputs run under `lake exe boltvectors`, and the
+`Regress.lean` guards — are discharged with `native_decide`: the kernel trusts Lean's *compiled* evaluator
+for them, recorded as one auxiliary axiom per theorem (`lean/README.md`, "What is still trusted"). It is the
+one place Layer 2 trusts the compiled evaluator over the kernel; Layer 1 (the model theorems) and the
+symbolic enforcement glue use only the three standard axioms. Reducing these to ordinary kernel evaluation
+would remove that auxiliary axiom and leave the *whole* development on the three standard axioms, tightening
+the trust base to its floor.
+- **Change:** replace `native_decide` with kernel-checked evaluation for the vector verdicts and the
+  regression guards — either `decide` (kernel reduction of each script run) or, where that is too slow, a
+  reflection / `Decidable`-instance proof, or reusing the symbolic fragment machinery to *prove* each vector's
+  outcome rather than evaluate it.
+- **Cost:** kernel reduction of real BSV script executions across 245 inputs is orders of magnitude slower
+  than the compiled evaluator — which is *why* `native_decide` is used — so a brute `decide` is likely
+  infeasible within the 90-minute CI budget at the current vector scale. A tractable route probably proves the
+  verdicts structurally rather than by evaluation, which is real per-vector-shape work.
+- **Note:** a trust-base reduction, not a correctness fix. The native evaluator is already an accepted,
+  documented trust item; nothing depends on this to stand, and the shipped guarantee is unchanged. Do it only
+  if "three standard axioms everywhere" is judged worth the engineering.
+
 ## Library hardening
 - `tsconfig strict: true`; remove `any` casts; type the `BOLT` abstract methods (today `any`,
   and they diverge from the concrete classes).
