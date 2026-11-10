@@ -25,3 +25,16 @@ Consumers never need any of this — the package ships the pre-compiled template
 - `npm run coverage:readme` rewrites the test counts and the coverage table in `README.md` from that run.
   Never edit those figures by hand. `npm run coverage:check` fails if the README is out of date.
 - `vitest.config.ts` holds `coverage.thresholds`: a floor, so coverage cannot fall silently. The target is 100.
+
+## The Lean proof (`lean/`)
+
+- `npm run lean:vectors` regenerates `lean/BoltProof/Bridge/Generated/` and `lean/vectors/vectors.json` from the
+  test builders. Run it after any change to a covenant template, to `test/helpers/*`, or to the pinned
+  expectations in `lean/vectors/export.test.ts`; commit the result. CI regenerates and fails on drift.
+- `cd lean && lake exe cache get && lake build && lake exe boltvectors`, then `node scripts/lean-axiom-check.mjs`
+  from the root, is what the `lean-proof` CI job runs. `lake build BoltProofCore` alone (Layer 1) needs no
+  Mathlib and takes seconds.
+- To bump bsv-script-lean: change `rev` in `lean/lakefile.toml`, copy its `lean-toolchain`, `lake update bsvscript`,
+  rebuild, re-run `boltvectors` and re-triage any changed verdict. Never run a bare `lake update`.
+- An unexpected verdict in `boltvectors` is a **finding** about the bytes or the engine, not a reason to edit an
+  expectation silently: record it in `lean/README.md` and `CHANGELOG.md` first.

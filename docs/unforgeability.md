@@ -8,8 +8,10 @@ under, and secured by the network's proof-of-work.
 
 The argument below is the accessible form. For the rigorous treatment — formal model,
 hardness assumptions, 4 theorems, 7 lemmas, and an enumerated attack-vector analysis — see
-[`formal-proof.md`](formal-proof.md). This file is written to stand on its own for a reader of
-*this* library.
+[`formal-proof.md`](formal-proof.md); for the machine-checked version — Theorems 1–5 proved in Lean 4
+of the model, and for every shipped script a per-input proof that each token is built by the script
+from the one before it — see [`lean/README.md`](../lean/README.md). This file is written to
+stand on its own for a reader of *this* library.
 
 > **Scope.** "Cannot be counterfeited" means: you cannot create a token that *appears* to
 > descend from a genuine issuer's mint when it does not, nor change ownership or balance

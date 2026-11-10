@@ -1,0 +1,118 @@
+import BoltProof.Bridge.Glue.Sections
+import BoltProof.Bridge.Glue.Sym.Basic
+import BoltProof.Bridge.Glue.Sym.Steps
+import BoltProof.Bridge.Glue.Sym.Skip
+import BoltProof.Bridge.Glue.Sym.SkipSteps
+import BoltProof.Bridge.Glue.Sym.Tactic
+import BoltProof.Bridge.Glue.Sym.Examples
+import BoltProof.Bridge.Glue.MinSimple.Spec
+import BoltProof.Bridge.Glue.MinSimple.PushTx
+import BoltProof.Bridge.Glue.MinSimple.Paths
+import BoltProof.Bridge.Glue.MinSimple.Sound
+import BoltProof.Bridge.Glue.MinSimple.Abs
+import BoltProof.Bridge.Glue.AuthBolt.Spec
+import BoltProof.Bridge.Glue.AuthBolt.PushTx
+import BoltProof.Bridge.Glue.AuthBolt.Paths
+import BoltProof.Bridge.Glue.AuthBolt.Sound
+import BoltProof.Bridge.Glue.AuthBolt.Abs
+import BoltProof.Bridge.Glue.AuthBolt.Facts
+import BoltProof.Bridge.Glue.AuthBolt.Weld
+import BoltProof.Bridge.Glue.AuthBolt.Refine
+import BoltProof.Bridge.Glue.AuthBolt.Regress
+import BoltProof.Bridge.Glue.AuthBolt.Chain
+import BoltProof.Bridge.Glue.SerialBolt.Arms
+import BoltProof.Bridge.Glue.SerialBolt.Spec
+import BoltProof.Bridge.Glue.SerialBolt.PushTx
+import BoltProof.Bridge.Glue.SerialBolt.Paths
+import BoltProof.Bridge.Glue.SerialBolt.Sound
+import BoltProof.Bridge.Glue.SerialBolt.Abs
+import BoltProof.Bridge.Glue.SerialBolt.Facts
+import BoltProof.Bridge.Glue.SerialBolt.Weld
+import BoltProof.Bridge.Glue.SerialBolt.Refine
+import BoltProof.Bridge.Glue.SerialBolt.Regress
+import BoltProof.Bridge.Glue.SerialBolt.Chain
+import BoltProof.Bridge.Glue.Refine.Verify
+import BoltProof.Bridge.Glue.Refine.Serial
+import BoltProof.Bridge.Glue.Refine.Parse
+import BoltProof.Bridge.Glue.Refine.Facts
+import BoltProof.Bridge.Glue.Refine.Weld
+import BoltProof.Bridge.Glue.Refine.MinSimple
+import BoltProof.Bridge.Glue.Refine.EndToEnd
+import BoltProof.Bridge.Glue.Refine.Chain
+import BoltProof.Bridge.Glue.Regress
+import BoltProof.Bridge.Glue.SimpleMulti.Spec
+import BoltProof.Bridge.Glue.SimpleMulti.PushTx
+import BoltProof.Bridge.Glue.SimpleMulti.Reaches
+import BoltProof.Bridge.Glue.SimpleMulti.Blocks
+import BoltProof.Bridge.Glue.SimpleMulti.Arms
+import BoltProof.Bridge.Glue.SimpleMulti.Regions
+import BoltProof.Bridge.Glue.SimpleMulti.Enforced
+import BoltProof.Bridge.Glue.SimpleMulti.Paths
+import BoltProof.Bridge.Glue.SimpleMulti.Settle
+import BoltProof.Bridge.Glue.SimpleMulti.Settle.Transfer
+import BoltProof.Bridge.Glue.SimpleMulti.Settle.Split
+import BoltProof.Bridge.Glue.SimpleMulti.Settle.Merge
+import BoltProof.Bridge.Glue.SimpleMulti.Melt
+import BoltProof.Bridge.Glue.SimpleMulti.Refute
+import BoltProof.Bridge.Glue.SimpleMulti.Sound
+import BoltProof.Bridge.Glue.SimpleMulti.Lock
+import BoltProof.Bridge.Glue.SimpleMulti.Abs
+import BoltProof.Bridge.Glue.SimpleMulti.Weld
+import BoltProof.Bridge.Glue.SimpleMulti.Facts
+import BoltProof.Bridge.Glue.SimpleMulti.Residual
+import BoltProof.Bridge.Glue.SimpleMulti.Outs
+import BoltProof.Bridge.Glue.SimpleMulti.Merge
+import BoltProof.Bridge.Glue.SimpleMulti.Rebuilt
+import BoltProof.Bridge.Glue.SimpleMulti.Anchor
+import BoltProof.Bridge.Glue.SimpleMulti.GateItems
+import BoltProof.Bridge.Glue.SimpleMulti.GpWeld
+import BoltProof.Bridge.Glue.SimpleMulti.L3
+import BoltProof.Bridge.Glue.SimpleMulti.Refine
+import BoltProof.Bridge.Glue.SimpleMulti.RefineGp
+import BoltProof.Bridge.Glue.SimpleMulti.RefineMerge
+import BoltProof.Bridge.Glue.SimpleMulti.RebuiltB
+import BoltProof.Bridge.Glue.SimpleMulti.RebuiltBParse
+import BoltProof.Bridge.Glue.SimpleMulti.AnchorB
+import BoltProof.Bridge.Glue.SimpleMulti.GpWeldB
+import BoltProof.Bridge.Glue.SimpleMulti.RefineMergeSettle
+import BoltProof.Bridge.Glue.SimpleMulti.Regress
+import BoltProof.Bridge.Glue.SimpleMulti.EndToEnd
+import BoltProof.Bridge.Glue.SimpleMulti.Chain
+
+/-!
+# BoltProof.Bridge.Glue
+
+The glue between the fragment proofs of `Gadgets/` and the shipped covenant bytes
+(`lean/README.md`, "The glue"). Everything under `BoltProof.Glue` is symbolic and held to Layer 1's axiom
+rules; the few evaluator-trusted identities live in `BoltProof.Bridge` (`Bridge/Bytes.lean`).
+
+* `Sections.lean`: the fragment literals at their offsets in the chunked suffixes.
+* `Sym/`: the inversion step lemmas and the drivers that chain them.
+* `MinSimple/`: what the `MinSimpleBOLT` suffix enforces, proved by running it symbolically along
+  each of its ten paths: `Spec.lean` states it, `PushTx.lean` abstracts the lock's own
+  `OP_PUSH_TX` block, `Paths/` runs the paths, `Sound.lean` assembles `minSimple_sound` and the
+  `reaches_*` theorems; `Abs.lean` reads a real spend into the model's `Spend`.
+* `Refine/`: the refinement to the covenant interface: `Verify.lean` reads a valid verdict as a
+  run of the lock, `Serial.lean` round-trips the node's serialisation, `Weld.lean` and `Facts.lean`
+  turn the facts the run leaves into the model's clauses, and `MinSimple.lean` proves
+  `minSimple_refines`: the bytes accept only what `Accepts` admits, under the residual assumptions
+  it states; `EndToEnd.lean` composes it with Layer 1's per-input theorems, and `Chain.lean` reads a chain
+  of real spends as a valid model `Run`, discharging `GpReal`, so the run-level theorems hold of real tokens. `Regress.lean` (namespace `BoltProof.Bridge.Glue`, `native_decide`) reads the real
+  `MinSimpleBOLT` vectors through the abstraction and applies the theorem to them.
+* `SimpleMulti/`: the fungible family: `Spec.lean` names its eleven fields and the unlocking
+  arguments, `PushTx.lean` abstracts its `OP_PUSH_TX` block, and `Reaches.lean` proves that the
+  run reaches each of the five proved fragments with the stack its lemma assumes. `Blocks.lean`,
+  `Arms.lean` and `Regions.lean` fold the loops, the rebuilds' arms and the rebuild phase into one-step
+  lemmas; `Enforced.lean`, `Settle.lean` and `Melt.lean` state what each spend shape enforces;
+  `Paths/`, `Settle/`, `Melt.lean` and `Refute.lean` are the path theorems and the refused type pairs;
+  `Sound.lean` assembles them into `simpleMulti_sound`; `Refine*.lean` are the four refinement stages,
+  `EndToEnd.lean` composes them with Layer 1's per-input theorems, and `Chain.lean` reads a chain of real
+  spends as a valid model `Run` (under A1), so the run-level theorems hold of real fungible tokens.
+* `AuthBolt/` and `SerialBolt/`: the two other NFT locks (M6), each MinSimple's files over its own bytes:
+  `Spec`, `PushTx`, `Paths/` and `Sound` (`authBolt_sound`, `serialBolt_sound`, the `reaches_*` corollaries),
+  `Abs`, `Facts`, `Weld` and `Refine` (`authBolt_refines`, `serialBolt_refines`), `Regress` on their vectors,
+  and `Chain.lean`, this file's MinSimple chain over their abstractions, so the run-level theorems hold of their
+  real tokens too.
+  `SerialBolt/Arms.lean` reads the prologue's `mintData` width and the rebuild's two data-dependent pushes as one
+  step each.
+-/

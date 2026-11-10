@@ -21,3 +21,12 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Lean build artifacts (lean/)
+lean/.lake/
+# the glue's probe files (lean/scripts/probe*.py write them)
+lean/Scratch/
+lean/closure-build.log
+
+# Python bytecode (the Lean generators under lean/scripts/)
+__pycache__/

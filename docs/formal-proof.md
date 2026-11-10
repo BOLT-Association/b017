@@ -129,10 +129,45 @@ exactly what they establish — no more.
 
 **Methodology.** What follows is a rigorous *hand* proof, paired with an executable test suite
 (§9) that builds real transactions and runs them through the actual `@bsv/sdk` Script
-interpreter. It is **not** a machine-checked proof — there is no Coq/Isabelle/Lean development.
-The tests are strong evidence over the cases they cover (including raw-byte counterfeits that
-*must* be rejected), but a passing suite demonstrates the covered branches; it is not a proof of
-the absence of a covenant bug in an uncovered branch.
+interpreter, and with a **Lean 4 development** under [`lean/`](../lean/README.md) that
+machine-checks it. Three terms: the **model** is Lemmas 1–7 written in Lean as `Accepts`
+(`lean/BoltProof/Model/Covenant.lean`); the **script** is each covenant's compiled bytecode as
+shipped; a result holds **per input** when it is proved of one token spend at a time.
+
+1. **Theorems 1–4 are proved of the model**, for both families over arbitrary runs
+   (`lean/BoltProof/Theorems/`), plus Theorem 5, the §8.1 fabricated-hop defence at the ledger
+   level, which exists only in Lean. Assumptions 1 and 2 enter as hypotheses of the theorems that
+   need them, never as axioms. Every theorem here depends only on Lean's three standard axioms.
+2. **The script is run inside Lean** on the honest lifecycles of §9 and every adversarial
+   transaction of the red-team suites, with [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean)
+   v1.2.0 (real SHA-256, RIPEMD-160 and secp256k1 as Lean functions) under today's BSV rules. Each
+   verdict, accept or reject at exactly the input these lemmas name, is registered with the kernel
+   (`lean/BoltProof/Bridge/`, via `native_decide`). The scripts reasoned about hash to the scanner's
+   fingerprints.
+3. **The script is proved to enforce the model, per input.** For each of the four scripts a symbolic
+   execution (`lean/BoltProof/Bridge/Glue/`, `lean/README.md`) proves what it enforces
+   on every possible input, that it reaches each fragment proved at the byte level with the stack that
+   proof assumes, and that any spend the network accepts is one the model accepts. Standard axioms only.
+
+What this does **not** establish. Point 3 is per input and rests on assumptions listed once per
+script: OP_PUSH_TX binds the preimage and nothing the spend hashes has a second preimage; the
+grandparent a settle names is the real commit two steps back, per input (chaining real spends into a run
+discharges it: a chain of real spends is a valid run, `lean/BoltProof/Bridge/Glue/*/Chain.lean`, so
+Theorems 1, 3, 4 and 5 hold of real tokens, for the fungible script under A1 (the grandparent's balance signs
+are derived from its creating commit, not assumed)); and three model rules the script does not check and that are not security
+properties (melt outputs, the change blob, the melt's version). The fungible script adds three, each an
+open question in `lean/README.md` (the six protocol types, the rebuild's piece widths, the merge
+partner presenting a preimage); the last is probed on the engine and judged in Lean, as are two quirks the
+model admits and the proof covers without assumption (the split settle's output order and the balance
+anchor's index). Layer 2 remains evidence on the transactions it covers (245
+inputs at the time of writing), and Assumption 4 is still trusted. Everything about the script is under
+today's BSV rules (post-Chronicle); nothing is claimed for the old rules. The model contains only
+tokens the script created, so the fabricated-hop attack's own transactions are outside it and the
+off-chain checks of [`verification-scaling.md`](verification-scaling.md) that protect a recipient are
+not modelled. `lean/README.md` states the boundary precisely. The tests remain strong evidence over the
+cases they cover (including raw-byte counterfeits that *must* be rejected), but a passing suite
+demonstrates the covered branches; it is not a proof of the absence of a covenant bug in an
+uncovered branch.
 
 **Specification vs deployed bytecode.** The lemmas reason about the compiled covenant embedded in
 `src/tokens/templates/SimpleMulti.sx.template.ts` (and the NFT analogues). Two facts bridge the
@@ -332,7 +367,9 @@ Refusing the settle-typed orphan at its commit is a margin the fix chose, not on
 > contract; until 2026-11-04 it described the fungible guard as it stood before the F3 fix of
 > 2026-09-07, as `isGenesis` alone. Both prologues are decoded opcode by opcode in
 > [`issuer-guard.md`](issuer-guard.md); `test/lib/multiBoltIssuerGuard.test.ts` executes both rules
-> on the shipped bytecode of every contract that carries them.
+> on the shipped bytecode of every contract that carries them. The Lean development proves both rules from
+> the shipped bytes for every input (`Enforced.issuer` in `simpleMulti_sound`, `minSimple_sound`,
+> `authBolt_sound` and `serialBolt_sound`, `lean/BoltProof/Bridge/Glue/`).
 
 ### Lemma 6 (Balance Determinism, fungible)
 The output balance is a deterministic function of the input balance(s), computed with 16-byte
@@ -468,6 +505,12 @@ terminate at the same parentless, issuer-signed root (§1.3). By case analysis:
 
 Therefore, excluding melt, `B(n) = B(0)` for all n. ∎
 
+> **As machine-checked** (`Run.t3_conservation`): the Lean statement is over the *set* of genesis
+> tokens a run starts from — `float + melted = Σ genesis balances` at every step — and counts a
+> merge-commit-typed token's `balanceCommit` as value in flight. Two mints of one issuer can be
+> merged, so "per genesis" is only well-defined without merges; the statement above is the
+> single-genesis, no-melt corollary (`Run.t3_single_genesis`).
+
 This conserves the float of *one* genesis lineage. It is **not** a statement about the issuer's
 total supply: an issuer may mint any number of independent genesis tokens, each with its own
 `B(0)`, and this theorem says nothing about their sum. Supply-honesty is an off-chain / issuer
@@ -572,6 +615,11 @@ transactions and verifies them against the actual `@bsv/sdk` Script interpreter 
 are not repeated here, so they cannot drift; the table names the suites that carry each property,
 not every file.
 
+The same transactions, and the adversarial ones of the red-team suites, are also exported to
+the Lean development (`npm run lean:vectors` → `lean/BoltProof/Bridge/Generated/`) and judged
+there by bsv-script-lean's consensus semantics, with one kernel-registered theorem per
+transaction (`lake build && lake exe boltvectors` in `lean/`). See §1.6 and `lean/README.md`.
+
 | Suite (file) | Validates |
 |--------------|-----------|
 | `test/tokens/MultiBOLT.test.ts`, `test/templates/SimpleMulti.test.ts` | Full `SimpleMultiBOLT` lifecycles (mint → transfer×2 → split; mint×2 → merge → melt) build real txs and verify on the `@bsv/sdk` Spend engine; split/merge conserve balance (Theorem 3, Lemma 6). |
@@ -608,8 +656,11 @@ The proof of authenticity lives entirely within Bitcoin Script, secured by proof
 is reducible to breaking SHA-256 or ECDSA. ∎
 
 These four results are the whole claim. They establish **third-party per-token unforgeability**;
-they do **not** establish issuer supply-honesty or network-level security, and this is a hand
-proof validated by tests rather than a machine-checked one — see §1.6 for the exact boundary.
+they do **not** establish issuer supply-honesty or network-level security. The theorems are
+machine-checked in Lean of the model; for every shipped script, the script is proved to enforce the
+model per input, under listed assumptions, and checked against it on real transactions; and a chain of
+real spends is proved a valid run, so Theorems 1, 3, 4 and 5 hold of real tokens under the assumptions of
+§1.6 — see §1.6 and `lean/README.md` for the exact boundary.
 
 ---
 

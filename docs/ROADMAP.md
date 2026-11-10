@@ -33,7 +33,9 @@ family, and token classes for the NFT family (`SerialBOLT` is template-only, lik
   [`AutoBOLT-design.md`](AutoBOLT-design.md). Motivation is no longer "probably redundant": beyond
   the donation feature, permissionless settle carries a standalone **security** rationale — it
   *erases the durable unfinalized-commit state* — and is **load-bearing for MetaNetBOLT** (finalising
-  content nodes whose publisher is offline). Still **gated on the formal proof**.
+  content nodes whose publisher is offline). Still **gated on the formal proof** — now
+  machine-checked for the shipped families (`lean/`); an AutoBOLT variant needs its own covenant
+  interface and vectors there before it ships.
 - FreeBOLT / OpenBOLT — / HookBOLT / WrapBOLT ? MUST VALIDATE PROTOCOL LOGIC BEFORE Arbitrary Code Execution
 - **MetaNetBOLT** — tokenised, Layer-1-validated Metanet domains: the issuer key is the stable MURL
   root, nodes are *settled* BOLT txs, sites are served peer-to-peer as self-proving BEEFs (SPV +
@@ -112,6 +114,50 @@ does refuse — so this is an **optimisation, not a fix**, and it sits on the lo
   at the commit".
 - **Do it when** the NFT bytecode is being rebuilt for another reason (the NFT token classes or
   `SerialBOLT` work above), never on its own.
+
+## Deferred: drop the fungible lock's index byte (`outputIndexN`)
+The fungible lock carries an index byte (`outputIndexN`, lock chunk 7) that nothing reads. On chain,
+each spend writes the new token's byte afresh from its own `inputIndexN` argument (or from the `i2`
+slot for a split settle's second token), never from the spent token's; the ancestor rebuild hashes the
+ancestor's bytes as supplied; the balance anchor's index comes from the proof-vout argument `i5`; and
+the one place a lock's byte is read, the merge settle's choice between its two prevouts orders, reads
+the spent merge-commit token's byte, which both merge paths write as 0, so only that branch ever runs.
+Off chain, `multiBoltLib` copies the byte as a rebuild piece and the scanner and the builders locate
+tokens by position and proofs by key hash. The Lean development found this (`lean/README.md`, Finding 6);
+twenty vectors (`smb_probe_idx_*`) and `test/lib/indexByte.test.ts` show that a token whose byte
+disagrees with its position stays spendable through every operation. The byte is dead weight: one push
+per token output and the write that fills it on every path. `inputIndexN` is **not** dead: it is the
+merge-role flag that orders `hashPrevouts` for a merge commit's second token input, and it stays.
+- **Change:** remove the push from the lock and its write from every spend path (`inIdxByte`,
+  `splitIdx`), and let the merge settle keep only the prevouts order its zero branch builds. `i2` keeps
+  its interop role; `inputIndexN` keeps its merge role.
+- **Cost:** new fungible bytecode, so new fingerprints for `SimpleMultiBOLT`, `FixedBOLT` and `OpenBOLT`
+  and a **reissue** of tokens on the current bytes; the lock layout shifts (`LAYOUTS`/`FIELDS`, the
+  rebuild's piece list and widths, `multiBoltLib`'s field map), and the Lean glue's stack offsets and
+  `Residual`'s piece hypotheses are recounted; the lifecycle, attack and index-byte suites re-run and the
+  Lean vectors regenerate.
+- **Do it when** the fungible bytecode is being rebuilt for another reason (the descriptor work above or a
+  genesis-family change), never on its own.
+
+## Deferred: shrink the vector checks' trust base (drop `native_decide`)
+The transaction-replay checks — the 107 vectors / 245 inputs run under `lake exe boltvectors`, and the
+`Regress.lean` guards — are discharged with `native_decide`: the kernel trusts Lean's *compiled* evaluator
+for them, recorded as one auxiliary axiom per theorem (`lean/README.md`, "What is still trusted"). It is the
+one place Layer 2 trusts the compiled evaluator over the kernel; Layer 1 (the model theorems) and the
+symbolic enforcement glue use only the three standard axioms. Reducing these to ordinary kernel evaluation
+would remove that auxiliary axiom and leave the *whole* development on the three standard axioms, tightening
+the trust base to its floor.
+- **Change:** replace `native_decide` with kernel-checked evaluation for the vector verdicts and the
+  regression guards — either `decide` (kernel reduction of each script run) or, where that is too slow, a
+  reflection / `Decidable`-instance proof, or reusing the symbolic fragment machinery to *prove* each vector's
+  outcome rather than evaluate it.
+- **Cost:** kernel reduction of real BSV script executions across 245 inputs is orders of magnitude slower
+  than the compiled evaluator — which is *why* `native_decide` is used — so a brute `decide` is likely
+  infeasible within the 90-minute CI budget at the current vector scale. A tractable route probably proves the
+  verdicts structurally rather than by evaluation, which is real per-vector-shape work.
+- **Note:** a trust-base reduction, not a correctness fix. The native evaluator is already an accepted,
+  documented trust item; nothing depends on this to stand, and the shipped guarantee is unchanged. Do it only
+  if "three standard axioms everywhere" is judged worth the engineering.
 
 ## Library hardening
 - `tsconfig strict: true`; remove `any` casts; type the `BOLT` abstract methods (today `any`,

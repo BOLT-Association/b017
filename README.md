@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 > **Status: `0.1.0`.** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
-> (791/791 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `1.0.0`. See
+> (795/795 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `1.0.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 
 Standalone TypeScript library for the **Bitcoin Original Layer-1 Token** protocol on BSV — a fungible & optimised
@@ -24,10 +24,16 @@ authenticity & provenance by a multistep inspection.
 **Why these tokens can't be counterfeited:** the token state (issuer, lineage, owner, balance)
 is bound into a self-validating Bitcoin Script covenant via a dual hash-commitment, so forging
 a token would require breaking SHA-256 or ECDSA. See [`docs/unforgeability.md`](docs/unforgeability.md)
-for the argument and the forgery tests that demonstrate it, and
-[`docs/formal-proof.md`](docs/formal-proof.md) for the rigorous treatment (4 theorems, 7 lemmas,
-full attack-vector analysis). [`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard
-of each family, the NFT-only `is2ndTx` flag, and why the fungible family does not carry it.
+for the argument and the forgery tests, [`docs/formal-proof.md`](docs/formal-proof.md) for the
+rigorous treatment (4 theorems, 7 lemmas, full attack-vector analysis), and
+[`lean/README.md`](lean/README.md) for the **machine-checked** version: Theorems 1–5 proved in Lean 4
+of the protocol model, and, for every shipped script, a proof that each token is built by the script
+from the one before it and that a genesis moves only under the issuer's key. The script proofs hold per
+input, under listed assumptions and today's BSV rules, and a chain of real spends is proved a valid run,
+so the run-level theorems hold of real tokens. That file states exactly what is proved and what is still
+trusted.
+[`docs/issuer-guard.md`](docs/issuer-guard.md) decodes the issuer guard of each family: the NFT-only
+`is2ndTx` flag, and the broader zero-grandparent rule the fungible family carries instead.
 
 This is **third-party per-token unforgeability**: each unit is internally well-formed and traces
 to an issuer-signed mint. It is *not* a claim about **supply-honesty** (an issuer can mint many
@@ -40,8 +46,9 @@ independent genesis tokens — reserve/cap trust is an issuer matter) or **netwo
 ```
 npm install
 npm run build          # clean + tsc -> dist/ (JS + .d.ts)
-npm test               # vitest (791 tests)
+npm test               # vitest (795 tests)
 npm run test:coverage  # vitest + v8 coverage -> coverage/ (text + HTML report)
+npm run lean:vectors   # regenerate the Lean proof's transaction vectors (lean/BoltProof/Bridge/Generated/)
 ```
 
 `@bsv/sdk` is a **peer dependency** — your application provides the single shared instance.
@@ -209,7 +216,7 @@ by concern (`test/tokens`, `test/templates`, `test/lib`, `test/scanner`), with s
 fixtures in `test/fixtures` and helpers in `test/helpers`.
 
 ```
-npm test               # 791 tests across 42 files
+npm test               # 795 tests across 43 files
 npm run test:coverage  # the same suite + a v8 coverage report (text to stdout, HTML in coverage/)
 ```
 
