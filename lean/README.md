@@ -5,6 +5,10 @@ package: the fungible `SimpleMultiBOLT` and the identity NFT family (`MinSimpleB
 `SerialBOLT`). It uses [bsv-script-lean](https://github.com/Calhooon/bsv-script-lean) v1.2.0, a Lean
 specification of BSV consensus, to run and to reason about the real covenant scripts.
 
+**In one line:** BOLT's shipped covenants are proved counterfeit-proof — the real bytecode enforces the
+protocol for *every* input and over a token's whole history, machine-checked with no `sorry`, no `admit`,
+and an axiom audit that pins exactly what each theorem rests on.
+
 Three terms are used throughout. The **model** is the hand proof's seven rules (Lemmas 1–7) written in
 Lean as `Accepts`, "the covenant accepts this spend". The **script** is each covenant's compiled bytecode
 as shipped. A result holds **per input** when it is proved of one token spend at a time, and **over a
