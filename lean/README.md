@@ -227,9 +227,11 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
    settle (Finding 5).
 9. An undefined next type cannot be committed (Q4, `smb_probe_type_oor_*`, `smb_probe_type27_commit`): the parity
    check fixes only the next type's parity, and the issuer guard refuses `0x27` only when it fires, but a
-   mid-lineage commit to an undefined type (the guard silent) is refused at the covenant's own `OP_EQUALVERIFY`,
-   so the written type is pinned to the six. The `SmbType a.nty` restriction in the proofs is the modelling
-   boundary, not a gap the bytes leave open (see Open questions).
+   mid-lineage commit to an undefined type (the guard silent) is refused at the covenant's own output
+   `OP_EQUALVERIFY`: the token the covenant rebuilds carries the mode-flag-derived type, one of the six
+   (Finding 3), so an output claiming an undefined type cannot match `hashOutputs`. The written type is thus
+   pinned to the six. The `SmbType a.nty` restriction in the proofs is the modelling boundary, not a gap the
+   bytes leave open (see Open questions).
 
 **Open questions.** Q4: off genesis, the parity check only fixes the next type's parity, so a settled token's
 spend may name any odd byte. Whether an undefined next type can be committed is resolved by probe: the issuer
@@ -238,8 +240,12 @@ spent token has a grandparent (the guard silent) and an undefined next type is r
 `OP_EQUALVERIFY` too (`smb_probe_type_oor_27_commit`, `smb_probe_type_oor_29_commit`, and the honest-shaped
 `smb_probe_type27_commit`), so no undefined-typed token can be committed. The covenant's own check pins the
 written type to the six. `simpleMulti_sound` and the refinement still carry the restriction `SmbType a.nty`
-rather than deriving that refusal: reading it off the bytes means driving a symbolic next type through the
-output builder (a path-family proof), deferred, with the probes as the standing evidence. Q7 is not an open enforcement
+rather than deriving that refusal. The output-hash injectivity such a derivation would use is already assumed
+(`NoSecondPreimage` of the serialised outputs, `Residual.outputs`); what is missing is the symbolic execution,
+not a lemma — driving a symbolic undefined next type through the whole output builder to read off that the
+rebuilt type is one of the six and so cannot be the claimed byte. The driver reaches that `OP_EQUALVERIFY` only
+after the full reconstruction and does not refute a symbolic undefined type at bounded cost, so this
+path-family proof is deferred, with the probes as the standing evidence. Q7 is not an open enforcement
 question: the covenant concatenates the rebuild's pieces and hashes the result against the grandparent's
 txid, and never parses the concatenation back into fields, so no contract operation splits the bytes at the
 field boundaries and there is nothing for the bytes to force. `HonestPiecesB` names the pieces at their
@@ -251,7 +257,9 @@ had recorded a false literal fact; every probe is now scanned for them); Q8 is s
 and kept as the hypothesis `hpre'`.
 
 **Follow-ups.** If the `SmbType a.nty` restriction is to be dropped formally, the path-family proof that the
-output builder refuses an undefined next type (Q4, already resolved by probe). `BalsNonneg` is shed: the
+output builder refuses an undefined next type (Q4, already resolved by probe): the output-hash injectivity it
+needs is already assumed (`Residual.outputs`), so the work is the symbolic drive of a symbolic next type
+through the builder, which does not refute at bounded cost today. `BalsNonneg` is shed: the
 grandparent's balance signs are now derived from its creating commit (`chainStep_commit_bals`).
 
 **Generators.** The long, regular files (the path theorems, the rebuilds' arms and parses, the gate items,
