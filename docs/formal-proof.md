@@ -155,8 +155,8 @@ grandparent a settle names is the real commit two steps back, per input (chainin
 discharges it: a chain of real spends is a valid run, `lean/BoltProof/Bridge/Glue/*/Chain.lean`, so
 Theorems 1, 3, 4 and 5 hold of real tokens, for the fungible script under A1 (the grandparent's balance signs
 are derived from its creating commit, not assumed)); and three model rules the script does not check and that are not security
-properties (melt outputs, the change blob, the melt's version). The fungible script adds three, each an
-open question in `lean/README.md` (the six protocol types, the rebuild's piece widths, the merge
+properties (melt outputs, the change blob, the melt's version). The fungible script adds three, each addressed in
+`lean/README.md`'s questions register (the six protocol types, the rebuild's piece widths, the merge
 partner presenting a preimage); the last is probed on the engine and judged in Lean, as are two quirks the
 model admits and the proof covers without assumption (the split settle's output order and the balance
 anchor's index). Layer 2 remains evidence on the transactions it covers (245

@@ -111,7 +111,7 @@ SHA-256, RIPEMD-160 and secp256k1 as Lean functions):
   is the expected one. The honest lifecycles of both families verify; every red-team transaction
   (`test/lib/minSimpleAttack.test.ts` B1–B4; the fungible inflated balance, split over-take, merge overflow,
   cross-issuer merge, raw-byte extra output, wrong-key spend, melt by a non-owner) fails at exactly the
-  input the hand proof names; the probes of the open questions below are judged; the historical
+  input the hand proof names; the probes of the questions register below are judged; the historical
   fabricated-hop chain (`test/fixtures/fabricated-hop-chain.json`) is accepted by the pre-fix script it
   embeds, reproducing what a regtest Teranode accepted.
 
@@ -186,7 +186,7 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
   proved, carries the security.
 * `GpReal`, `GpRealF`, `GpRealB`: the grandparent a settle names is real, well-formed, with the token at the
   named index and the proof outputs of a commit. Per input an assumption; over a chain, proved.
-* SimpleMultiBOLT only: the six protocol types (Q4, the restriction the probes back; see Open questions), the rebuilds' pieces named at their fields' widths
+* SimpleMultiBOLT only: the six protocol types (Q4, the restriction the probes back; see the questions register below), the rebuilds' pieces named at their fields' widths
   (`HonestPiecesB`, both piece sets; Q7, a representation choice, not an enforcement gap: the covenant
   concatenates the pieces and hashes the result, so the binding is the hash, not the split), and the merge
   partner presenting a preimage (Q8).
@@ -238,9 +238,9 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
    own token — refused by the script, counterfeiting nothing. It is SimpleMultiBOLT only: the NFT scripts
    (MinSimpleBOLT, AuthBOLT, SerialBOLT) write the next type rather than check a claimed one (`NftType.lean`), so
    they carry no such seam. The `SmbType a.nty` restriction in the proofs is the modelling boundary, not a gap
-   the bytes leave open (see Open questions).
+   the bytes leave open (see the questions register below).
 
-**Open questions.** Q4 (**BENIGN — SimpleMultiBOLT only; a spender malforming their own token's successor,
+**Questions raised, and how each was resolved.** Q4 (**RESOLVED, BENIGN — SimpleMultiBOLT only; a spender malforming their own token's successor,
 refused by the script and counterfeiting nothing; the NFT family writes the type and has no such seam**): off
 genesis, the parity check only fixes the next type's parity, so a settled token's spend may name any odd byte. Whether an undefined next type can be committed is resolved by probe: the issuer
 guard refuses `0x25` and `0x27` only when it fires (genesis or no grandparent), but a mid-lineage commit whose
