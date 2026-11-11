@@ -114,7 +114,7 @@ All notable changes to **b017** are documented here. The format is based on
   assumes, and `*_refines` (one per NFT script, four stages for `SimpleMultiBOLT`) shows that any spend the network
   accepts is one the model accepts, under assumptions listed once per script: OP_PUSH_TX binds the preimage and
   nothing the spend hashes has a second preimage; the grandparent a token names is the real commit two steps back;
-  three model rules the script does not check; and, fungible only, its open questions. Standard axioms only;
+  three model rules the script does not check; and, fungible only, its three extra assumptions (resolved questions in `lean/README.md`). Standard axioms only;
   `Regress.lean` applies each theorem to the real honest spends (`native_decide`). The axiom audit now has Lean
   enumerate Layer 2's declarations, and `AxiomCheck.lean` lists the glue's theorems. The generators of the glue's
   regular files are under `lean/scripts/`.
