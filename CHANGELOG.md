@@ -145,7 +145,10 @@ All notable changes to **b017** are documented here. The format is based on
     (`ARGS2CTX_SMB` 164 -> 158, `SKIP_SMB` 150 -> 144); FixedBOLT 174 -> 168, OpenBOLT 180 -> 174.
   - `SimpleMultiTemplate.lock()` loses its `outputIndexN` parameter (it sat before `prevVoutIdx`).
   - Static suffix 4700 -> 4513 bytes (FixedBOLT 5148 -> 4960, OpenBOLT 5210 -> 5021), so every token output and
-    every settle's unlocking script is smaller.
+    every settle's unlocking script is smaller. Measured on the 20 lifecycle fixtures of the three contracts, built
+    on both bytecodes: commits and transfer settles about -385 bytes each, mints about -570, split and merge settles
+    about -575; whole lifecycles -3.1% to -3.5% (SimpleMultiBOLT split lifecycle 94,067 -> 90,812 bytes, merge
+    lifecycle 143,702 -> 138,889; FixedBOLT merge 169,485 -> 164,264; OpenBOLT merge 157,848 -> 152,980).
   - The Lean development (`lean/`) is ported to the new bytecode: the vectors regenerate (`npm run lean:vectors`,
     every verdict re-judged), the glue's offsets and stack positions follow the new suffix (pieces 75 -> 72 per
     ancestor, the settled lock 4946 -> 4757 bytes), the second rebuild has one case, and the settle theorems no
