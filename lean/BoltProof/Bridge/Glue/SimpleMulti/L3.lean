@@ -52,14 +52,14 @@ theorem decode_le32_of_pos {n : Nat} (hn : n < 2 ^ 32) (h : 0 < decode (le32 n))
   · simp only [decide_eq_true_eq] at hs
     omega
 
-theorem gpOutA_eq (t0 : Bytes) (T : List Bytes) (w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes) :
-    gpOutA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 =
-      Hash.hash256 (rebuiltA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ item T 61 := rfl
+theorem gpOutA_eq (t0 : Bytes) (T : List Bytes) (w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42 : Bytes) :
+    gpOutA t0 T w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42 =
+      Hash.hash256 (rebuiltA t0 T w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42) ++ item T 59 := rfl
 
-theorem rebuildA_fact0_eq (t0 : Bytes) (T : List Bytes) (w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes) :
-    rebuildA_fact0 t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 =
-      AnchorOK (if item T 145 = [37] then [1] else []) (item T 145) (encode (decode (item T 150)))
-        (encode (decode (item T 151))) (encode (decode (item T 46))) (item T 61) := rfl
+theorem rebuildA_fact0_eq (t0 : Bytes) (T : List Bytes) (w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42 : Bytes) :
+    rebuildA_fact0 t0 T w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42 =
+      AnchorOK (if item T 139 = [37] then [1] else []) (item T 139) (encode (decode (item T 144)))
+        (encode (decode (item T 145))) (encode (decode (item T 44))) (item T 59) := rfl
 
 /-- The second outpoint `hashPrevouts` names is an input's. -/
 theorem coSpent_second {tx : Tx} {i : Nat} {q r : Bytes} (htx : TxWF tx) (h32 : (inputAt tx i).prevHash.length = 32)
@@ -88,7 +88,7 @@ theorem coSpent_third {tx : Tx} {i : Nat} {q1 q2 r : Bytes} (htx : TxWF tx)
 /-- **`l3_rebuild`, a settle with a grandparent**, given the outpoint of the first rebuild's grandparent that
 `hashPrevouts` names among the inputs. -/
 theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} {S : List Bytes} {G : Tx}
-    {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes}
+    {w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42 : Bytes}
     (other : Option (Fields × Outpoint Bytes)) (ancB : Option Tx)
     (hwf : WF f) (hsc : sc a.pre = lockScript f) (hop : 104 ≤ a.pre.length)
     (hval : (List.take 8 (List.drop (107 + (decode (List.take 2 (List.drop 105 a.pre))).toNat) a.pre)).length = 8)
@@ -96,19 +96,19 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
     (hlen : a.nty = [0x22] → (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16)
     (hlen24 : a.nty = [0x24] → (padN 16 (encode (decode f.bal + decode f.balCommit))).length = 16)
     (hp : HonestPiecesB a.psB)
-    (h0 : rebuildA_fact0 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h1 : rebuildA_fact1 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h2 : rebuildA_fact2 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h3 : rebuildA_fact3 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h5 : rebuildA_fact5 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h6 : rebuildA_fact6 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h7 : rebuildA_fact7 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h8 : rebuildA_fact8 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h9 : rebuildA_fact9 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h11 : rebuildA_fact11 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
-    (h12 : rebuildA_fact12 (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46)
+    (h0 : rebuildA_fact0 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h1 : rebuildA_fact1 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h2 : rebuildA_fact2 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h3 : rebuildA_fact3 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h5 : rebuildA_fact5 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h6 : rebuildA_fact6 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h7 : rebuildA_fact7 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h8 : rebuildA_fact8 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h9 : rebuildA_fact9 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h11 : rebuildA_fact11 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
+    (h12 : rebuildA_fact12 (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42)
     (hco : ∃ i1 ∈ tx.inputs, serOutPoint i1 =
-      Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ a.i5)
+      Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42) ++ a.i5)
     (htx : TxWF tx) (hG : GpRealF P f G)
     (hbal : 0 ≤ decode f.bal) (_hpar : decode f.parent ≠ 0) :
     ∀ gp, outpointOf f.gp = some gp →
@@ -132,12 +132,12 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
   rw [hGeq] at ht'
   obtain ⟨hv0, htt⟩ := gpTxA_token hw hl hwf.issuer h15 h14 _ t ht'
   -- the anchor: the grandparent token's balances are non-negative
-  have hlk : (gpTxA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs[0]? =
-      some (outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S))) := rfl
+  have hlk : (gpTxA (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42).outputs[0]? =
+      some (outOfBytes (item (gateT f a S) 29) (lkA (gateT f a S))) := rfl
   have hidx0 : G.outputs[leNat (List.drop 32 f.gp)]? =
-      some (outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S))) := by
+      some (outOfBytes (item (gateT f a S) 29) (lkA (gateT f a S))) := by
     rw [hGeq, hv0]; exact hlk
-  have hdec : decodeLock (outOfBytes (item (gateT f a S) 30) (lkA (gateT f a S))).scriptPubKey =
+  have hdec : decodeLock (outOfBytes (item (gateT f a S) 29) (lkA (gateT f a S))).scriptPubKey =
       some (gpFieldsA (gateT f a S) f.issuer) := by
     simp only [outOfBytes, lkA_eq hl h15 h14, decodeLock_lockScript (gpFieldsA_wf hl hwf.issuer)]
   obtain ⟨hn2, hn3⟩ := hG.bal _ hidx0 _ hdec
@@ -146,12 +146,12 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
   have h32' : i1.prevHash.length = 32 := (htx.inputs i1 hi1mem).1
   have hidx1 : i1.prevIndex < 2 ^ 32 := (htx.inputs i1 hi1mem).2.1
   have hsplit := List.append_inj (by simpa [serOutPoint] using hi1 : i1.prevHash ++ le32 i1.prevIndex =
-    Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ a.i5)
+    Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42) ++ a.i5)
     (by rw [h32', BoltProof.Glue.MinSimple.hash256_length])
-  rw [rebuildA_fact1_eq, gateT_item36] at h1
+  rw [rebuildA_fact1_eq, gateT_item35] at h1
   have hprev1 : i1.prevHash = List.take 32 f.gp := by rw [hsplit.1, h1]
   -- the anchor forces the co-spent index to 1 or, for a split-commit grandparent, 2
-  rw [rebuildA_fact0_eq, gateT_item61, gateT_item145, gateT_item150, gateT_item151, gateT_item46] at h0
+  rw [rebuildA_fact0_eq, gateT_item59, gateT_item139, gateT_item144, gateT_item145, gateT_item44] at h0
   have hidx15 := AnchorOK.index h0
   have hpos : 0 < decode a.i5 := by rcases hidx15 with h | ⟨-, h⟩ <;> omega
   have hle : decode (le32 i1.prevIndex) = i1.prevIndex :=
@@ -166,15 +166,15 @@ theorem l3_settle {P : Prims Bytes} {tx : Tx} {i : Nat} {f : Fields} {a : Args} 
     · have h2' : i1.prevIndex = 2 := by omega
       rw [h2']
       refine hG.proof2 t ht ?_
-      rw [htt]; simp [tokenOf, gpFieldsA, gateT_item145, hsp]
+      rw [htt]; simp [tokenOf, gpFieldsA, gateT_item139, hsp]
   refine ⟨absTx G, t, i1.prevIndex, pkh, by simp [spendOf], by rw [hG.ptxid, hG.txid], ht, hproof, ?_, ?_⟩
   · simp only [absTx, List.mem_map]
     exact ⟨i1, hi1mem, by rw [hprev1]⟩
   · -- the anchor: the settle result one below the co-spent proof
     rw [htt]
-    exact anchorOK_settled (g := gpFieldsA (gateT f a S) f.issuer) (ty := a.psB.p8) (n3 := a.psB.p13)
-      (n2 := a.psB.p14) (by simp [gpFieldsA, gateT_item145]) (by rw [← gateT_item145 f a S]; exact hl.ty)
-      (by simp [gpFieldsA, gateT_item151]) (by simp [gpFieldsA, gateT_item150]) h0 hx
-      (by rw [← gateT_item151 f a S]; exact hn2) (by rw [← gateT_item150 f a S]; exact hn3) hbal
+    exact anchorOK_settled (g := gpFieldsA (gateT f a S) f.issuer) (ty := a.psB.p7) (n3 := a.psB.p12)
+      (n2 := a.psB.p13) (by simp [gpFieldsA, gateT_item139]) (by rw [← gateT_item139 f a S]; exact hl.ty)
+      (by simp [gpFieldsA, gateT_item145]) (by simp [gpFieldsA, gateT_item144]) h0 hx
+      (by rw [← gateT_item145 f a S]; exact hn2) (by rw [← gateT_item144 f a S]; exact hn3) hbal
 
 end BoltProof.Glue.SimpleMulti

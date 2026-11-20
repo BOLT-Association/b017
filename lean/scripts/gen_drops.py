@@ -33,10 +33,10 @@ target=None
 for i,l in enumerate(lines):
     m=re.search(r'Reaches env (\d+) k t r cs', l)
     if m: target=int(m.group(1))
-    if l.startswith('  simp only [stack38, Pieces75.stack, SimpleMulti.c423'):
+    if l.startswith('  simp only [stack38, Pieces72.stack, SimpleMulti.c423'):
         ns=[n for n in names if 423<=start(n)<target and not re.search(r'_(pad16|optTail|anchor|ite32|ite43)$', n)]
         tail=l[l.index(', List.cons_append'):]
-        lines[i]='  simp only [stack38, Pieces75.stack, '+', '.join('SimpleMulti.'+n for n in ns)+tail
+        lines[i]='  simp only [stack38, Pieces72.stack, '+', '.join('SimpleMulti.'+n for n in ns)+tail
 src='\n'.join(lines)
 open(p,'w').write(src)
 print('ok', len(names))

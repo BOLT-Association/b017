@@ -6,7 +6,18 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
 ### Added
+- **`lean/scripts/check_generated.py`: the glue's generated files stay reproducible.** It runs, in dependency order,
+  the twelve glue generators whose inputs are committed and fails if any output differs from the committed file
+  (restoring the files afterwards); CI's `lean-proof` job runs it before the build, beside the vectors' drift check.
+  The rules it enforces (never hand-edit a generated file; commit every input a generator reads except a full probe
+  output; register a new generator) are in `lean/scripts/README.md`.
+- **`lean/scripts/settle-inputs/` and `extract_settle_inputs.py`: the settle probes' side files, committed.** The
+  settle generator read side files that lived only under the git-ignored `lean/.lake/glue-work/`, so the settle
+  theorems could not be regenerated on any other machine. The extractor cuts them out of the probes' outputs (the gate
+  stack, the outputs fact and now the zero pads, `<probe>.zeros.txt`), and the README gives the exact probe commands.
 - **`docs/issuer-guard.md`: the issuer guard of each family, decoded from the shipped bytecode.** The NFT
   prologue derives `is2ndTx = (grandparent == 0 && txoType != 0)` and requires the issuer under
   `isGenesis || is2ndTx`; the fungible prologue requires the issuer under `isGenesis || grandparent == 0`, the F3
@@ -120,6 +131,34 @@ All notable changes to **b017** are documented here. The format is based on
   regular files are under `lean/scripts/`.
 
 ### Changed
+- **BREAKING for existing tokens and for `lock()` callers: the `outputIndexN` lock field is gone from
+  `SimpleMultiBOLT`, `FixedBOLT` and `OpenBOLT`.** The covenant read it at exactly one place, the merge settle's
+  bolt-prevout order, and that read always saw `00`: only a merge commit builds the token a merge settle spends,
+  and both merge-commit writers emit `00` (measured on every lifecycle fixture with the read deleted, probed and
+  forced, and on a regtest teranode). The read is now the constant order, so nothing read the field any more; it
+  goes, with its scriptCode slice, its three writers and its three ancestor mirror pieces
+  (`Vin1CTXOutputIndexN`, `Vin2CTXOutputIndexN`, `Vout1OutputIndexN`). Every remaining covenant decision is
+  unchanged: each executed pick reads the same stack item as before, on every lifecycle fixture.
+  - Lock data pushes 11 -> 10 (genesis family 13 -> 12): `parentOutpoint` / `grandparentOutpoint` /
+    `issuerPubKey` sit one chunk earlier. Scanner layouts and event field indices follow.
+  - Ancestor pieces per ancestor 75 -> 72 (FixedBOLT 77 -> 74, OpenBOLT 80 -> 77): unlock args 170 -> 164
+    (`ARGS2CTX_SMB` 164 -> 158, `SKIP_SMB` 150 -> 144); FixedBOLT 174 -> 168, OpenBOLT 180 -> 174.
+  - `SimpleMultiTemplate.lock()` loses its `outputIndexN` parameter (it sat before `prevVoutIdx`).
+  - Static suffix 4700 -> 4513 bytes (FixedBOLT 5148 -> 4960, OpenBOLT 5210 -> 5021), so every token output and
+    every settle's unlocking script is smaller. Measured on the 20 lifecycle fixtures of the three contracts, built
+    on both bytecodes: commits and transfer settles about -385 bytes each, mints about -570, split and merge settles
+    about -575; whole lifecycles -3.1% to -3.5% (SimpleMultiBOLT split lifecycle 94,067 -> 90,812 bytes, merge
+    lifecycle 143,702 -> 138,889; FixedBOLT merge 169,485 -> 164,264; OpenBOLT merge 157,848 -> 152,980).
+  - The Lean development (`lean/`) is ported to the new bytecode: the vectors regenerate (`npm run lean:vectors`,
+    every verdict re-judged), the glue's offsets and stack positions follow the new suffix (pieces 75 -> 72 per
+    ancestor, the settled lock 4946 -> 4757 bytes), the second rebuild has one case, and the settle theorems no
+    longer case on `inputIndexN` or `i2` (the settle reads neither); the theorem statements are unchanged.
+    `lean/scripts/settle-inputs/` holds the settle probes' side files and the commands that recreate them.
+  - Fingerprints: `SimpleMultiBOLT` `4c37d33f26189961f42d129309365bd775c070187216e8f10f33011209cb03a8` (was
+    `4a7613d176b46f03f1b06df86d7b96a667c31a277e2b4dbc5d5832d1c225fe34`); `FixedBOLT`
+    `2c9e1bf0959d95a55a9c476b6df570bfc5e58f122731013d9b2fddc193164046`; `OpenBOLT`
+    `1d69d2185cfac8fd117edf8cbe577791cca24442c7eff54484cb978ec02c64f4`. Tokens minted with the previous bytecode
+    keep it and are no longer recognised by `recognizeType`; reissue them.
 - **The model's L2 and L3 clauses admit exactly what the script admits** (`lean/BoltProof/Model/Covenant.lean`,
   `Model/Spend.lean`). A split settle's two tokens may come out in either order (`Spend.OutsOK`), and the anchor
   names the proof a settle co-spends: the balance carried is the settle result at the index one below that proof,
@@ -192,6 +231,14 @@ All notable changes to **b017** are documented here. The format is based on
   `l_merge_same_issuer` states.
 
 ### Fixed
+- **`scripts/lean-axiom-check.mjs` failed on Windows**: it took the repository root from `URL.pathname`
+  (`/C:/...`), which `path.join` turns into `C:\C:\...`; it now uses `fileURLToPath`.
+- **`lean/scripts/gen_smregress.py` no longer reproduced `Regress.lean`**: the guards had been edited by hand after
+  the generator last ran (the `GpRealF` proof-output arms, the merge settle's `GpRealB` record), so regenerating
+  broke the build. The generator now writes the committed form and is idempotent (it no longer adds a blank line per
+  run); `check_generated.py` catches the next such drift.
+- **`gen_settle.py` no longer reads the probes' 90-210 MB outputs**: the zero pads it took from each output's head are a
+  side file now (`<probe>.zeros.txt`), so `settle-inputs/` alone regenerates the settle files.
 - **Docs: `formal-proof.md` Lemma 5 still described the pre-F3 fungible guard** ("the only issuer check ...
   fires when the spent token is parentless"). The lemma now states the shipped rule for both families inline,
   with a two-line provenance note in place of stacked corrections; §8.1 gains the F3 row and §9 the new suite; the
@@ -507,7 +554,8 @@ before `0.1.0`.
 - Build now cleans `dist/` before `tsc` so the published tarball contains no stale artifacts.
 - Added `repository`, `bugs`, `homepage`, and `keywords` metadata.
 
-[Unreleased]: https://github.com/BOLT-Association/b017/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/BOLT-Association/b017/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/BOLT-Association/b017/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/BOLT-Association/b017/compare/v0.0.0-b2...v0.1.0
 [0.0.0-b2]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b2
 [0.0.0-b1]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b1

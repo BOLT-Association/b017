@@ -38,7 +38,7 @@ theorem probe {{env : Env}} {{k t : Bytes}} {{r : GOut}} {{S A : List Bytes}} {{
 end BoltProof.Glue
 """
 open(LEAN + '/Scratch/Probe.lean', 'w').write(lean)
-out = subprocess.run(["bash", "-c", f'export PATH="$HOME/.elan/bin:$PATH"; cd {LEAN} && lake env lean Scratch/Probe.lean'],
+out = subprocess.run([os.environ.get('LAKE', 'lake'), 'env', 'lean', f'Scratch/Probe.lean'], cwd=LEAN,
                      capture_output=True, text=True).stdout
 # print the info lines and the hypothesis h and other interesting hyps
 keep = []; inh = False

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate lean/BoltProof/Bridge/Glue/SimpleMulti/Regions.lean: the fungible suffix's three rebuild-phase regions read as
-one step each, from their isolated probes (probe_arm.py): the first rebuild (suffix 1426–2714, key `c1426`), the second
-rebuild's arm (2715–3896, key `c2715_if`, two cases on the spent lock's output index) and the null arm (3899–4651, key
+one step each, from their isolated probes (probe_arm.py): the first rebuild (suffix 1392–2623, key `c1426`), the second
+rebuild's arm (2624–3739, key `c2715_if`, two cases on the spent lock's output index) and the null arm (3742–4464, key
 `c3899`). Entry stack `t0 :: T` (the arm's `t1 :: t0 :: T`), alt stack `A`."""
 import os as _os
 LEAN = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
@@ -43,7 +43,7 @@ def split_state(hb, tail):
     return ats(F.rename(above)), ats(F.rename(alt))
 def region(name, key, a, b, entry, probes, doc):
     """probes: list of (caseHyps [(hname, prop)], probe file). One case: a plain block; two: an `if` on the first hyp."""
-    seq = C.seq(C.names(a, b)); unfold = C.unfold(a, b, keep=[(1961, 2426), (2591, 2609), (3186, 3623), (3773, 3790)])
+    seq = C.seq(C.names(a, b)); unfold = C.unfold(a, b, keep=[(1908, 2354), (2500, 2518), (3072, 3491), (3623, 3640)])
     out = []
     cases = []
     for hyps, path in probes:
@@ -137,7 +137,7 @@ def region(name, key, a, b, entry, probes, doc):
     return '\n'.join(out)
 def arm3(name, key, a, b, p0, probef, probe0, probe1, doc):
     """an arm `flag :: t1 :: t0 :: T` with the alt stack `a1 :: a2 :: A`: three cases, the flag off, and on with `p0` or its negation"""
-    seq = C.seq(C.names(a, b)); unfold = C.unfold(a, b, keep=[(1961, 2426), (2591, 2609), (3186, 3623), (3773, 3790)])
+    seq = C.seq(C.names(a, b)); unfold = C.unfold(a, b, keep=[(1908, 2354), (2500, 2518), (3072, 3491), (3623, 3640)])
     cases = []
     for ci, path in enumerate((probef, probe0, probe1)):
         fs, ws, hb = F.read(path)
@@ -219,17 +219,89 @@ def arm3(name, key, a, b, p0, probef, probe0, probe1, doc):
     out.append(f'    `(tactic| (obtain ⟨_, $h:ident⟩ := {name}_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf,')
     out.append(f'      Bool.and_false, Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)))\n')
     return '\n'.join(out)
+def arm2(name, key, a, b, probef, probe1, doc):
+    """an arm `flag :: t1 :: t0 :: T` with the alt stack `a1 :: a2 :: A`: two cases, the flag off and the flag on.
+    `arm3` with the index case gone: until the outputIndexN removal the second rebuild ended on a read of the spent lock's
+    index byte (`2a OP_PICK OP_BIN2NUM OP_IF OP_SWAP OP_ENDIF`), so the flag-on case split on it; the read is now the
+    constant order, so the flag-on case is one run. Case names match `arm3`'s (`_0_` off, `_1_` on), so the consumers'
+    `{name}_1_*` references keep their meaning (the old index-0 case, the only one an honest spend reaches)."""
+    seq = C.seq(C.names(a, b)); unfold = C.unfold(a, b, keep=[(1908, 2354), (2500, 2518), (3072, 3491), (3623, 3640)])
+    cases = []
+    for ci, path in ((0, probef), (1, probe1)):
+        fs, ws, hb = F.read(path)
+        fs = [(n, ats(t)) for n, t in fs]
+        st, alt = split_state(hb, 'T')
+        suf = lambda x, ci=ci: re.sub(r'\bw(\d+)\b', lambda m: f'w{m.group(1)}c{ci}', x)
+        fs = [(n, suf(t)) for n, t in fs]; ws = [suf(w) for w in ws]; st = suf(st); alt = suf(alt)
+        cases.append((fs, ws, st, alt))
+    out = [f'/-! ### `{name}`\n\n{doc} -/\n']
+    for ci, (fs, ws, st, alt) in enumerate(cases):
+        binders = '(t1 t0 a1 a2 : Bytes) (T : List Bytes)' + (f' ({" ".join(ws)} : Bytes)' if ws else '')
+        out.append(f'/-- The stack above `T` after the arm (case {ci}: ' + ['the flag off', 'the flag on'][ci] + '). -/')
+        out.append(f'def {name}_{ci}_stack {binders} : List Bytes :=\n  {st} T\n')
+        for fi, (_, ft) in enumerate(fs):
+            out.append(f'/-- Fact {fi} of case {ci}. -/')
+            out.append(f'abbrev {name}_{ci}_fact{fi} {binders} : Prop :=\n  {ft}\n')
+    exists = ' '.join(w for c in cases for w in c[1])
+    calls = [f'{name}_{ci}_stack t1 t0 a1 a2 T {" ".join(c[1])}'.rstrip() for ci, c in enumerate(cases)]
+    def conj(ci):
+        fs, ws = cases[ci][0], cases[ci][1]
+        return ' ∧ '.join(f'{name}_{ci}_fact{fi} t1 t0 a1 a2 T {" ".join(ws)}'.rstrip() for fi in range(len(fs))) if fs else 'True'
+    out.append(f'theorem {name}_shape {{env : Env}} (he : EnvOK env) {{k t : Bytes}} {{r : GOut}} {{flag t1 t0 a1 a2 : Bytes}} {{T A : List Bytes}}')
+    out.append(f'    {{C : Cond}} {{cs : Bytes}} {{m kk : Nat}} (hact : C.isActive = true)')
+    out.append(f'    (h : run Eval.opExec env ({seq}) t (St (flag :: t1 :: t0 :: T) (a1 :: a2 :: A) m C kk cs) = r) (hr : r.IsOk) :')
+    out.append(f'    ∃ ({exists} : Bytes) (m\' k\' : Nat),' if exists else '    ∃ (m\' k\' : Nat),')
+    out.append(f'      (castToBool flag = false → {conj(0)}) ∧')
+    out.append(f'      (castToBool flag = true → {conj(1)}) ∧')
+    out.append(f'      run Eval.opExec env k t (St (if castToBool flag = true then {calls[1]} else {calls[0]}) ({cases[0][3]}) m\' C k\' cs) = r := by')
+    out.append(f'  simp only [{unfold}, List.cons_append, List.nil_append] at h')
+    out.append(f'  cases hflag : castToBool flag')
+    def body(ci):
+        nf = len(cases[ci][0])
+        return ('⟨' + ', '.join('(by with_reducible assumption)' for _ in range(nf)) + '⟩') if nf > 1 else ('(by with_reducible assumption)' if nf == 1 else 'trivial')
+    def holes(ci):
+        h = []
+        for cj, c in enumerate(cases):
+            h += (['_'] * len(c[1])) if cj == ci else (['[]'] * len(c[1]))
+        return ', '.join(h + [f'?mm{ci}', f'?kk{ci}'])
+    out.append(f'  · sym_all h hflag')
+    out.append(f'    refine ⟨{holes(0)}, fun _ => {body(0)}, fun hf => by simp [hflag] at hf, ?run0⟩')
+    out.append(f'    case run0 =>')
+    out.append(f'      simp only [{name}_0_stack, hflag, Bool.false_eq_true, ↓reduceIte]')
+    out.append(f'      with_reducible exact h')
+    out.append(f'  · sym_all h hflag')
+    out.append(f'    refine ⟨{holes(1)}, fun hf => by simp [hflag] at hf, fun _ => {body(1)}, ?run1⟩')
+    out.append(f'    case run1 =>')
+    out.append(f'      simp only [{name}_1_stack, hflag, ↓reduceIte]')
+    out.append(f'      with_reducible exact h')
+    out.append('')
+    out.append(f'/-- The arm inside an inactive arm: stepped over. -/')
+    out.append(f'theorem {name}_skip {{env : Env}} (he : EnvOK env) {{k t : Bytes}} {{r : GOut}} {{S A : List Bytes}} {{D : Cond}} {{cs : Bytes}}')
+    out.append(f'    {{m kk : Nat}} (hin : D.isActive = false)')
+    out.append(f'    (h : run Eval.opExec env ({seq}) t (St S A m D kk cs) = r) (hr : r.IsOk) :')
+    out.append(f'    ∃ k\', run Eval.opExec env k t (St S A m D k\' cs) = r := by')
+    out.append(f'  simp only [{unfold}, List.cons_append, List.nil_append] at h')
+    out.append(f'  sym_skip h hin')
+    out.append(f'  exact ⟨_, h⟩\n')
+    nws = sum(len(c[1]) for c in cases)
+    pat = ', '.join(['_'] * nws + ['_', '_', '_', '_'])
+    out.append(f'macro_rules\n  | `(tactic| sym_blockrule "{key}" $h:ident $hact:ident) =>')
+    out.append(f'    `(tactic| (obtain ⟨{pat}, $h:ident⟩ := {name}_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr)))')
+    out.append(f'macro_rules\n  | `(tactic| sym_skipblockrule "{key}" $h:ident $hin:ident) =>')
+    out.append(f'    `(tactic| (obtain ⟨_, $h:ident⟩ := {name}_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf,')
+    out.append(f'      Bool.and_false, Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)))\n')
+    return '\n'.join(out)
 HEADER = """import BoltProof.Bridge.Glue.SimpleMulti.Arms
 
 /-!
 # The rebuild phase's regions
 
-The `OP_IF` at suffix 1425 opens the rebuild of the ancestors (a commit token with a grandparent)
+The `OP_IF` at suffix 1391 opens the rebuild of the ancestors (a commit token with a grandparent)
 and its `OP_ELSE` the null check of the pieces. Three regions inside are read as one step each, on
 an abstract stack `t0 :: T` whose items the facts name as `T[n]?.getD []`: the first rebuild with
-its anchor (1426–2714, up to the merge flag's push), the second rebuild's arm (2715–3896, opened by
+its anchor (1392–2623, up to the merge flag's push), the second rebuild's arm (2624–3739, opened by
 the merge flag, with two cases on the spent lock's `outputIndexN` at depth 39), and the null arm
-(3899–4651). The gate and the merge flag themselves stay with the path proof, whose hypotheses
+(3742–4464). The gate and the merge flag themselves stay with the path proof, whose hypotheses
 decide them. Generated by the glue's `gen_region.py` from the region probes; regenerate rather than
 edit.
 -/
@@ -247,14 +319,15 @@ open BoltProof.Bridge.Generated
 """
 if __name__ == '__main__':
     parts = [HEADER]
-    parts.append(region('rebuildA', 'c1426', 1426, 2715, 't0 :: T', [([], f'{SP}/RebA.out')],
-        'The first rebuild and its anchor (suffix 1426–2714): the rebuilt transaction from the pieces at depths 63–137 of `T` with the preimage\'s fields, hashed against the grandparent, the balances anchored, the merge flag left on top.'))
-    parts.append(region('nullArm', 'c3899', 3899, 4652, 't0 :: T', [([], f'{SP}/NullArm.out')],
-        'The null arm (suffix 3899–4651): the 150 pieces at depths 63–212 of `T` concatenate to nothing; the stack as it was.'))
-    if all(os.path.exists(f'{SP}/{n}.out') for n in ('RebBf', 'RebB0', 'RebB1')):
-        parts.append(arm3('rebuildB', 'c2715_if', 2715, 3897, 'decode (item T 39) = 0',
-            f'{SP}/RebBf.out', f'{SP}/RebB0.out', f'{SP}/RebB1.out',
-            'The second rebuild\'s arm (suffix 2715–3896), opened by the merge flag: the other lineage\'s transaction from the pieces at depths 63–137 of `T`, hashed against `ogp`, by the spent lock\'s `outputIndexN` (depth 39); nothing when the flag is off.'))
+    parts.append(region('rebuildA', 'c1392', 1392, 2624, 't0 :: T', [([], f'{SP}/RebA.out')],
+        'The first rebuild and its anchor (suffix 1392–2623): the rebuilt transaction from the pieces at depths 61–132 of `T` with the preimage\'s fields, hashed against the grandparent, the balances anchored, the merge flag left on top.'))
+    parts.append(region('nullArm', 'c3742', 3742, 4465, 't0 :: T', [([], f'{SP}/NullArm.out')],
+        'The null arm (suffix 3742–4464): the 144 pieces at depths 61–204 of `T` concatenate to nothing; the stack as it was.'))
+    # Since the outputIndexN removal the second rebuild is two cases (flag off, flag on), not three: see `arm2`.
+    if all(os.path.exists(f'{SP}/{n}.out') for n in ('RebBf', 'RebB')):
+        parts.append(arm2('rebuildB', 'c2624_if', 2624, 3740,
+            f'{SP}/RebBf.out', f'{SP}/RebB.out',
+            'The second rebuild\'s arm (suffix 2624–3739), opened by the merge flag: the other lineage\'s transaction from the pieces at depths 61–132 of `T`, hashed against `ogp`; nothing when the flag is off.'))
     parts.append('end BoltProof.Glue.SimpleMulti\n')
     open(LEAN + '/BoltProof/Bridge/Glue/SimpleMulti/Regions.lean', 'w').write('\n'.join(parts))
     print('ok')

@@ -71,7 +71,7 @@ function fabricatedLock(fam: Fungible, txoType: number, parent: number[], issuer
   return new LockingScript([
     ...(fam.leading ? [...push(parent), ...push([])] : []),
     ...push(INVENTED), ...push(NO_COMMIT), ...push(aPkh), ...push(pkhCommit), ...push(ZERO20), ...push(ZERO36),
-    ...push([txoType]), ...push([0x00]), ...push(parent), ...push(ZERO36), ...push(issuer),
+    ...push([txoType]), ...push(parent), ...push(ZERO36), ...push(issuer), // no index byte (outputIndexN removed)
     ...fam.tpl.staticSuffix().chunks,
   ])
 }
@@ -101,7 +101,7 @@ describe.each(FUNGIBLE.map((f) => [f.name, f] as const))('%s: the zero-grandpare
   it('control: the honest first settle (the issuer spends commit1, whose grandparent is zero) is ACCEPTED', async () => {
     const tok = await victimMint(fam)
     await tok.commit(userKey)
-    expect(tok.tx!.outputs[0].lockingScript.chunks[9 + fam.leading].data).toEqual(ZERO36) // grandparent == 0 at the first commit
+    expect(tok.tx!.outputs[0].lockingScript.chunks[8 + fam.leading].data).toEqual(ZERO36) // grandparent == 0 at the first commit (chunk 8 since the index byte went)
     await tok.settle(userKey)
     expect(run(tok.tx!).ok).toBe(true)
   })

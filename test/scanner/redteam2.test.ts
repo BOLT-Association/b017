@@ -8,7 +8,7 @@
 // Chunk layout of a SimpleMultiBOLT token lock (LAYOUTS in fingerprints.ts / SMB_CHUNK in
 // spv-demo-wapps smbToken.ts):
 //   0 balance(16) 1 balanceCommit(16) 2 pubKeyHash(20) 3 pkhCommit(20) 4 pkhCommit2(20)
-//   5 otherGrandparent(36) 6 txoType(1) 7 outputIndexN(1) 8 parent(36) 9 grandparent(36) 10 issuer(33)
+//   5 otherGrandparent(36) 6 txoType(1) 7 parent(36) 8 grandparent(36) 9 issuer(33)  (outputIndexN removed)
 // verifyEvents FIELDS only ever reads {pubKeyHash,commitment,txoType,parent,grandparent} — never
 // balance/balanceCommit — so the scanner does NO arithmetic.
 import { describe, it, expect } from 'vitest'
@@ -225,7 +225,7 @@ describe('redteam2 — b017 scanner off-chain reader', () => {
     const changeOut = mintTx.outputs[1]
 
     const foreignIssuer = new Array(33).fill(0xab) // 33 bytes, NOT a valid secp256k1 point
-    const foreignLock = patchLock(mintLock, { 10: foreignIssuer })
+    const foreignLock = patchLock(mintLock, { 9: foreignIssuer })
 
     // recognizeType still matches (push lengths + suffix hash unchanged) and issuerPubKeyOf hands
     // back the garbage bytes with no curve/identity validation.

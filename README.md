@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/b017.svg?logo=npm)](https://www.npmjs.com/package/b017)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-> **Status: `0.1.0`.** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
+> **Status: `0.2.0`.** Considered Live-Network-Testing Ready (Production next). The API is working and fully tested
 > (795/795 unit tests, **100% statement / 100% function / 100% branch coverage**) but may still change before `1.0.0`. See
 > [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's next.
 

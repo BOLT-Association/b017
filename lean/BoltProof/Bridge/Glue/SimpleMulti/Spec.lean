@@ -18,7 +18,7 @@ namespace BoltProof.Glue.SimpleMulti
 open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Gadget
 open BoltProof.Bridge.Generated
 
-/-- The eleven lock pushes (`templates/SimpleMulti.sx.template.ts`, `lock`), in push order; the last push,
+/-- The ten lock pushes (`templates/SimpleMulti.sx.template.ts`, `lock`), in push order; the last push,
 `issuer`, is on top of the stack. -/
 structure Fields where
   /-- `balance`, 16 bytes. -/
@@ -35,8 +35,6 @@ structure Fields where
   ogp : Bytes
   /-- `txoType`, one byte. -/
   ty : Bytes
-  /-- `outputIndexN`, one byte. -/
-  outIdx : Bytes
   /-- `parentOutpoint`, 36 bytes. -/
   parent : Bytes
   /-- `grandparentOutpoint`, 36 bytes. -/
@@ -44,10 +42,11 @@ structure Fields where
   /-- `issuerPubKey`, 33 bytes. -/
   issuer : Bytes
 
-/-- Seventy-five ancestor pieces, `p0` nearest the top of the stack: the two rebuilds
+/-- Seventy-two ancestor pieces, `p0` nearest the top of the stack: the two rebuilds
 (`src/lib/multi/multiSpend.ts`, `parseAncestorTx`) each read one such record, the first rebuild
-the deeper one. -/
-structure Pieces75 where
+the deeper one. (Seventy-five until the outputIndexN removal took the three index-byte mirrors,
+0.1.0's p7, p22 and p50.) -/
+structure Pieces72 where
   p0 : Bytes
   p1 : Bytes
   p2 : Bytes
@@ -120,18 +119,15 @@ structure Pieces75 where
   p69 : Bytes
   p70 : Bytes
   p71 : Bytes
-  p72 : Bytes
-  p73 : Bytes
-  p74 : Bytes
 
 /-- The pieces as the stack holds them, top first. -/
-def Pieces75.stack (ps : Pieces75) : List Bytes :=
-  [ps.p0, ps.p1, ps.p2, ps.p3, ps.p4, ps.p5, ps.p6, ps.p7, ps.p8, ps.p9, ps.p10, ps.p11, ps.p12, ps.p13, ps.p14, ps.p15, ps.p16, ps.p17, ps.p18, ps.p19, ps.p20, ps.p21, ps.p22, ps.p23, ps.p24, ps.p25, ps.p26, ps.p27, ps.p28, ps.p29, ps.p30, ps.p31, ps.p32, ps.p33, ps.p34, ps.p35, ps.p36, ps.p37, ps.p38, ps.p39, ps.p40, ps.p41, ps.p42, ps.p43, ps.p44, ps.p45, ps.p46, ps.p47, ps.p48, ps.p49, ps.p50, ps.p51, ps.p52, ps.p53, ps.p54, ps.p55, ps.p56, ps.p57, ps.p58, ps.p59, ps.p60, ps.p61, ps.p62, ps.p63, ps.p64, ps.p65, ps.p66, ps.p67, ps.p68, ps.p69, ps.p70, ps.p71, ps.p72, ps.p73, ps.p74]
+def Pieces72.stack (ps : Pieces72) : List Bytes :=
+  [ps.p0, ps.p1, ps.p2, ps.p3, ps.p4, ps.p5, ps.p6, ps.p7, ps.p8, ps.p9, ps.p10, ps.p11, ps.p12, ps.p13, ps.p14, ps.p15, ps.p16, ps.p17, ps.p18, ps.p19, ps.p20, ps.p21, ps.p22, ps.p23, ps.p24, ps.p25, ps.p26, ps.p27, ps.p28, ps.p29, ps.p30, ps.p31, ps.p32, ps.p33, ps.p34, ps.p35, ps.p36, ps.p37, ps.p38, ps.p39, ps.p40, ps.p41, ps.p42, ps.p43, ps.p44, ps.p45, ps.p46, ps.p47, ps.p48, ps.p49, ps.p50, ps.p51, ps.p52, ps.p53, ps.p54, ps.p55, ps.p56, ps.p57, ps.p58, ps.p59, ps.p60, ps.p61, ps.p62, ps.p63, ps.p64, ps.p65, ps.p66, ps.p67, ps.p68, ps.p69, ps.p70, ps.p71]
 
 /-- The unlocking arguments, named as the stack has them: the preimage on top (empty for a melt),
 the owner's key and signature, then `inputIndexN`, `nextTxoType`, `nextBalanceCommit`, the two
 recipient hashes, the change blob, the funding outpoint, the five interop slots of a merge, and
-the 150 ancestor pieces, `psA` above `psB`. -/
+the 144 ancestor pieces, `psA` above `psB`. -/
 structure Args where
   pre : Bytes
   pk : Bytes
@@ -148,8 +144,8 @@ structure Args where
   i3 : Bytes
   i4 : Bytes
   i5 : Bytes
-  psA : Pieces75
-  psB : Pieces75
+  psA : Pieces72
+  psB : Pieces72
 
 /-- The unlocking arguments as the stack holds them, top first. -/
 def Args.stack (a : Args) : List Bytes :=
@@ -158,7 +154,7 @@ def Args.stack (a : Args) : List Bytes :=
 
 /-- The lock fields as the stack holds them when the suffix starts, top first. -/
 def Fields.stack (f : Fields) : List Bytes :=
-  [f.issuer, f.gp, f.parent, f.outIdx, f.ty, f.ogp, f.com2, f.com, f.pkh, f.balCommit, f.bal]
+  [f.issuer, f.gp, f.parent, f.ty, f.ogp, f.com2, f.com, f.pkh, f.balCommit, f.bal]
 
 /-- The lock's own `OP_PUSH_TX` block: suffix bytes 38–422, from `OP_DUP` to `OP_CHECKSIGVERIFY`. -/
 def pushTxBlock : Bytes := SimpleMulti.c38 ++ (SimpleMulti.c159 ++ SimpleMulti.c280)

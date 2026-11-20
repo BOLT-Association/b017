@@ -38,13 +38,13 @@ const T = 'SimpleMultiBOLT' as const
 const ZERO36 = '0'.repeat(72)
 
 const isToken = (s: any) => {
-  const L = [16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33]
+  const L = [16, 16, 20, 20, 20, 36, 1, 36, 36, 33]
   return s?.chunks && s.chunks.length > 11 && L.every((n, i) => (s.chunks[i]?.data?.length ?? -1) === n)
 }
 // grandparentOutpoint the spent token records (SMB lock chunk 9): the two-hop anchor the settle rebuilds.
 const grandparentOf = (settle: Transaction): string => {
   const tokenOut = settle.inputs[0].sourceTransaction!.outputs.find((o) => isToken(o.lockingScript))!
-  return Buffer.from(tokenOut.lockingScript.chunks[9].data as number[]).toString('hex')
+  return Buffer.from(tokenOut.lockingScript.chunks[8].data as number[]).toString('hex')
 }
 
 // Build mint -> transfer x N. Each transfer is one commit->settle event. prevTxs is the full lineage

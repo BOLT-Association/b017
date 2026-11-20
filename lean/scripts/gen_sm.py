@@ -7,7 +7,7 @@ _os.makedirs(WORK, exist_ok=True)
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chunks as C
-ARMS = [(1961, 2426), (2591, 2609), (3186, 3623), (3773, 3790), (1426, 2715), (2715, 3897), (3899, 4652)]
+ARMS = [(1908, 2354), (2500, 2518), (3072, 3491), (3623, 3640), (1392, 2624), (2624, 3740), (3742, 4465)]
 UNFOLD = C.unfold(423, 5000, keep=ARMS)
 GP = '--gp' in sys.argv   # whether the commit paths need the genesis and grandparent hypotheses
 HEADER = """import BoltProof.Bridge.Glue.SimpleMulti.Enforced
@@ -67,7 +67,7 @@ theorem {name} {{env : Env}} (he : EnvOK env) {{k t : Bytes}} {{r : GOut}} {{f :
       factF
     case outs =>
       simp (config := {{ decide := true }}) only [expectedOuts, hnty, hidx, eq_self_iff_true, ↓reduceIte, commitLock,
-        mergeLock1, inIdxByte, lockOf, tokenOut, proofOut, zeros, scBalPush, scPkhPush, scParentPush, scIssuerPush,
+        mergeLock1, lockOf, tokenOut, proofOut, zeros, scBalPush, scPkhPush, scParentPush, scIssuerPush,
         scSuffix, List.append_assoc, List.cons_append, List.nil_append, List.singleton_append, List.length_cons]
       factF
 """

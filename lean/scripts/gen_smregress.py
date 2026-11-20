@@ -7,19 +7,22 @@ P=LEAN + '/BoltProof/Bridge/Glue/SimpleMulti/Regress.lean'
 s=open(P).read()
 marker='/-! ## The refinement applies to the real spends'
 if marker in s:
-    s=s[:s.index(marker)]+'\nend BoltProof.Bridge.Glue.SimpleMulti\n'
+    # idempotent: the hand-written part ends where the guards begin, blank lines included
+    s=s[:s.index(marker)].rstrip('\n')+'\n\nend BoltProof.Bridge.Glue.SimpleMulti\n'
 N='by native_decide'
 def n(k): return ', '.join([N]*k)
-WF='⟨%s⟩'%n(11)
+WF='⟨%s⟩'%n(10)
 AWF='⟨%s⟩'%n(8)
 TXWF='⟨%s⟩'%n(6)
-HP='⟨%s⟩'%n(23)
+HP='⟨%s⟩'%n(22)
 def I(v,i): return '(Vec.inputD %s %d)'%(v,i)
 def F(v,i): return '(smFieldsD %s %d)'%(v,i)
 def A(v,i): return '(smArgsD %s %d)'%(v,i)
 def res(v,i): return 'Residual P %s.tx %d %s.amt %s %s'%(I(v,i),i,I(v,i),F(v,i),A(v,i))
 def gpreal(G):
-    return ('⟨%s, %s, hnsp, hptxid, of_isTokenAt (%s),\n      fun p hp => of_isProofAt (of_outpointAll (p := fun q => isProofAt (absTx %s).outputs (q.vout + 1)) (%s) p hp),\n      of_balsNonneg (%s)⟩'%(TXWF,N,N,G,N,N))
+    # GpRealF: the grandparent is well formed, named by `gp`, has no second preimage, the primitives' id, a token at
+    # the named index, the proof outputs at 1 (and 2 under the split type) and non-negative balances
+    return ('⟨%s, %s, hnsp, hptxid, of_isTokenAt (%s),\n      of_isProofAt (%s), of_proof2At (%s),\n      of_balsNonneg (%s)⟩'%(TXWF,N,N,N,N,N))
 out='''
 /-! ## The refinement applies to the real spends
 
@@ -29,7 +32,7 @@ grandparents only what no evaluation decides (second-preimage freedom of their s
 id). The scope assumptions `HonestPiecesB`, the index arguments and the rest of `GpRealF` and `GpRealB` hold of the
 honest lifecycles. -/
 
-def dummyFields : Fields := ⟨[], [], [], [], [], [], [], [], [], [], []⟩
+def dummyFields : Fields := ⟨[], [], [], [], [], [], [], [], [], []⟩
 def dummyArgs : Args := ⟨[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], piecesOf [], piecesOf []⟩
 def smFieldsD (v : Vec) (i : Nat) : Fields := ((smArgs v i).map (·.1)).getD dummyFields
 def smArgsD (v : Vec) (i : Nat) : Args := ((smArgs v i).map (·.2.1)).getD dummyArgs
@@ -62,10 +65,9 @@ theorem %s_refines (P : Prims Bytes) (hres : %s)
   simpleMulti_refines_settle_gp P _ 0 _ _ _ [] %s.scriptSig (txD %s) %s %s (%s) (%s) (%s) (%s) (%s) (%s)
     (%s) (%s) (%s) %s (%s) (%s) (%s) hres
     ⟨%s,
-      %s, %s,
-      fun p hp => of_decide_eq_true (of_outpointAll (p := fun q => decide (decode %s.i5 = (q.vout : Int) + 1)) (%s) p hp)⟩
+      %s, %s⟩
     (%s) (%s)
-'''%(doc,name,res(v,0),G,G,G,I(v,0),F(v,0),A(v,0),G,I(v,0),G,WF,AWF,N,N,N,N,N,N,N,N,N,TXWF,N,N,N,gpreal('(txD %s)'%G),HP,N,A(v,0),N,N,N)
+'''%(doc,name,res(v,0),G,G,G,I(v,0),F(v,0),A(v,0),G,I(v,0),G,WF,AWF,N,N,N,N,N,N,N,N,N,TXWF,N,N,N,gpreal('(txD %s)'%G),HP,N,N,N)
 out+=settle_gp('a_settle2','smb_honest_a_settle2','smb_honest_a_commit1','The second transfer settle of lifecycle A, which rebuilds the first commit.')
 out+=settle_gp('a_splitSettle','smb_honest_a_splitSettle','smb_honest_a_commit2','The split settle of lifecycle A, which rebuilds the second commit.')
 v='smb_honest_b_mergeCommit'
@@ -83,15 +85,18 @@ out+='''
 theorem b_mergeSettle_refines (P : Prims Bytes) (hres : %s)
     (hnsp : BoltProof.Glue.MinSimple.NoSecondPreimage (serTx (txD %s)))
     (hptxid : P.txid (absTx (txD %s)) = Sighash.txid (txD %s))
+    (hnspB : BoltProof.Glue.MinSimple.NoSecondPreimage (serTx (txD %s)))
     (hptxidB : P.txid (absTx (txD %s)) = Sighash.txid (txD %s)) :
     Accepts P .fungible (spendOf %s.tx 0 %s %s none (some (txD %s)) (some (txD %s))) :=
   simpleMulti_refines_merge_settle P _ 0 _ _ _ [] %s.scriptSig (txD %s) (txD %s) %s %s (%s) (%s) (%s) (%s) (%s)
     (%s) %s (%s) (%s) (%s) hres
     ⟨%s,
-      %s, %s,
-      fun p hp => of_decide_eq_true (of_outpointAll (p := fun q => decide (decode %s.i5 = (q.vout : Int) + 1)) (%s) p hp)⟩
-    ⟨%s, hptxidB, of_isTokenAt (%s), %s, of_isProofAt (%s)⟩ (%s) (%s)
-'''%(res(v,0),G,G,G,GB,GB,I(v,0),F(v,0),A(v,0),G,GB,I(v,0),G,GB,WF,AWF,N,N,N,N,N,N,TXWF,N,N,N,gpreal('(txD %s)'%G),HP,N,A(v,0),N,N,N,N,N,N,N)
+      %s, %s⟩
+    ⟨%s, %s, hnspB, hptxidB, of_isTokenAt (%s), %s,
+      %s,
+      of_isProofAt (%s), of_proof2At (%s)⟩ (%s) (%s)
+'''%(res(v,0),G,G,G,GB,GB,GB,I(v,0),F(v,0),A(v,0),G,GB,I(v,0),G,GB,WF,AWF,N,N,N,N,N,N,TXWF,N,N,N,gpreal('(txD %s)'%G),HP,N,
+     TXWF,N,N,N,HP,N,N,N,N)   # GpRealB: wf, txid, nsp, ptxid, token, i4 width, the first piece set, proofs 1 and 2
 out+='\nend BoltProof.Bridge.Glue.SimpleMulti\n'
 s=s.replace('\nend BoltProof.Bridge.Glue.SimpleMulti\n', out)
 open(P,'w').write(s)

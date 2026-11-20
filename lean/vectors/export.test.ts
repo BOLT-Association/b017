@@ -456,7 +456,7 @@ it('exports the Lean vectors', async () => {
         { sourceTransaction: a.tx, sourceOutputIndex: a.tx!.outputs.length - 1, sequence: 0xffffffff,
           unlockingScriptTemplate: new P2PKH().unlock(keyA) },
       ], [
-        { satoshis: 1, lockingScript: tpl.lock(a.pubKey, a.prevTxs, a.balance, claimed, toPkh, z(20), (b as any).getParentOutpoint(), [0x25], [0x00], a.voutIdx) },
+        { satoshis: 1, lockingScript: tpl.lock(a.pubKey, a.prevTxs, a.balance, claimed, toPkh, z(20), (b as any).getParentOutpoint(), [0x25], a.voutIdx) },
         { satoshis: 1, lockingScript: proofTpl.lock(toPkh) },
         { change: true, lockingScript: new P2PKH().lock(a.pubKeyHash as number[]) },
       ])
@@ -480,7 +480,7 @@ it('exports the Lean vectors', async () => {
         { sourceTransaction: otherAnc, sourceOutputIndex: otherProof, sequence: 0xffffffff, unlockingScriptTemplate: proofTpl.unlock(keyB) },
         { sourceTransaction: commit, sourceOutputIndex: commit.outputs.length - 1, sequence: 0xffffffff, unlockingScriptTemplate: new P2PKH().unlock(keyA) },
       ], [
-        { satoshis: 1, lockingScript: tpl.lock(toPub, aTxs, merged, z(16), z(20), z(20), z(36), [0x24], [0x00], 0) },
+        { satoshis: 1, lockingScript: tpl.lock(toPub, aTxs, merged, z(16), z(20), z(20), z(36), [0x24], 0) },
         { change: true, lockingScript: new P2PKH().lock(toPkh) },
       ])
       await settleTx.fee(0)
@@ -493,9 +493,9 @@ it('exports the Lean vectors', async () => {
   }
   {
     // Q3. A split settle with `pkh1` non-empty, which the bytes read as a flag that puts the second token first (the
-    // honest builder leaves it empty): the two token outputs are swapped, so each carries an index byte that is not
-    // its position. The first token, now at output 1 with index byte 0, is then spent again: a transfer commit and
-    // its settle, which rebuilds the swapped settle as the grandparent.
+    // honest builder leaves it empty): the two token outputs are swapped (until the outputIndexN removal each then
+    // carried an index byte off its position; the lock has no index byte now). The first token, now at output 1, is
+    // then spent again: a transfer commit and its settle, which rebuilds the swapped settle as the grandparent.
     const tpl = new SimpleMultiTemplate()
     const proofTpl = new Pay2ProofTemplate()
     const z = (n: number): number[] => new Array(n).fill(0x00)
@@ -519,8 +519,8 @@ it('exports the Lean vectors', async () => {
     const anc = txs[txs.length - 3]
     const ancProof = (main as any).findProofVout(anc, owner) as number
     const mainBal = (main as any).subtractBalances(bal(BigInt(1000)), piece) as number[]
-    const outA = tpl.lock(pubA, txs, mainBal, z(16), z(20), z(20), z(36), [0x22], [0x00], 0)
-    const outB = tpl.lock(pubB, txs, piece, z(16), z(20), z(20), z(36), [0x22], [0x01], 0)
+    const outA = tpl.lock(pubA, txs, mainBal, z(16), z(20), z(20), z(36), [0x22], 0)
+    const outB = tpl.lock(pubB, txs, piece, z(16), z(20), z(20), z(36), [0x22], 0)
     const settleTx = new Transaction(2, [
       { sourceTransaction: commit, sourceOutputIndex: 0, sequence: 0xffffffff,
         unlockingScriptTemplate: tpl.unlock(owner, pubA /* non-empty: pkh1 = hash160(pubA), read as the flag */, txs,
@@ -536,7 +536,7 @@ it('exports the Lean vectors', async () => {
     await settleTx.sign()
     const swapped = clean(settleTx)
     add('smb_probe_q3_swapped_split_settle', 'SimpleMultiBOLT', swapped,
-      'Glue Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped, each index byte off its position')
+      'Glue Q3 probe: a split settle with pkh1 non-empty and its two token outputs swapped')
     const tokA = new SimpleMultiBOLT()
     tokA.tx = swapped
     tokA.voutIdx = 1
@@ -552,7 +552,7 @@ it('exports the Lean vectors', async () => {
     await tokA.transfer(child(smbIssuer, '20'))
     const m = tokA.prevTxs.length
     add('smb_probe_q3_swapped_respend_commit', 'SimpleMultiBOLT', tokA.prevTxs[m - 2],
-      'Glue Q3 probe: the swapped first token (output 1, index byte 0) spent again, the commit')
+      'Glue Q3 probe: the swapped first token (output 1) spent again, the commit')
     add('smb_probe_q3_swapped_respend_settle', 'SimpleMultiBOLT', tokA.prevTxs[m - 1],
       'Glue Q3 probe: the swapped first token spent again, the settle that rebuilds the swapped split settle')
   }
@@ -605,7 +605,7 @@ it('exports the Lean vectors', async () => {
           unlockingScriptTemplate: control ? proofTpl.unlock(other.signer) : new P2PKH().unlock(changeKey) },
         { sourceTransaction: commit, sourceOutputIndex: commit.outputs.length - 1, sequence: 0xffffffff, unlockingScriptTemplate: new P2PKH().unlock(aKey) },
       ], [
-        { satoshis: 1, lockingScript: tpl.lock(toPub, aTxs, merged, z(16), z(20), z(20), z(36), [0x24], [0x00], 0) },
+        { satoshis: 1, lockingScript: tpl.lock(toPub, aTxs, merged, z(16), z(20), z(20), z(36), [0x24], 0) },
         { change: true, lockingScript: new P2PKH().lock(toPkh) },
       ])
       await settleTx.fee(0)
@@ -662,13 +662,14 @@ it('exports the Lean vectors', async () => {
     }
   }
 
-  // ---- Q3 follow-up: a token whose index byte is not its output position stays spendable (no dead tokens) --------
+  // ---- Q3 follow-up: the spends that used to mismatch a token's index byte stay valid (no dead tokens) --------------
   {
-    // Every way the bytes let a token's index byte disagree with its position, each followed by the later operations
-    // whose rebuilds could read it. S1: the swapped split settle (`pkh1` set), its second token at output 0 with index
-    // byte 1. S2: the honest-order split settle with the interop-outpoint slot (`i2`) set, its second token at output 1
-    // with index byte 0. S3: a transfer commit with `inputIndexN` = 1, the commit token at output 0 with index byte 1.
-    // S4: a transfer settle with `inputIndexN` = 1, the settled token at output 0 with index byte 1. S2's token is then
+    // Every spend that, until the outputIndexN removal, gave a token an index byte other than its position (the lock
+    // has no index byte now; the shapes stay because `pkh1`, `i2` and `inputIndexN` still exist), each followed by the
+    // later operations whose rebuilds could read it. S1: the swapped split settle (`pkh1` set), its second token at
+    // output 0. S2: the honest-order split settle with the interop-outpoint slot (`i2`) set, its second token at
+    // output 1. S3: a transfer commit with `inputIndexN` = 1, the commit token at output 0. S4: a transfer settle with
+    // `inputIndexN` = 1, the settled token at output 0. S2's token is then
     // transferred (the settle rebuilds the split settle as the grandparent), split, merged as the second token input,
     // merged as the first token input, and melted; S1, S3 and S4 are each followed by a transfer. The honest builder
     // drives every later operation, so a refusal would be the covenant's own. The shape builders live in
@@ -691,70 +692,70 @@ it('exports the Lean vectors', async () => {
       return { ...r, keyB, piece, main }
     }
 
-    // S1: the swapped settle; its second token (output 0, index byte 1) transferred.
+    // S1: the swapped settle; its second token (output 0) transferred.
     {
       const { settle, lineage, keyB, piece, main, bVout } = await splitSettle('4', true, false)
       add('smb_probe_idx_s1_swapped_settle', 'SimpleMultiBOLT', settle,
-        'index-byte probe S1: the swapped split settle (pkh1 set); the second token sits at output 0 with index byte 1')
+        'index-byte probe S1: the swapped split settle (pkh1 set); the second token sits at output 0')
       const b = tokenAt(settle, bVout, keyB, piece, lineage, main)
       const to = child(smbIssuer, '45')
       await b.commit(to, '', false, fundFor(keyB))
       await b.settle(to, '', false, fundFor(keyB))
       const [c, s] = last2(b)
-      add('smb_probe_idx_s1_second_commit', 'SimpleMultiBOLT', c, 'index-byte probe S1: the second token (output 0, index byte 1) transferred, the commit')
+      add('smb_probe_idx_s1_second_commit', 'SimpleMultiBOLT', c, 'index-byte probe S1: the second token (output 0) transferred, the commit')
       add('smb_probe_idx_s1_second_settle', 'SimpleMultiBOLT', s, 'index-byte probe S1: the second token transferred, the settle that rebuilds the swapped split settle')
     }
-    // S2: the honest-order settle with i2 set; its second token (output 1, index byte 0) through every operation.
+    // S2: the honest-order settle with i2 set; its second token (output 1) through every operation.
     {
       const { settle, lineage, keyB, piece, main, bVout } = await splitSettle('5', false, true)
       add('smb_probe_idx_s2_i2_settle', 'SimpleMultiBOLT', settle,
-        'index-byte probe S2: the split settle with the interop-outpoint slot (i2) set; the second token sits at output 1 with index byte 0')
+        'index-byte probe S2: the split settle with the interop-outpoint slot (i2) set; the second token sits at output 1')
       {
         const x = tokenAt(settle, bVout, keyB, piece, lineage, main)
         const to = child(smbIssuer, '54')
         await x.commit(to, '', false, fundFor(keyB))
         await x.settle(to, '', false, fundFor(keyB))
         const [c, s] = last2(x)
-        add('smb_probe_idx_s2_transfer_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the index-0 second token transferred, the commit')
-        add('smb_probe_idx_s2_transfer_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the index-0 second token transferred, the settle that rebuilds the split settle')
+        add('smb_probe_idx_s2_transfer_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the i2 second token transferred, the commit')
+        add('smb_probe_idx_s2_transfer_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the i2 second token transferred, the settle that rebuilds the split settle')
       }
       {
         const x = tokenAt(settle, bVout, keyB, piece, lineage, main)
         await x.split(child(smbIssuer, '55'), child(smbIssuer, '56'), bal(BigInt(100)), { tx: freshSource(keyB), vout: 0, key: keyB })
         const [c, s] = last2(x)
-        add('smb_probe_idx_s2_split_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the index-0 second token split, the commit')
-        add('smb_probe_idx_s2_split_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the index-0 second token split, the settle')
+        add('smb_probe_idx_s2_split_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the i2 second token split, the commit')
+        add('smb_probe_idx_s2_split_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the i2 second token split, the settle')
       }
       {
         const x = tokenAt(settle, bVout, keyB, piece, lineage, main)
         const a = await mintedTo(child(smbIssuer, '57'))
         await a.merge(x, child(smbIssuer, '58'))
         const [c, s] = last2(a)
-        add('smb_probe_idx_s2_merge_second_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the index-0 token as the SECOND token input of a merge, the commit')
-        add('smb_probe_idx_s2_merge_second_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the index-0 token as the second token input of a merge, the settle that rebuilds both lineages')
+        add('smb_probe_idx_s2_merge_second_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the i2 token as the SECOND token input of a merge, the commit')
+        add('smb_probe_idx_s2_merge_second_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the i2 token as the second token input of a merge, the settle that rebuilds both lineages')
       }
       {
         const x = tokenAt(settle, bVout, keyB, piece, lineage, main)
         const o = await mintedTo(child(smbIssuer, '59'))
         await x.merge(o, child(smbIssuer, '60'), { tx: freshSource(keyB), vout: 0, key: keyB })
         const [c, s] = last2(x)
-        add('smb_probe_idx_s2_merge_first_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the index-0 token as the FIRST token input of a merge, the commit')
-        add('smb_probe_idx_s2_merge_first_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the index-0 token as the first token input of a merge, the settle that rebuilds both lineages')
+        add('smb_probe_idx_s2_merge_first_commit', 'SimpleMultiBOLT', c, 'index-byte probe S2: the i2 token as the FIRST token input of a merge, the commit')
+        add('smb_probe_idx_s2_merge_first_settle', 'SimpleMultiBOLT', s, 'index-byte probe S2: the i2 token as the first token input of a merge, the settle that rebuilds both lineages')
       }
-      add('smb_probe_idx_s2_melt', 'SimpleMultiBOLT', await meltOf(settle, bVout, keyB), 'index-byte probe S2: the index-0 second token melted')
+      add('smb_probe_idx_s2_melt', 'SimpleMultiBOLT', await meltOf(settle, bVout, keyB), 'index-byte probe S2: the i2 second token melted')
     }
     // S3: a transfer commit with inputIndexN = 1, its honest settle, then a transfer whose settle rebuilds that commit.
     {
       const owner = child(smbIssuer, '61'), to = child(smbIssuer, '62'), next = child(smbIssuer, '63')
       const t = await mintedTo(owner)
       const c1 = await spendIdx1(t, to, true)
-      add('smb_probe_idx_s3_commit_idx1', 'SimpleMultiBOLT', c1, 'index-byte probe S3: a transfer commit with inputIndexN = 1; the commit token sits at output 0 with index byte 1')
+      add('smb_probe_idx_s3_commit_idx1', 'SimpleMultiBOLT', c1, 'index-byte probe S3: a transfer commit with inputIndexN = 1; the commit token sits at output 0')
       await t.settle(to)
-      add('smb_probe_idx_s3_settle', 'SimpleMultiBOLT', t.prevTxs[t.prevTxs.length - 1], 'index-byte probe S3: the honest settle of the index-1 commit')
+      add('smb_probe_idx_s3_settle', 'SimpleMultiBOLT', t.prevTxs[t.prevTxs.length - 1], 'index-byte probe S3: the honest settle of the inputIndexN = 1 commit')
       await t.transfer(next)
       const [c, s] = last2(t)
       add('smb_probe_idx_s3_next_commit', 'SimpleMultiBOLT', c, 'index-byte probe S3: the settled token transferred again, the commit')
-      add('smb_probe_idx_s3_next_settle', 'SimpleMultiBOLT', s, 'index-byte probe S3: the settle that rebuilds the index-1 commit as the grandparent')
+      add('smb_probe_idx_s3_next_settle', 'SimpleMultiBOLT', s, 'index-byte probe S3: the settle that rebuilds the inputIndexN = 1 commit as the grandparent')
     }
     // S4: a transfer settle with inputIndexN = 1, then a transfer.
     {
@@ -762,11 +763,11 @@ it('exports the Lean vectors', async () => {
       const t = await mintedTo(owner)
       await t.commit(to)
       const s1 = await spendIdx1(t, to, false)
-      add('smb_probe_idx_s4_settle_idx1', 'SimpleMultiBOLT', s1, 'index-byte probe S4: a transfer settle with inputIndexN = 1; the settled token sits at output 0 with index byte 1')
+      add('smb_probe_idx_s4_settle_idx1', 'SimpleMultiBOLT', s1, 'index-byte probe S4: a transfer settle with inputIndexN = 1; the settled token sits at output 0')
       await t.transfer(next)
       const [c, s] = last2(t)
-      add('smb_probe_idx_s4_next_commit', 'SimpleMultiBOLT', c, 'index-byte probe S4: the index-1 settled token transferred, the commit')
-      add('smb_probe_idx_s4_next_settle', 'SimpleMultiBOLT', s, 'index-byte probe S4: the index-1 settled token transferred, the settle')
+      add('smb_probe_idx_s4_next_commit', 'SimpleMultiBOLT', c, 'index-byte probe S4: the inputIndexN = 1 settled token transferred, the commit')
+      add('smb_probe_idx_s4_next_settle', 'SimpleMultiBOLT', s, 'index-byte probe S4: the inputIndexN = 1 settled token transferred, the settle')
     }
   }
 

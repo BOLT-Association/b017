@@ -25,24 +25,24 @@ open BoltProof.Bridge.Generated
 
 /-! ## SimpleMultiBOLT (fungible) -/
 
-theorem simpleMulti_length : SimpleMulti.suffix.length = 4700 := by decide +kernel
-theorem simpleMulti_parityCheck_chunk : SimpleMulti.c528_parityCheck = Gadgets.parityCheck := by decide
-theorem simpleMulti_boundCheck27_chunk : SimpleMulti.c610_boundCheck27 = Gadgets.boundCheck 0x27 := by decide
-theorem simpleMulti_boundCheck2d_chunk : SimpleMulti.c621_boundCheck2d = Gadgets.boundCheck 0x2d := by decide
-theorem simpleMulti_mergeGuard_chunk : SimpleMulti.c672_mergeGuard = Gadgets.mergeGuard := by decide
-theorem simpleMulti_splitGuard_chunk : SimpleMulti.c687_splitGuard = Gadgets.splitGuard := by decide
-theorem simpleMulti_mergeSettle_chunk : SimpleMulti.c781_mergeSettle = Gadgets.mergeSettle := by decide
-theorem simpleMulti_splitSettle_chunk : SimpleMulti.c935_splitSettle = Gadgets.splitSettle := by decide
-theorem simpleMulti_nullTail_chunk : SimpleMulti.c4648_nullTail = Gadgets.nullTail := by decide
+theorem simpleMulti_length : SimpleMulti.suffix.length = 4513 := by decide +kernel
+theorem simpleMulti_parityCheck_chunk : SimpleMulti.c526_parityCheck = Gadgets.parityCheck := by decide
+theorem simpleMulti_boundCheck25_chunk : SimpleMulti.c608_boundCheck25 = Gadgets.boundCheck 0x25 := by decide
+theorem simpleMulti_boundCheck2b_chunk : SimpleMulti.c619_boundCheck2b = Gadgets.boundCheck 0x2b := by decide
+theorem simpleMulti_mergeGuard_chunk : SimpleMulti.c670_mergeGuard = Gadgets.mergeGuard := by decide
+theorem simpleMulti_splitGuard_chunk : SimpleMulti.c685_splitGuard = Gadgets.splitGuard := by decide
+theorem simpleMulti_mergeSettle_chunk : SimpleMulti.c779_mergeSettle = Gadgets.mergeSettle := by decide
+theorem simpleMulti_splitSettle_chunk : SimpleMulti.c933_splitSettle = Gadgets.splitSettle := by decide
+theorem simpleMulti_nullTail_chunk : SimpleMulti.c4461_nullTail = Gadgets.nullTail := by decide
 
-theorem parityCheck_at_528 : (SimpleMulti.suffix.drop 528).take 29 = Gadgets.parityCheck := by decide +kernel
-theorem boundCheck_at_610 : (SimpleMulti.suffix.drop 610).take 11 = Gadgets.boundCheck 0x27 := by decide +kernel
-theorem boundCheck_at_621 : (SimpleMulti.suffix.drop 621).take 11 = Gadgets.boundCheck 0x2d := by decide +kernel
-theorem mergeGuard_at_672 : (SimpleMulti.suffix.drop 672).take 11 = Gadgets.mergeGuard := by decide +kernel
-theorem splitGuard_at_687 : (SimpleMulti.suffix.drop 687).take 10 = Gadgets.splitGuard := by decide +kernel
-theorem mergeSettle_at_781 : (SimpleMulti.suffix.drop 781).take 16 = Gadgets.mergeSettle := by decide +kernel
-theorem splitSettle_at_935 : (SimpleMulti.suffix.drop 935).take 15 = Gadgets.splitSettle := by decide +kernel
-theorem simpleMulti_nullTail_at_4648 : (SimpleMulti.suffix.drop 4648).take 4 = Gadgets.nullTail := by decide +kernel
+theorem parityCheck_at_526 : (SimpleMulti.suffix.drop 526).take 29 = Gadgets.parityCheck := by decide +kernel
+theorem boundCheck_at_608 : (SimpleMulti.suffix.drop 608).take 11 = Gadgets.boundCheck 0x25 := by decide +kernel
+theorem boundCheck_at_619 : (SimpleMulti.suffix.drop 619).take 11 = Gadgets.boundCheck 0x2b := by decide +kernel
+theorem mergeGuard_at_670 : (SimpleMulti.suffix.drop 670).take 11 = Gadgets.mergeGuard := by decide +kernel
+theorem splitGuard_at_685 : (SimpleMulti.suffix.drop 685).take 10 = Gadgets.splitGuard := by decide +kernel
+theorem mergeSettle_at_779 : (SimpleMulti.suffix.drop 779).take 16 = Gadgets.mergeSettle := by decide +kernel
+theorem splitSettle_at_933 : (SimpleMulti.suffix.drop 933).take 15 = Gadgets.splitSettle := by decide +kernel
+theorem simpleMulti_nullTail_at_4461 : (SimpleMulti.suffix.drop 4461).take 4 = Gadgets.nullTail := by decide +kernel
 
 /-! ## MinSimpleBOLT -/
 

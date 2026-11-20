@@ -27,11 +27,11 @@ open BoltProof.Glue.MinSimple (sc preOutpoint preValue proofScript preHashOutput
 /-- The merged token's fields as the second token input builds them. -/
 def mergeFields1 (f : Fields) (a : Args) : Fields :=
   { bal := a.nbc, balCommit := f.bal, pkh := a.i3, com := a.pkh1, com2 := zeros 20, ogp := f.parent, ty := a.nty,
-    outIdx := [0], parent := a.i2, gp := a.i1, issuer := f.issuer }
+    parent := a.i2, gp := a.i1, issuer := f.issuer }
 
 theorem mergeFields1_wf {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) (hnty : a.nty = [0x25])
     (hidx : ¬ decode a.inIdx = 0) : WF (mergeFields1 f a) :=
-  ⟨ha.nbc (Or.inr hnty), hwf.bal, ha.i3 hnty hidx, ha.pkh1 (Or.inr (Or.inr hnty)), zeros_length 20, hwf.parent, ha.nty, rfl,
+  ⟨ha.nbc (Or.inr hnty), hwf.bal, ha.i3 hnty hidx, ha.pkh1 (Or.inr (Or.inr hnty)), zeros_length 20, hwf.parent, ha.nty,
     ha.i2 hnty, ha.i1 hnty, hwf.issuer⟩
 
 /-- The lock the second token input builds is the fungible lock of `mergeFields1`. -/

@@ -17,13 +17,13 @@ for (const [name, Tpl, golden] of [['FixedMulti', FixedMultiTemplate, 'FixedBolt
     const lock = tpl.lock(issuerPub, [] as Transaction[])
     it('static suffix is byte-identical to the production artifact', () => {
       expect(tpl.staticSuffix().toHex()).toBe(readFixture(`${golden}.lockSuffix.hex`))
-      expect(new Script(lock.chunks.slice(13)).toHex()).toBe(readFixture(`${golden}.lockSuffix.hex`))
+      expect(new Script(lock.chunks.slice(12)).toHex()).toBe(readFixture(`${golden}.lockSuffix.hex`))
     })
-    it('a mint leads with a null field and the mintData, then the 11 SimpleMultiBolt pushes', () => {
-      expect(lock.chunks.slice(0, 13).map((c) => c.data?.length ?? 0)).toEqual([36, mintData.length, 16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33])
+    it('a mint leads with a null field and the mintData, then the 10 SimpleMultiBolt pushes', () => {
+      expect(lock.chunks.slice(0, 12).map((c) => c.data?.length ?? 0)).toEqual([36, mintData.length, 16, 16, 20, 20, 20, 36, 1, 36, 36, 33])
       expect(lock.chunks[0].data).toEqual(new Array(36).fill(0))
       expect(lock.chunks[1].data).toEqual(mintData)
-      expect(lock.chunks[12].data).toEqual(issuerPub)
+      expect(lock.chunks[11].data).toEqual(issuerPub)
     })
     it('differs from SimpleMultiBolt', () => {
       expect(tpl.staticSuffix().toHex()).not.toBe(new SimpleMultiTemplate().staticSuffix().toHex())

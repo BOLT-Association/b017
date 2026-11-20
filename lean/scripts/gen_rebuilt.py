@@ -22,7 +22,7 @@ assert f1.startswith('Hash.hash256 (')
 j=f1.index('(')
 k=matchparen(f1,j)
 X=f1[j+1:k]
-assert f1[k+1:].strip()=='= List.take 32 ((item T 36))', f1[k+1:]
+assert f1[k+1:].strip()=='= List.take 32 ((item T 35))', f1[k+1:]
 f3=body('rebuildA_fact3')
 pre='num2bin (encode ((List.length ('
 assert f3.startswith(pre)
@@ -30,35 +30,35 @@ j=len(pre)-1
 k=matchparen(f3,j)
 SC=f3[j+1:k]
 f2=body('rebuildA_fact2')
-pre2='castToBool (encode (if decode ((item T 182)) = 0 then 0 else 1)) = true → num2bin (encode ((('
+pre2='castToBool (encode (if decode ((item T 175)) = 0 then 0 else 1)) = true → num2bin (encode ((('
 assert f2.startswith(pre2), f2[:200]
 j2=len(pre2)-1
 k2=matchparen(f2,j2)
 SC2=f2[j2+1:k2]
 assert SC2.endswith('[171, 173, 104])'), SC2[-50:]
-P='(t0 : Bytes) (T : List Bytes) (w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes)'
-A='t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46'
+P='(t0 : Bytes) (T : List Bytes) (w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42 : Bytes)'
+A='t0 T w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42'
 
-IN0="(item T 210 ++ ((253 :: List.take (((List.length w17 : Nat) : Int) - 1).toNat w17) ++ (scA0 ARGS ++ item T 183)))"
-IN2="((t0 :: T)[183]?.getD [] ++ ((253 :: List.take (((List.length w14 : Nat) : Int) - 1).toNat w14) ++ (scA2 ARGS ++ (t0 :: T)[156]?.getD [])))"
-IN1="(item T 154 ++ (encode ((item T 153).length : Int) ++ (item T 153 ++ item T 152)))"
-O0="(item T 30 ++ (item T 0 ++ lkA T))"
-O1="(item T 30 ++ (item T 12 ++ (item T 141 ++ [136, 172])))"
-O2="((t0 :: T)[31]?.getD [] ++ ((t0 :: T)[13]?.getD [] ++ ((t0 :: T)[141]?.getD [] ++ [136, 172])))"
-O3="(item T 139 ++ ([25] ++ item T 138))"
+IN0="(item T 202 ++ ((253 :: List.take (((List.length w15 : Nat) : Int) - 1).toNat w15) ++ (scA0 ARGS ++ item T 176)))"
+IN2="((t0 :: T)[176]?.getD [] ++ ((253 :: List.take (((List.length w12 : Nat) : Int) - 1).toNat w12) ++ (scA2 ARGS ++ (t0 :: T)[150]?.getD [])))"
+IN1="(item T 148 ++ (encode ((item T 147).length : Int) ++ (item T 147 ++ item T 146)))"
+O0="(item T 29 ++ (item T 0 ++ lkA T))"
+O1="(item T 29 ++ (item T 12 ++ (item T 136 ++ [136, 172])))"
+O2="((t0 :: T)[30]?.getD [] ++ ((t0 :: T)[13]?.getD [] ++ ((t0 :: T)[136]?.getD [] ++ [136, 172])))"
+O3="(item T 134 ++ ([25] ++ item T 133))"
 lay=[]
 for x in (0,1):
   for y in (0,1):
     ins = "(%s ++ (%s ++ %s))"%(IN0,IN2,IN1) if y else "(%s ++ %s)"%(IN0,IN1)
     outs = "(%s ++ (%s ++ (%s ++ %s)))"%(O0,O1,O2,O3) if x else "(%s ++ (%s ++ %s))"%(O0,O1,O3)
     cin = 3 if y else 2; cout = 4 if x else 3
-    h140 = "¬ decode (item T 140) = 0" if x else "decode (item T 140) = 0"
-    h182 = "¬ decode (item T 182) = 0" if y else "decode (item T 182) = 0"
+    h140 = "¬ decode (item T 135) = 0" if x else "decode (item T 135) = 0"
+    h182 = "¬ decode (item T 175) = 0" if y else "decode (item T 175) = 0"
     desc = {(0,0):'neither optional arm',(1,0):'a second proof output',(0,1):'a second token input',(1,1):'a second token input and a second proof output'}[(x,y)]
     lay.append("""/-- The rebuilt grandparent field by field, with %s. -/
 theorem rebuiltA_%d%d PARAMS (h140 : %s) (h182 : %s) :
     rebuiltA ARGS =
-      item T 211 ++ ([%d] ++ (%s ++ ([%d] ++ (%s ++ item T 137)))) := by
+      item T 203 ++ ([%d] ++ (%s ++ ([%d] ++ (%s ++ item T 132)))) := by
   simp only [rebuiltA, scA0, scA2, lkA, secondInA, secondOutA, h140, h182, encode_zero, castToBool_nil,
     castToBool_encode_one, Bool.false_eq_true, ↓reduceIte, List.append_assoc, List.cons_append, List.nil_append,
     encode_two, encode_three, encode_four']

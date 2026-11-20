@@ -216,10 +216,13 @@ of real tokens: `chain_authenticity`, `chain_count` / `chain_conservation`, `cha
    commit whose partner input takes the melt branch is accepted whatever balance it claims; the settle
    claiming 1,000,000 for a token of balance 1 is refused. An inflated merge commit can exist but never
    settles.
-6. A token's index byte is informational and no token dies of it (Q3, `smb_probe_idx_*`, 20 vectors;
-   `test/lib/indexByte.test.ts`): with `pkh1` set a split settle's tokens come out swapped, with `i2` or
-   `inputIndexN` set a token carries a byte that is not its position, and every later operation accepts
-   it. No spend reads the byte. Dropping it is recorded in `docs/ROADMAP.md`.
+6. A token's index byte was informational and no token died of it (Q3, `smb_probe_idx_*`, 20 vectors;
+   `test/lib/indexByte.test.ts`): with `i2` or `inputIndexN` set a token carried a byte that was not its
+   position, and every later operation accepted it. No spend read the byte, so the bytecode now has none
+   (`outputIndexN` removed, suffix 4513 bytes): no spend writes an index byte, the second rebuild has one
+   case (this lineage's grandparent first in `hashPrevouts`), and no settle reads `inputIndexN` or `i2`, so
+   the settle theorems need no case on them. With `pkh1` set a split settle's tokens still come out swapped
+   (`settleOuts_22`); the vectors keep their names and are re-judged on the new bytes.
 7. A merge settle's other-lineage index is pinned to a proof output (Q9, `smb_probe_q9_*`): naming the
    other grandparent's change output and spending it in the proof input's place is refused; the second
    rebuild's anchor pins `i4` to 1 or, under the split type, to 2 (`anchorB_index`).
@@ -312,6 +315,7 @@ lake exe cache get      # Mathlib's prebuilt .olean files (bsv-script-lean depen
 lake build              # BoltProofCore (seconds) + BoltProofBridge (bsv-script-lean, the vectors, the fragment and symbolic proofs)
 lake exe boltvectors    # every vector natively, with the control columns
 cd .. && node scripts/lean-axiom-check.mjs
+python3 lean/scripts/check_generated.py   # every glue generator still writes its committed file
 ```
 
 `lake build BoltProofCore` needs neither Mathlib nor bsv-script-lean and builds in seconds. The glue takes about
@@ -327,7 +331,9 @@ Regenerate the vectors after any change to a covenant template, a test helper, o
 npm run lean:vectors    # rewrites lean/BoltProof/Bridge/Generated/ and lean/vectors/vectors.json
 ```
 
-The output is deterministic (fixed keys, RFC6979 signatures); CI regenerates and fails on drift. Exact
+The output is deterministic (fixed keys, RFC6979 signatures); CI regenerates and fails on drift. CI likewise reruns
+the glue's generators (`lean/scripts/check_generated.py`, `lean/scripts/README.md`) and fails if any no longer writes
+its committed file. Exact
 bsv-script-lean error codes are pinned in `PINNED` in `vectors/export.test.ts` from a triage run of
 `boltvectors`; an unpinned rejection is `anyInvalid`.
 

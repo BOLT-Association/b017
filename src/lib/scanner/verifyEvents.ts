@@ -64,10 +64,10 @@ type FieldName = "pubKeyHash" | "commitment" | "txoType" | "parent" | "grandpare
 const FIELDS: Record<TokenType, Record<FieldName, number>> = {
   MinSimpleBOLT: { pubKeyHash: 0, commitment: 1, txoType: 2, parent: 3, grandparent: 4 },
   AuthBOLT: { pubKeyHash: 0, commitment: 1, txoType: 2, parent: 3, grandparent: 4 },
-  SimpleMultiBOLT: { pubKeyHash: 2, commitment: 3, txoType: 6, parent: 8, grandparent: 9 },
+  SimpleMultiBOLT: { pubKeyHash: 2, commitment: 3, txoType: 6, parent: 7, grandparent: 8 },
   // the genesis family: two leading pushes (genesis / LMG field, mintData) before the base fields
-  FixedBOLT: { pubKeyHash: 4, commitment: 5, txoType: 8, parent: 10, grandparent: 11 },
-  OpenBOLT: { pubKeyHash: 4, commitment: 5, txoType: 8, parent: 10, grandparent: 11 },
+  FixedBOLT: { pubKeyHash: 4, commitment: 5, txoType: 8, parent: 9, grandparent: 10 },
+  OpenBOLT: { pubKeyHash: 4, commitment: 5, txoType: 8, parent: 9, grandparent: 10 },
   SerialBOLT: { pubKeyHash: 2, commitment: 3, txoType: 4, parent: 5, grandparent: 6 },
 };
 const field = (lock: Script, type: TokenType, f: FieldName): number[] =>

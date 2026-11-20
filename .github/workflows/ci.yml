@@ -66,6 +66,11 @@ jobs:
           npm run lean:vectors
           git diff --exit-code -- lean/BoltProof/Bridge/Generated lean/vectors/vectors.json
 
+      # Every glue generator whose inputs are committed must still write exactly the committed file (a hand edit
+      # of a generated file, or a generator changed without regenerating, fails here). Needs no Lean build.
+      - name: Regenerate the glue files and fail on drift
+        run: python3 lean/scripts/check_generated.py
+
       - name: Cache the Lean toolchain and build
         uses: actions/cache@v4
         with:

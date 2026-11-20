@@ -5,18 +5,19 @@
 // FixedBolt / OpenBolt (genesis layout v3) put two leading lock pushes before the SimpleMultiBolt fields:
 //   genesisOutpoint | lastMergeOrGenesisOutpoint (36 B, null on the mint), then mintData (issuer bytes on the
 //   mint only, OP_0 after). So every lock / CTX-scriptCode field index is +2, and the ancestor pieces gain
-//   Vin{1,2}CTXMintData (FixedBolt: 77 per ancestor, skip 154) plus Vin{1,2}CTXLmg and Vout1Lmg (OpenBolt: 80,
-//   skip 160). Piece semantics mirror the sibling toolchain's simulator (the source of truth).
+//   Vin{1,2}CTXMintData (FixedBolt: 74 per ancestor, skip 148) plus Vin{1,2}CTXLmg and Vout1Lmg (OpenBolt: 77,
+//   skip 154). Piece semantics mirror the sibling toolchain's simulator (the source of truth).
 //
 // SimpleMultiBolt is the optimised fungible contract: 16-byte balance, mandatory change/funding.
-//   - 11 lock data chunks.
-//   - 170 unlock args; 75 ancestor pieces per ancestor. (Was 198/89 until the dead ancestor args - the
-//     S2-unread issuer keys and the unreachable has2TokenOutputs Vout2* args - were removed.)
+//   - 10 lock data chunks (outputIndexN removed: its only read always saw 00).
+//   - 164 unlock args; 72 ancestor pieces per ancestor. (Was 198/89 until the dead ancestor args - the
+//     S2-unread issuer keys and the unreachable has2TokenOutputs Vout2* args - were removed, then 170/75
+//     until outputIndexN and its three ancestor mirrors went.)
 //
 // Layout constants:
-//   - ctxHeader sits at unlock chunk index 164   -> ARGS2CTX_SMB = 164
-//   - lock data-push count                       -> PUSHDATAS_SMB = 11
-//   - live section start in a token unlock script -> SKIP_SMB = 150
+//   - ctxHeader sits at unlock chunk index 158   -> ARGS2CTX_SMB = 158
+//   - lock data-push count                       -> PUSHDATAS_SMB = 10
+//   - live section start in a token unlock script -> SKIP_SMB = 144
 //   - txoType lock chunk index                   -> TXOTYPE_IDX_SMB = 6
 //
 // Self-contained: depends only on @bsv/sdk (no sx tooling at runtime).
@@ -110,7 +111,7 @@ const determineTxTypeSMB = (tx: Transaction, layout: MultiLayout): string => {
   return typeByte.toString(16);
 };
 
-// The 75 SimpleMultiBolt ancestor piece names per ancestor.
+// The 72 SimpleMultiBolt ancestor piece names per ancestor.
 export const PIECE_NAMES = [
   "Version",
   "Vin1Outpoint",
@@ -122,7 +123,7 @@ export const PIECE_NAMES = [
   "Vin1CTXHeader", "Vin1CTXBalance", "Vin1CTXBalanceCommit",
   "Vin1CTXPubKeyHash", "Vin1CTXPubKeyHashCommit", "Vin1CTXPubKeyHashCommit2",
   "Vin1CTXOtherGrandparentOutpoint",
-  "Vin1CTXTxoType", "Vin1CTXOutputIndexN",
+  "Vin1CTXTxoType",
   "Vin1CTXParentOutpoint", "Vin1CTXGrandparentOutpoint",
   "Vin1CTXFooter", "Vin1NSequence",
   "Vin2Outpoint",
@@ -134,14 +135,14 @@ export const PIECE_NAMES = [
   "Vin2CTXHeader", "Vin2CTXBalance", "Vin2CTXBalanceCommit",
   "Vin2CTXPubKeyHash", "Vin2CTXPubKeyHashCommit", "Vin2CTXPubKeyHashCommit2",
   "Vin2CTXOtherGrandparentOutpoint",
-  "Vin2CTXTxoType", "Vin2CTXOutputIndexN",
+  "Vin2CTXTxoType",
   "Vin2CTXParentOutpoint", "Vin2CTXGrandparentOutpoint",
   "Vin2CTXFooter", "Vin2NSequence",
   "VinFundOutpoint", "VinFundScript", "VinFundNSequence",
   "Vout1Balance", "Vout1BalanceCommit",
   "Vout1PubKeyHash", "Vout1PubKeyHashCommit", "Vout1PubKeyHashCommit2",
   "Vout1OtherGrandparentOutpoint",
-  "Vout1TxoType", "Vout1OutputIndexN",
+  "Vout1TxoType",
   "Vout1ParentOutpoint", "Vout1GrandparentOutpoint",
   "ProofPubKeyHash1", "ProofPubKeyHash2",
   "ChangeValue", "ChangeScript", "NLockTime",
@@ -157,13 +158,13 @@ const insertBefore = (list: readonly string[], anchor: string, ...names: string[
 };
 
 export const SIMPLE_MULTI_LAYOUT: MultiLayout = { name: "SimpleMultiBolt", pieces: PIECE_NAMES, leading: 0 };
-/** FixedBolt: + the ancestor spent token's mintData after each CTXHeader (77 pieces, skip 154). */
+/** FixedBolt: + the ancestor spent token's mintData after each CTXHeader (74 pieces, skip 148). */
 export const FIXED_BOLT_LAYOUT: MultiLayout = {
   name: "FixedBolt",
   pieces: insertAfter(insertAfter(PIECE_NAMES, "Vin1CTXHeader", "Vin1CTXMintData"), "Vin2CTXHeader", "Vin2CTXMintData"),
   leading: 2,
 };
-/** OpenBolt: + each spent token's LMG before its mintData, and the rebuilt output's LMG (80 pieces, skip 160). */
+/** OpenBolt: + each spent token's LMG before its mintData, and the rebuilt output's LMG (77 pieces, skip 154). */
 export const OPEN_BOLT_LAYOUT: MultiLayout = {
   name: "OpenBolt",
   pieces: insertBefore(
@@ -218,9 +219,8 @@ export const ancestorPiece = (name: string, tx: Transaction, layout: MultiLayout
     case "Vin1CTXPubKeyHashCommit2": res = ctxArg(0, 4); break;
     case "Vin1CTXOtherGrandparentOutpoint": res = ctxArg(0, 5); break;
     case "Vin1CTXTxoType": res = ctxArg(0, 6); break;
-    case "Vin1CTXOutputIndexN": res = ctxArg(0, 7); break;
-    case "Vin1CTXParentOutpoint": res = ctxArg(0, 8); break;
-    case "Vin1CTXGrandparentOutpoint": res = ctxArg(0, 9); break;
+    case "Vin1CTXParentOutpoint": res = ctxArg(0, 7); break;
+    case "Vin1CTXGrandparentOutpoint": res = ctxArg(0, 8); break;
     case "Vin1CTXFooter": res = getVinCTXPieceSMB(ancestorTx, 0, 2, A2C); break;
     case "Vin1NSequence": res = vinSequence(ancestorTx, 0); break;
     // ---- Vin2 (token, only mergeCommit) ----
@@ -249,9 +249,8 @@ export const ancestorPiece = (name: string, tx: Transaction, layout: MultiLayout
     case "Vin2CTXPubKeyHashCommit2": if (hasTwoTokenInputs) res = ctxArg(1, 4); break;
     case "Vin2CTXOtherGrandparentOutpoint": if (hasTwoTokenInputs) res = ctxArg(1, 5); break;
     case "Vin2CTXTxoType": if (hasTwoTokenInputs) res = ctxArg(1, 6); break;
-    case "Vin2CTXOutputIndexN": if (hasTwoTokenInputs) res = ctxArg(1, 7); break;
-    case "Vin2CTXParentOutpoint": if (hasTwoTokenInputs) res = ctxArg(1, 8); break;
-    case "Vin2CTXGrandparentOutpoint": if (hasTwoTokenInputs) res = ctxArg(1, 9); break;
+    case "Vin2CTXParentOutpoint": if (hasTwoTokenInputs) res = ctxArg(1, 7); break;
+    case "Vin2CTXGrandparentOutpoint": if (hasTwoTokenInputs) res = ctxArg(1, 8); break;
     case "Vin2CTXFooter": if (hasTwoTokenInputs) res = getVinCTXPieceSMB(ancestorTx, 1, 2, A2C); break;
     case "Vin2NSequence": if (hasTwoTokenInputs) res = vinSequence(ancestorTx, 1); break;
     // ---- Funding vin (always last input) ----
@@ -267,9 +266,8 @@ export const ancestorPiece = (name: string, tx: Transaction, layout: MultiLayout
     case "Vout1PubKeyHashCommit2": res = voutChunk(ancestorTx, 0, 4 + L); break;
     case "Vout1OtherGrandparentOutpoint": res = voutChunk(ancestorTx, 0, 5 + L); break;
     case "Vout1TxoType": res = voutChunk(ancestorTx, 0, 6 + L); break;
-    case "Vout1OutputIndexN": res = voutChunk(ancestorTx, 0, 7 + L); break;
-    case "Vout1ParentOutpoint": res = voutChunk(ancestorTx, 0, 8 + L); break;
-    case "Vout1GrandparentOutpoint": res = voutChunk(ancestorTx, 0, 9 + L); break;
+    case "Vout1ParentOutpoint": res = voutChunk(ancestorTx, 0, 7 + L); break;
+    case "Vout1GrandparentOutpoint": res = voutChunk(ancestorTx, 0, 8 + L); break;
     // ---- Bolt (pay2Bolt) outputs ----
     case "ProofPubKeyHash1":
       // 1 token output always -> bolt1 at vout 1
@@ -287,7 +285,7 @@ export const ancestorPiece = (name: string, tx: Transaction, layout: MultiLayout
   return res;
 };
 
-// 2 x pieces empty chunks (SMB 150, FixedBolt 154, OpenBolt 160; no leading miscData) for melt.
+// 2 x pieces empty chunks (SMB 144, FixedBolt 148, OpenBolt 154; no leading miscData) for melt.
 export const createEmptyFungibleAncestorChunksSMB = (layout: MultiLayout = SIMPLE_MULTI_LAYOUT): any[] => {
   const emptyChunks: any[] = [];
   for (let i = 0; i < skipOf(layout); i++) {

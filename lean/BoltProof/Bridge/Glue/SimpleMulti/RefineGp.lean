@@ -141,16 +141,16 @@ theorem simpleMulti_refines_settle_gp (P : Prims Bytes) (tx : Tx) (i amt : Nat) 
     rw [hval]; exact le64_length _
   have hlen : a.nty = [0x22] → (padN 16 (encode (decode f.bal - decode f.balCommit))).length = 16 := fun g =>
     padN16_length_of_range (henf.splitRem g) (by have := henf.balCommitLo (by rw [g]; decide); have := henf.balHi; omega)
-  obtain ⟨w10, w11, w12, w13, w14, w17, w18, w19, w20, w23, w46, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
-    ⟨h0, h1, h2, h3, -, h5, h6, h7, h8, h9, -, h11, h12⟩, -, -, hprevs⟩ := henf.rebuild
+  obtain ⟨w8, w9, w10, w11, w12, w15, w16, w17, w18, w19, w42, _, _, _, _, _, _, _, _, _, _,
+    ⟨h0, h1, h2, h3, -, h5, h6, h7, h8, h9, -, h11, h12⟩, -, hprevs⟩ := henf.rebuild
   rw [gateT_item2 f a S hnty', castToBool_nil] at hprevs
   simp only [Bool.false_eq_true, ↓reduceIte] at hprevs
   have hflatP : serOutPoint (inputAt tx i) ++
-      ((Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++ a.i5) ++ a.fund) =
+      ((Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42) ++ a.i5) ++ a.fund) =
         (tx.inputs.map serOutPoint).flatten := by
     rw [← hout]
-    have := hres.prevouts (preOutpoint a.pre ++ (Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) ++
-      a.i5) ++ a.fund) (by rw [← gateT_item61 f a S, ← gpOutA_eq, hprevs, hprev]; rfl)
+    have := hres.prevouts (preOutpoint a.pre ++ (Hash.hash256 (rebuiltA (preOutpoint a.pre) (gateT f a S) w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42) ++
+      a.i5) ++ a.fund) (by rw [← gateT_item59 f a S, ← gpOutA_eq, hprevs, hprev]; rfl)
     simpa only [List.append_assoc] using this
   have hco := coSpent_second htx h32
     (by rw [List.length_append, BoltProof.Glue.MinSimple.hash256_length, hgr.i5len]) hflatP
