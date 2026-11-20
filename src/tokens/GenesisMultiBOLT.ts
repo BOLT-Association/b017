@@ -15,7 +15,7 @@ type Funding = { tx: Transaction; vout: number; key: PrivateKey };
 const leadingField = (t: SimpleMultiBOLT): string =>
   Utils.toHex(t.tx!.outputs[t.voutIdx!].lockingScript.chunks[0].data as number[]);
 const issuerOf = (t: SimpleMultiBOLT): string =>
-  Utils.toHex(t.tx!.outputs[t.voutIdx!].lockingScript.chunks[12].data as number[]);
+  Utils.toHex(t.tx!.outputs[t.voutIdx!].lockingScript.chunks[11].data as number[]); // issuerPubKey: 2 leading + 10 SMB fields, last
 
 function assertSameIssuer(a: SimpleMultiBOLT, b: SimpleMultiBOLT, type: string): void {
   if (issuerOf(a) !== issuerOf(b)) throw new Error(`${type}: cannot merge tokens of different issuers`);

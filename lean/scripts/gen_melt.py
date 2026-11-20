@@ -7,7 +7,7 @@ _os.makedirs(WORK, exist_ok=True)
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chunks as C
-ARMS = [(1961, 2426), (2591, 2609), (3186, 3623), (3773, 3790), (1426, 2715), (2715, 3897), (3899, 4652)]
+ARMS = [(1908, 2354), (2500, 2518), (3072, 3491), (3623, 3640), (1392, 2624), (2624, 3740), (3742, 4465)]
 UNFOLD = C.unfold(0, 5000, keep=ARMS)
 out = f"""import BoltProof.Bridge.Glue.SimpleMulti.Enforced
 
@@ -15,7 +15,7 @@ out = f"""import BoltProof.Bridge.Glue.SimpleMulti.Enforced
 # The melt
 
 Without a preimage (`castToBool preimage = false`) the suffix skips the spend arm (`OP_IFDUP OP_IF`,
-suffix 36–4679) and runs the melt branch (4680–4695): the sighash byte, the owner's key hash and the
+suffix 36–4492) and runs the melt branch (4493–4508): the sighash byte, the owner's key hash and the
 encodings, then the owner's `OP_CHECKSIG`. The prologue's issuer guard (suffix 0–29) applies as on every
 path. Nothing constrains the outputs: a melt spends the token out of the covenant (`Accepts`' melt clause is a
 scope assumption, see Finding 1 of `lean/README.md`). The run does not read the spent type, so the theorem

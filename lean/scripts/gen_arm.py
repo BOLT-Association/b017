@@ -147,8 +147,8 @@ HEADER = """import BoltProof.Bridge.Glue.SimpleMulti.Blocks
 /-!
 # The rebuilds' conditional arms
 
-Four arms of the fungible rebuilds (suffix 1961–2425 and 3186–3621, the second input of the
-rebuilt transaction; 2591–2607 and 3773–3788, its second output) open on a flag the ancestor's
+Four arms of the fungible rebuilds (suffix 1908–2353 and 3072–3489, the second input of the
+rebuilt transaction; 2500–2516 and 3623–3638, its second output) open on a flag the ancestor's
 data decides, so a path proof cannot enter or skip them from its hypotheses. Each is read here as
 one step (`sym_block` on its first chunk, `sym_skipblock` inside an inactive arm): the flag popped,
 the accumulator on top extended by the arm's bytes when the flag holds, under the widths the arm's
@@ -171,14 +171,14 @@ open BoltProof.Bridge.Generated
 
 """
 parts = [HEADER]
-parts.append(arm('secondInA', 'c1961_if', 1961, 2426, True, open(f'{SP}/ArmInA.out').read(),
-    'The second input of the first rebuilt transaction (suffix 1962–2424), as the arm appends it to the accumulator: the ancestor pieces at depths 156–183 below it, the two alt-stack items, and the widths `w2`, `w3`, `w4`, `w5`, `w8` the arm computes.'))
-parts.append(arm('secondOutA', 'c2591_if', 2591, 2609, False, open(f'{SP}/ArmOutA.out').read(),
-    'The second output of the first rebuilt transaction (suffix 2592–2607): the pieces at depths 31, 13 and 141 and `OP_EQUALVERIFY OP_CHECKSIG`.'))
-parts.append(arm('secondInB', 'c3186_if', 3186, 3623, True, open(f'{SP}/ArmInB.out').read(),
-    'The second input of the second rebuilt transaction (suffix 3187–3621), the pieces at depths 82–109.'))
-parts.append(arm('secondOutB', 'c3773_if', 3773, 3790, False, open(f'{SP}/ArmOutB.out').read(),
-    'The second output of the second rebuilt transaction (suffix 3774–3788): the pieces at depths 32, 14 and 67.'))
+parts.append(arm('secondInA', 'c1908_if', 1908, 2354, True, open(f'{SP}/ArmInA.out').read(),
+    'The second input of the first rebuilt transaction (suffix 1909–2352), as the arm appends it to the accumulator: the ancestor pieces at depths 150–176 below it, the two alt-stack items, and the widths `w2`, `w3`, `w4`, `w5`, `w8` the arm computes.'))
+parts.append(arm('secondOutA', 'c2500_if', 2500, 2518, False, open(f'{SP}/ArmOutA.out').read(),
+    'The second output of the first rebuilt transaction (suffix 2501–2516): the pieces at depths 30, 13 and 136 and `OP_EQUALVERIFY OP_CHECKSIG`.'))
+parts.append(arm('secondInB', 'c3072_if', 3072, 3491, True, open(f'{SP}/ArmInB.out').read(),
+    'The second input of the second rebuilt transaction (suffix 3073–3489), the pieces at depths 79–105.'))
+parts.append(arm('secondOutB', 'c3623_if', 3623, 3640, False, open(f'{SP}/ArmOutB.out').read(),
+    'The second output of the second rebuilt transaction (suffix 3624–3638): the pieces at depths 31, 14 and 65.'))
 parts.append('end BoltProof.Glue.SimpleMulti\n')
 open(LEAN + '/BoltProof/Bridge/Glue/SimpleMulti/Arms.lean', 'w').write('\n'.join(parts))
 print('ok')

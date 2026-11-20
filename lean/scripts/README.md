@@ -7,7 +7,10 @@ edited by hand. A generated file says so in its header. The scripts need Python 
 directory from its own location.
 
 Probe outputs go to `$GLUE_WORK` (default `lean/.lake/glue-work/`); the Lean files the probes run go to `lean/Scratch/`,
-which git ignores. Generators that read probe outputs need the probe run first.
+which git ignores. Generators that read probe outputs need the probe run first. `$GLUE_WORK` is under `lean/.lake/`, so
+nothing in it is ever committed: whatever a generator reads besides the full probe outputs is committed next to the
+scripts instead (the settles' side files, `settle-inputs/`), and `check_generated.py` proves the committed inputs are
+enough (see below).
 
 | Script | Writes | Reads |
 |---|---|---|
@@ -16,10 +19,12 @@ which git ignores. Generators that read probe outputs need the probe run first.
 | `gen_sound.py`, `gen_melt.py`, `gen_refute.py`, `gen_abs.py`, `gen_gate.py` | `SimpleMulti/Sound.lean`, `Melt.lean`, `Refute.lean`, `Lock.lean`, `GateItems.lean` | — |
 | `gen_region.py` | `SimpleMulti/Regions.lean` | the region probes (`RebA.out`, `RebB0.out`, `RebB1.out`, `RebBf.out`, `NullArm.out`) |
 | `gen_arm.py` | `SimpleMulti/Arms.lean` | the arm probes of `probe_arm.py` (`ArmInA.out`, `ArmOutA.out`, `ArmInB.out`, `ArmOutB.out`) |
-| `gen_settle.py` | `SimpleMulti/Settle.lean`, `SimpleMulti/Settle/*.lean` | `Regions.lean`, the settle probes of `probe_sm.py` (`*.out`, `*.gateT.txt`, `*.outs.txt`) |
+| `gen_settle.py` | `SimpleMulti/Settle.lean`, `SimpleMulti/Settle/*.lean` | `Regions.lean`, the three side files per settle probe (`*.gateT.txt`, `*.outs.txt`, `*.zeros.txt`), committed in `settle-inputs/` (its README has the probe commands) |
+| `extract_settle_inputs.py` | the settle side files, from the settle probes' outputs | `$GLUE_WORK/<probe>.out` of `probe_sm.py` |
 | `gen_rebuilt.py`, `gen_rebuiltB.py` | `SimpleMulti/Rebuilt.lean` (from `rebuilt_tmpl.lean`), `SimpleMulti/RebuiltB.lean` | `Regions.lean`, `Settle.lean` |
 | `gen_rebuiltB_parse.py` | `SimpleMulti/RebuiltBParse.lean`, `AnchorB.lean`, `GpWeldB.lean` (the second rebuild's parse, token and weld) | `rebuilt_tmpl.lean`, `Anchor.lean`, `GpWeld.lean`, rewritten for the second rebuild's stack (items shifted by one, the first piece set, the alt-stack items the first rebuild left) |
-| `gen_drops.py`, `gen_smregress.py` | the chunk lists of `SimpleMulti/Reaches.lean`, the guards of `SimpleMulti/Regress.lean` (in place) | `Generated/Chunks.lean` |
+| `gen_drops.py`, `gen_smregress.py` | the chunk lists of `SimpleMulti/Reaches.lean`, the guards of `SimpleMulti/Regress.lean` (in place; the hand-written part above the guards is kept) | `Generated/Chunks.lean`, the file itself |
+| `check_generated.py` | no file (runs every generator below whose inputs are committed and fails if any output differs from the committed file; restores the files afterwards) | everything those generators read |
 | `probe.py`, `probe_sm.py`, `probe_melt.py`, `probe_arm.py` | a probe file in `lean/Scratch/` and its output in `$GLUE_WORK` | `Generated/Chunks.lean` |
 | `facts.py`, `facts_ser.py`, `false_facts.py`, `disasm_ser.py` | — (read a probe's output: its facts, its literal facts that are false, a disassembly of a chunk span) | probe outputs, `Generated/Chunks.lean` |
 | `chunks.py` | — (the fungible chunk names and sequence helpers, imported by the others) | `Generated/Chunks.lean` |
@@ -31,6 +36,29 @@ python3 gen_paths_serial.py ": the commit paths" commit_genesis commit_later > .
 ```
 
 and with `PROBE=1` replace each path's closing by `trace_state; sorry`, which prints the facts the run leaves.
+
+## Keeping the generated files reproducible
+
+```
+python3 lean/scripts/check_generated.py    # 12 generators, 20 files; CI's lean-proof job runs it before the build
+```
+
+It runs, in dependency order, `gen_abs`, `gen_drops`, `gen_settle` (from `settle-inputs/`), `gen_gate`, `gen_rebuilt`,
+`gen_rebuiltB`, `gen_rebuiltB_parse`, `gen_sm`, `gen_melt`, `gen_refute`, `gen_sound` and `gen_smregress`, and compares
+each output with the committed bytes. It does not cover `gen_region.py` and `gen_arm.py` (they read full probe outputs,
+rerun as above) or the argument-driven `gen_paths*.py`. The rules it enforces:
+
+* **Never edit a generated file by hand.** Change its generator (or the template it reads), regenerate, and commit
+  both; a hand edit is lost the next time anyone regenerates, and the check fails until the generator writes it.
+  (`Regress.lean`'s guards were once edited by hand after `gen_smregress.py` last ran; regenerating silently broke
+  them. The generator now writes the edited form, and runs idempotently.)
+* **Commit every input a generator reads, except a full probe output.** A file left under `$GLUE_WORK` is lost with
+  the machine. When a generator needs a few facts out of a probe's 100 MB output, extract them into small side files
+  and commit those (`extract_settle_inputs.py` and `settle-inputs/` do this for the settles; until 2026-11-20 their
+  side files were never committed, so the settles could not be regenerated anywhere else).
+* **A new generator joins `GENERATORS` in `check_generated.py`**, after the generators whose outputs it reads.
+* After a covenant change (new bytecode), rerun the probes, regenerate in the order above, rebuild, then run the check:
+  it must report 0 differ with the new files committed.
 
 ## Pitfalls met on the way
 

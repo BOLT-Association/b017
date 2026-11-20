@@ -1,9 +1,11 @@
-// Builders for tokens whose index byte disagrees with their output position, shared by the Lean vector exporter
-// (lean/vectors/export.test.ts, the `smb_probe_idx_*` vectors) and the regression suite
-// (test/lib/indexByte.test.ts). The fungible script writes a token's index byte (lock chunk 7, `outputIndexN`)
-// from the spender's `inputIndexN` argument, or from the `i2` interop slot for a split settle's second token, and
-// never reads it back; with `pkh1` set a split settle's two tokens come out swapped. Each helper builds one shape
-// with the honest builders around it, so a refusal would be the covenant's own.
+// Builders for the fungible spends that used to give a token an index byte other than its output position, shared
+// by the Lean vector exporter (lean/vectors/export.test.ts, the `smb_probe_idx_*` vectors) and the regression suite
+// (test/lib/indexByte.test.ts). Until the outputIndexN removal the script wrote a token's index byte (lock chunk 7,
+// `outputIndexN`) from the spender's `inputIndexN` argument, or from the `i2` interop slot for a split settle's
+// second token, and never read it back (lean/README.md, Finding 6). The byte is gone: the lock has 10 data pushes
+// and chunk 7 is the parent outpoint. The shapes stay, because `inputIndexN`, `i2` and `pkh1` still exist and a
+// spend that sets them must still leave a spendable token: with `pkh1` set a split settle's two tokens come out
+// swapped. Each helper builds one shape with the honest builders around it, so a refusal would be the covenant's own.
 import { Hash, LockingScript, P2PKH, PrivateKey, Script, Transaction } from '@bsv/sdk'
 import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
 import SimpleMultiTemplate from '../../src/tokens/templates/SimpleMulti.sx.template.js'
@@ -35,11 +37,15 @@ export const fundFor = (key: PrivateKey) => ({
   unlockingScriptTemplate: new P2PKH().unlock(key),
 })
 
-/** The index byte of the token at output `vout` (lock chunk 7, `outputIndexN`) as a number; an empty push is 0. */
-export const indexByteAt = (tx: Transaction, vout: number): number => {
-  const d = tx.outputs[vout].lockingScript.chunks[7].data as number[] | undefined
-  return d && d.length ? d[0] : 0
-}
+/** The number of data pushes in front of the static suffix of the token at output `vout` (10 for SimpleMultiBOLT:
+ *  balance, balanceCommit, pubKeyHash, pubKeyHashCommit, pubKeyHashCommit2, otherGrandparentOutpoint, txoType,
+ *  parentOutpoint, grandparentOutpoint, issuerPubKey; 11 while it carried the index byte). */
+export const lockDataPushes = (tx: Transaction, vout: number): number =>
+  tx.outputs[vout].lockingScript.chunks.length - new SimpleMultiTemplate().staticSuffix().chunks.length
+
+/** The parent outpoint the token at output `vout` carries (lock chunk 7 since the index byte went). */
+export const parentOutpointAt = (tx: Transaction, vout: number): number[] =>
+  (tx.outputs[vout].lockingScript.chunks[7].data as number[] | undefined) ?? []
 
 /** The token at output `vout` of `tx`, owned by `key`, as a builder object with its lineage. */
 export const tokenAt = (tx: Transaction, vout: number, key: PrivateKey, balance: number[], prevTxs: Transaction[],
@@ -60,8 +66,9 @@ export const tokenAt = (tx: Transaction, vout: number, key: PrivateKey, balance:
   return tok
 }
 
-/** A transfer commit or settle built as the honest one but with `inputIndexN` = 1, so the covenant writes index
- *  byte 1 into the new token at output 0; the token object advances as `commit()`/`settle()` would. */
+/** A transfer commit or settle built as the honest one but with `inputIndexN` = 1. It used to make the covenant write
+ *  index byte 1 into the new token at output 0; with the byte gone the new token is the honest one, so the output is
+ *  left exactly as `createTransferOutputs` builds it. The token object advances as `commit()`/`settle()` would. */
 export const spendIdx1 = async (tok: SimpleMultiBOLT, to: PrivateKey, isCommit: boolean): Promise<Transaction> => {
   const tpl = new SimpleMultiTemplate()
   const inputs = (tok as any).createTransferInputs(to, '', isCommit, false, undefined, false) as any[]
@@ -70,7 +77,6 @@ export const spendIdx1 = async (tok: SimpleMultiBOLT, to: PrivateKey, isCommit: 
   inputs[0].unlockingScriptTemplate = tpl.unlock(tok.signer, pubOf(to), tok.prevTxs, false, false, [],
     isCommit ? [0x21] : [0x20], [0x01], [], hasAnc ? (tok as any).voutLE(proofVout) : [])
   const outputs = (tok as any).createTransferOutputs(to, isCommit, false) as any[]
-  outputs[0].lockingScript = patchLock(outputs[0].lockingScript, { 7: [0x01] })
   const tx = new Transaction(2, inputs, outputs)
   await tx.fee(0)
   await tx.sign()
@@ -102,8 +108,8 @@ export const meltOf = async (tx: Transaction, vout: number, key: PrivateKey): Pr
  * The settle of an honest split, rebuilt by hand with the given flags. `main` is the first split token the honest
  * `split()` returned, so its lineage ends with the honest settle, which is replaced; `owner` signed the split,
  * `keyA`/`keyB` are the two recipients, `total` and `piece` the balances. `swapped` sets `pkh1` (the covenant then
- * expects the two tokens in the other order); `i2` sets the interop-outpoint slot (the second token's index byte
- * is then 0). Returns the settle, the lineage up to it, and where each token sits.
+ * expects the two tokens in the other order); `i2` sets the interop-outpoint slot (which used to set the second
+ * token's index byte to 0). Returns the settle, the lineage up to it, and where each token sits.
  */
 export async function splitSettleWithFlags(main: SimpleMultiBOLT, owner: PrivateKey, keyA: PrivateKey, keyB: PrivateKey,
   total: number[], piece: number[], swapped: boolean, i2: boolean) {
@@ -114,8 +120,8 @@ export async function splitSettleWithFlags(main: SimpleMultiBOLT, owner: Private
   const anc = txs[txs.length - 3]
   const ancProof = (main as any).findProofVout(anc, owner) as number
   const mainBal = (main as any).subtractBalances(total, piece) as number[]
-  const outA = tpl.lock(pubOf(keyA), txs, mainBal, zeros(16), zeros(20), zeros(20), zeros(36), [0x22], [0x00], 0)
-  const outB = tpl.lock(pubOf(keyB), txs, piece, zeros(16), zeros(20), zeros(20), zeros(36), [0x22], i2 ? [0x00] : [0x01], 0)
+  const outA = tpl.lock(pubOf(keyA), txs, mainBal, zeros(16), zeros(20), zeros(20), zeros(36), [0x22], 0)
+  const outB = tpl.lock(pubOf(keyB), txs, piece, zeros(16), zeros(20), zeros(20), zeros(36), [0x22], 0)
   const settleTx = new Transaction(2, [
     { sourceTransaction: commit, sourceOutputIndex: 0, sequence: 0xffffffff,
       unlockingScriptTemplate: tpl.unlock(owner, swapped ? pubOf(keyA) : [], txs, false, false, [], [0x22], [0x00], [],

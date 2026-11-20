@@ -3,8 +3,8 @@ import BoltProof.Bridge.Glue.SimpleMulti.Blocks
 /-!
 # The rebuilds' conditional arms
 
-Four arms of the fungible rebuilds (suffix 1961–2425 and 3186–3621, the second input of the
-rebuilt transaction; 2591–2607 and 3773–3788, its second output) open on a flag the ancestor's
+Four arms of the fungible rebuilds (suffix 1908–2353 and 3072–3489, the second input of the
+rebuilt transaction; 2500–2516 and 3623–3638, its second output) open on a flag the ancestor's
 data decides, so a path proof cannot enter or skip them from its hypotheses. Each is read here as
 one step (`sym_block` on its first chunk, `sym_skipblock` inside an inactive arm): the flag popped,
 the accumulator on top extended by the arm's bytes when the flag holds, under the widths the arm's
@@ -26,26 +26,26 @@ open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Ga
 open BoltProof.Bridge.Generated
 
 
-/-- The second input of the first rebuilt transaction (suffix 1962–2424), as the arm appends it to the accumulator: the ancestor pieces at depths 156–183 below it, the two alt-stack items, and the widths `w2`, `w3`, `w4`, `w5`, `w8` the arm computes. -/
-def secondInA (flag acc a1 a2 : Bytes) (rest : List Bytes) (w2 w3 w4 w5 w8 : Bytes) : Bytes :=
-  acc ++ rest[183]?.getD [] ++ 253 :: (List.take (((List.length w2 : Nat) : Int) - 1).toNat w2 ++ (a2 ++ optPush (encode 4) (rest[182]?.getD []) ++ optPush (encode 4) (rest[181]?.getD []) ++ optPush [20] (rest[180]?.getD []) ++ optPush [36] (rest[179]?.getD []) ++ optPush [36] (rest[178]?.getD []) ++ 36 :: rest[177]?.getD [] ++ 34 :: rest[176]?.getD [] ++ optPush [20] (rest[175]?.getD []) ++ optPush [20] (rest[174]?.getD []) ++ optPush (encode 16) (rest[173]?.getD []) ++ optPush [1] (rest[172]?.getD []) ++ optPush [1] (rest[171]?.getD []) ++ (encode ((List.length (rest[170]?.getD []) : Nat) : Int) ++ rest[170]?.getD []) ++ optPush [33] (rest[169]?.getD []) ++ 76 :: (List.take (((List.length w8 : Nat) : Int) - 1).toNat w8 ++ rest[168]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[167]?.getD [] ++ 16 :: rest[166]?.getD [] ++ 20 :: rest[165]?.getD [] ++ 20 :: rest[164]?.getD [] ++ 20 :: rest[163]?.getD [] ++ 36 :: rest[162]?.getD [] ++ 1 :: rest[161]?.getD [] ++ optPush [1] (rest[160]?.getD []) ++ 36 :: rest[159]?.getD [] ++ 36 :: rest[158]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD [])))) ++ (encode ((List.length (rest[157]?.getD []) : Nat) : Int) ++ rest[157]?.getD []) ++ 3 :: 253 :: w4 ++ a1)) ++ rest[156]?.getD []
+/-- The second input of the first rebuilt transaction (suffix 1909–2352), as the arm appends it to the accumulator: the ancestor pieces at depths 150–176 below it, the two alt-stack items, and the widths `w2`, `w3`, `w4`, `w5`, `w8` the arm computes. -/
+def secondInA (flag acc a1 a2 : Bytes) (rest : List Bytes) (w2 w3 w4 w5 w6 : Bytes) : Bytes :=
+  acc ++ rest[176]?.getD [] ++ 253 :: (List.take (((List.length w2 : Nat) : Int) - 1).toNat w2 ++ (a2 ++ optPush (encode 4) (rest[175]?.getD []) ++ optPush (encode 4) (rest[174]?.getD []) ++ optPush [20] (rest[173]?.getD []) ++ optPush [36] (rest[172]?.getD []) ++ optPush [36] (rest[171]?.getD []) ++ 36 :: rest[170]?.getD [] ++ 34 :: rest[169]?.getD [] ++ optPush [20] (rest[168]?.getD []) ++ optPush [20] (rest[167]?.getD []) ++ optPush (encode 16) (rest[166]?.getD []) ++ optPush [1] (rest[165]?.getD []) ++ optPush [1] (rest[164]?.getD []) ++ (encode ((List.length (rest[163]?.getD []) : Nat) : Int) ++ rest[163]?.getD []) ++ optPush [33] (rest[162]?.getD []) ++ 76 :: (List.take (((List.length w6 : Nat) : Int) - 1).toNat w6 ++ rest[161]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[160]?.getD [] ++ 16 :: rest[159]?.getD [] ++ 20 :: rest[158]?.getD [] ++ 20 :: rest[157]?.getD [] ++ 20 :: rest[156]?.getD [] ++ 36 :: rest[155]?.getD [] ++ 1 :: rest[154]?.getD [] ++ 36 :: rest[153]?.getD [] ++ 36 :: rest[152]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD [])))) ++ (encode ((List.length (rest[151]?.getD []) : Nat) : Int) ++ rest[151]?.getD []) ++ 3 :: 253 :: w4 ++ a1)) ++ rest[150]?.getD []
 
-/-- The arm `[1961, 2426)`, as one step: the flag popped; if it holds, the accumulator extended by `secondInA` under the
+/-- The arm `[1908, 2354)`, as one step: the flag popped; if it holds, the accumulator extended by `secondInA` under the
 widths and bounds the arm fixes, else unchanged; the rest of the stack and the alt stack as they were. -/
 theorem secondInA_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {flag acc a1 a2 : Bytes}
     {rest A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
-    (h : run Eval.opExec env (SimpleMulti.c1961_if ++ (SimpleMulti.c1962 ++ (SimpleMulti.c1978_optTail ++ (SimpleMulti.c1992 ++ (SimpleMulti.c1997_optTail ++ (SimpleMulti.c2011 ++ (SimpleMulti.c2017_optTail ++ (SimpleMulti.c2031 ++ (SimpleMulti.c2037_optTail ++ (SimpleMulti.c2051 ++ (SimpleMulti.c2057_optTail ++ (SimpleMulti.c2071 ++ (SimpleMulti.c2095_optTail ++ (SimpleMulti.c2109 ++ (SimpleMulti.c2115_optTail ++ (SimpleMulti.c2129 ++ (SimpleMulti.c2134_optTail ++ (SimpleMulti.c2148 ++ (SimpleMulti.c2153_optTail ++ (SimpleMulti.c2167 ++ (SimpleMulti.c2172_optTail ++ (SimpleMulti.c2186 ++ (SimpleMulti.c2205_optTail ++ (SimpleMulti.c2219 ++ (SimpleMulti.c2308_optTail ++ (SimpleMulti.c2322 ++ (SimpleMulti.c2425_endif ++ k))))))))))))))))))))))))))) t (St (flag :: acc :: rest) (a1 :: a2 :: A) m C kk cs) = r) (hr : r.IsOk) :
-    ∃ (w2 w3 w4 w5 w8 : Bytes) (m' k' : Nat),
-      (castToBool flag = true → ( num2bin (encode ((List.length (a2 ++ optPush (encode 4) (rest[182]?.getD []) ++ optPush (encode 4) (rest[181]?.getD []) ++ optPush [20] (rest[180]?.getD []) ++ optPush [36] (rest[179]?.getD []) ++ optPush [36] (rest[178]?.getD []) ++ 36 :: rest[177]?.getD [] ++ 34 :: rest[176]?.getD [] ++ optPush [20] (rest[175]?.getD []) ++ optPush [20] (rest[174]?.getD []) ++ optPush (encode 16) (rest[173]?.getD []) ++ optPush [1] (rest[172]?.getD []) ++ optPush [1] (rest[171]?.getD []) ++ (encode ((List.length (rest[170]?.getD []) : Nat) : Int) ++ rest[170]?.getD []) ++ optPush [33] (rest[169]?.getD []) ++ 76 :: (List.take (((List.length w8 : Nat) : Int) - 1).toNat w8 ++ rest[168]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[167]?.getD [] ++ 16 :: rest[166]?.getD [] ++ 20 :: rest[165]?.getD [] ++ 20 :: rest[164]?.getD [] ++ 20 :: rest[163]?.getD [] ++ 36 :: rest[162]?.getD [] ++ 1 :: rest[161]?.getD [] ++ optPush [1] (rest[160]?.getD []) ++ 36 :: rest[159]?.getD [] ++ 36 :: rest[158]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD [])))) ++ (encode ((List.length (rest[157]?.getD []) : Nat) : Int) ++ rest[157]?.getD []) ++ 3 :: 253 :: w4 ++ a1) : Nat) : Int)) (decode (encode 3)).toNat = some w2) ∧
-      (encode ((List.length (rest[157]?.getD []) : Nat) : Int) = [52]) ∧
-      ( num2bin (encode (((rest[167]?.getD [] ++ 16 :: rest[166]?.getD [] ++ 20 :: rest[165]?.getD [] ++ 20 :: rest[164]?.getD [] ++ 20 :: rest[163]?.getD [] ++ 36 :: rest[162]?.getD [] ++ 1 :: rest[161]?.getD [] ++ optPush [1] (rest[160]?.getD []) ++ 36 :: rest[159]?.getD [] ++ 36 :: rest[158]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w3) ∧
-      ( num2bin (encode (((rest[167]?.getD [] ++ 16 :: rest[166]?.getD [] ++ 20 :: rest[165]?.getD [] ++ 20 :: rest[164]?.getD [] ++ 20 :: rest[163]?.getD [] ++ 36 :: rest[162]?.getD [] ++ 1 :: rest[161]?.getD [] ++ optPush [1] (rest[160]?.getD []) ++ 36 :: rest[159]?.getD [] ++ 36 :: rest[158]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w4) ∧
-      ( num2bin (encode ((((rest[167]?.getD [] ++ 16 :: rest[166]?.getD [] ++ 20 :: rest[165]?.getD [] ++ 20 :: rest[164]?.getD [] ++ 20 :: rest[163]?.getD [] ++ 36 :: rest[162]?.getD [] ++ 1 :: rest[161]?.getD [] ++ optPush [1] (rest[160]?.getD []) ++ 36 :: rest[159]?.getD [] ++ 36 :: rest[158]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD []).length + 1 : Nat) : Int) + 2)) (decode (encode 2)).toNat = some w5) ∧
-      (num2bin (encode ((List.length (rest[168]?.getD []) : Nat) : Int)) (decode (encode (((1 : Nat) : Int) + 1))).toNat = some w8) ∧
-      (encode ((List.length (rest[168]?.getD []) : Nat) : Int) = [104]) ∧
-      (castToBool (encode (if ((List.length (rest[170]?.getD []) : Nat) : Int) ≤ 75 then 1 else 0)) = true)) ∧
-      run Eval.opExec env k t (St ((if castToBool flag then secondInA flag acc a1 a2 rest w2 w3 w4 w5 w8 else acc) :: rest) (a1 :: a2 :: A) m' C k' cs) = r := by
-  simp only [SimpleMulti.c1961_if, SimpleMulti.c1962, SimpleMulti.c1992, SimpleMulti.c2011, SimpleMulti.c2031, SimpleMulti.c2051, SimpleMulti.c2071, SimpleMulti.c2109, SimpleMulti.c2129, SimpleMulti.c2148, SimpleMulti.c2167, SimpleMulti.c2186, SimpleMulti.c2219, SimpleMulti.c2322, SimpleMulti.c2425_endif, List.cons_append, List.nil_append] at h
+    (h : run Eval.opExec env (SimpleMulti.c1908_if ++ (SimpleMulti.c1909 ++ (SimpleMulti.c1925_optTail ++ (SimpleMulti.c1939 ++ (SimpleMulti.c1944_optTail ++ (SimpleMulti.c1958 ++ (SimpleMulti.c1964_optTail ++ (SimpleMulti.c1978 ++ (SimpleMulti.c1984_optTail ++ (SimpleMulti.c1998 ++ (SimpleMulti.c2004_optTail ++ (SimpleMulti.c2018 ++ (SimpleMulti.c2042_optTail ++ (SimpleMulti.c2056 ++ (SimpleMulti.c2062_optTail ++ (SimpleMulti.c2076 ++ (SimpleMulti.c2081_optTail ++ (SimpleMulti.c2095 ++ (SimpleMulti.c2100_optTail ++ (SimpleMulti.c2114 ++ (SimpleMulti.c2119_optTail ++ (SimpleMulti.c2133 ++ (SimpleMulti.c2152_optTail ++ (SimpleMulti.c2166 ++ (SimpleMulti.c2330 ++ (SimpleMulti.c2353_endif ++ k)))))))))))))))))))))))))) t (St (flag :: acc :: rest) (a1 :: a2 :: A) m C kk cs) = r) (hr : r.IsOk) :
+    ∃ (w2 w3 w4 w5 w6 : Bytes) (m' k' : Nat),
+      (castToBool flag = true → ( num2bin (encode ((List.length (a2 ++ optPush (encode 4) (rest[175]?.getD []) ++ optPush (encode 4) (rest[174]?.getD []) ++ optPush [20] (rest[173]?.getD []) ++ optPush [36] (rest[172]?.getD []) ++ optPush [36] (rest[171]?.getD []) ++ 36 :: rest[170]?.getD [] ++ 34 :: rest[169]?.getD [] ++ optPush [20] (rest[168]?.getD []) ++ optPush [20] (rest[167]?.getD []) ++ optPush (encode 16) (rest[166]?.getD []) ++ optPush [1] (rest[165]?.getD []) ++ optPush [1] (rest[164]?.getD []) ++ (encode ((List.length (rest[163]?.getD []) : Nat) : Int) ++ rest[163]?.getD []) ++ optPush [33] (rest[162]?.getD []) ++ 76 :: (List.take (((List.length w6 : Nat) : Int) - 1).toNat w6 ++ rest[161]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[160]?.getD [] ++ 16 :: rest[159]?.getD [] ++ 20 :: rest[158]?.getD [] ++ 20 :: rest[157]?.getD [] ++ 20 :: rest[156]?.getD [] ++ 36 :: rest[155]?.getD [] ++ 1 :: rest[154]?.getD [] ++ 36 :: rest[153]?.getD [] ++ 36 :: rest[152]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD [])))) ++ (encode ((List.length (rest[151]?.getD []) : Nat) : Int) ++ rest[151]?.getD []) ++ 3 :: 253 :: w4 ++ a1) : Nat) : Int)) (decode (encode 3)).toNat = some w2) ∧
+      (encode ((List.length (rest[151]?.getD []) : Nat) : Int) = [52]) ∧
+      ( num2bin (encode (((rest[160]?.getD [] ++ 16 :: rest[159]?.getD [] ++ 20 :: rest[158]?.getD [] ++ 20 :: rest[157]?.getD [] ++ 20 :: rest[156]?.getD [] ++ 36 :: rest[155]?.getD [] ++ 1 :: rest[154]?.getD [] ++ 36 :: rest[153]?.getD [] ++ 36 :: rest[152]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w3) ∧
+      ( num2bin (encode (((rest[160]?.getD [] ++ 16 :: rest[159]?.getD [] ++ 20 :: rest[158]?.getD [] ++ 20 :: rest[157]?.getD [] ++ 20 :: rest[156]?.getD [] ++ 36 :: rest[155]?.getD [] ++ 1 :: rest[154]?.getD [] ++ 36 :: rest[153]?.getD [] ++ 36 :: rest[152]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w4) ∧
+      ( num2bin (encode ((((rest[160]?.getD [] ++ 16 :: rest[159]?.getD [] ++ 20 :: rest[158]?.getD [] ++ 20 :: rest[157]?.getD [] ++ 20 :: rest[156]?.getD [] ++ 36 :: rest[155]?.getD [] ++ 1 :: rest[154]?.getD [] ++ 36 :: rest[153]?.getD [] ++ 36 :: rest[152]?.getD [] ++ rest[16]?.getD [] ++ rest[15]?.getD []).length + 1 : Nat) : Int) + 2)) (decode (encode 2)).toNat = some w5) ∧
+      (num2bin (encode ((List.length (rest[161]?.getD []) : Nat) : Int)) (decode (encode (((1 : Nat) : Int) + 1))).toNat = some w6) ∧
+      (encode ((List.length (rest[161]?.getD []) : Nat) : Int) = [104]) ∧
+      (castToBool (encode (if ((List.length (rest[163]?.getD []) : Nat) : Int) ≤ 75 then 1 else 0)) = true)) ∧
+      run Eval.opExec env k t (St ((if castToBool flag then secondInA flag acc a1 a2 rest w2 w3 w4 w5 w6 else acc) :: rest) (a1 :: a2 :: A) m' C k' cs) = r := by
+  simp only [SimpleMulti.c1908_if, SimpleMulti.c1909, SimpleMulti.c1939, SimpleMulti.c1958, SimpleMulti.c1978, SimpleMulti.c1998, SimpleMulti.c2018, SimpleMulti.c2056, SimpleMulti.c2076, SimpleMulti.c2095, SimpleMulti.c2114, SimpleMulti.c2133, SimpleMulti.c2166, SimpleMulti.c2330, SimpleMulti.c2353_endif, List.cons_append, List.nil_append] at h
   cases hflag : castToBool flag
   · sym_all h hflag
     exact ⟨[], [], [], [], [], _, _, fun h => by simp at h, by simp only [hflag, Bool.false_eq_true, ↓reduceIte]; with_reducible exact h⟩
@@ -58,30 +58,30 @@ theorem secondInA_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f
 /-- The arm inside an inactive arm: stepped over. -/
 theorem secondInA_skip {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {S A : List Bytes} {D : Cond} {cs : Bytes}
     {m kk : Nat} (hin : D.isActive = false)
-    (h : run Eval.opExec env (SimpleMulti.c1961_if ++ (SimpleMulti.c1962 ++ (SimpleMulti.c1978_optTail ++ (SimpleMulti.c1992 ++ (SimpleMulti.c1997_optTail ++ (SimpleMulti.c2011 ++ (SimpleMulti.c2017_optTail ++ (SimpleMulti.c2031 ++ (SimpleMulti.c2037_optTail ++ (SimpleMulti.c2051 ++ (SimpleMulti.c2057_optTail ++ (SimpleMulti.c2071 ++ (SimpleMulti.c2095_optTail ++ (SimpleMulti.c2109 ++ (SimpleMulti.c2115_optTail ++ (SimpleMulti.c2129 ++ (SimpleMulti.c2134_optTail ++ (SimpleMulti.c2148 ++ (SimpleMulti.c2153_optTail ++ (SimpleMulti.c2167 ++ (SimpleMulti.c2172_optTail ++ (SimpleMulti.c2186 ++ (SimpleMulti.c2205_optTail ++ (SimpleMulti.c2219 ++ (SimpleMulti.c2308_optTail ++ (SimpleMulti.c2322 ++ (SimpleMulti.c2425_endif ++ k))))))))))))))))))))))))))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
+    (h : run Eval.opExec env (SimpleMulti.c1908_if ++ (SimpleMulti.c1909 ++ (SimpleMulti.c1925_optTail ++ (SimpleMulti.c1939 ++ (SimpleMulti.c1944_optTail ++ (SimpleMulti.c1958 ++ (SimpleMulti.c1964_optTail ++ (SimpleMulti.c1978 ++ (SimpleMulti.c1984_optTail ++ (SimpleMulti.c1998 ++ (SimpleMulti.c2004_optTail ++ (SimpleMulti.c2018 ++ (SimpleMulti.c2042_optTail ++ (SimpleMulti.c2056 ++ (SimpleMulti.c2062_optTail ++ (SimpleMulti.c2076 ++ (SimpleMulti.c2081_optTail ++ (SimpleMulti.c2095 ++ (SimpleMulti.c2100_optTail ++ (SimpleMulti.c2114 ++ (SimpleMulti.c2119_optTail ++ (SimpleMulti.c2133 ++ (SimpleMulti.c2152_optTail ++ (SimpleMulti.c2166 ++ (SimpleMulti.c2330 ++ (SimpleMulti.c2353_endif ++ k)))))))))))))))))))))))))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
     ∃ k', run Eval.opExec env k t (St S A m D k' cs) = r := by
-  simp only [SimpleMulti.c1961_if, SimpleMulti.c1962, SimpleMulti.c1992, SimpleMulti.c2011, SimpleMulti.c2031, SimpleMulti.c2051, SimpleMulti.c2071, SimpleMulti.c2109, SimpleMulti.c2129, SimpleMulti.c2148, SimpleMulti.c2167, SimpleMulti.c2186, SimpleMulti.c2219, SimpleMulti.c2322, SimpleMulti.c2425_endif, List.cons_append, List.nil_append] at h
+  simp only [SimpleMulti.c1908_if, SimpleMulti.c1909, SimpleMulti.c1939, SimpleMulti.c1958, SimpleMulti.c1978, SimpleMulti.c1998, SimpleMulti.c2018, SimpleMulti.c2056, SimpleMulti.c2076, SimpleMulti.c2095, SimpleMulti.c2114, SimpleMulti.c2133, SimpleMulti.c2166, SimpleMulti.c2330, SimpleMulti.c2353_endif, List.cons_append, List.nil_append] at h
   sym_skip h hin
   exact ⟨_, h⟩
 
 macro_rules
-  | `(tactic| sym_blockrule "c1961_if" $h:ident $hact:ident) =>
+  | `(tactic| sym_blockrule "c1908_if" $h:ident $hact:ident) =>
     `(tactic| (obtain ⟨_, _, _, _, _, _, _, _, $h:ident⟩ := secondInA_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr)))
 macro_rules
-  | `(tactic| sym_skipblockrule "c1961_if" $h:ident $hin:ident) =>
+  | `(tactic| sym_skipblockrule "c1908_if" $h:ident $hin:ident) =>
     `(tactic| (obtain ⟨_, $h:ident⟩ := secondInA_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf,
       Bool.and_false, Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)))
 
-/-- The second output of the first rebuilt transaction (suffix 2592–2607): the pieces at depths 31, 13 and 141 and `OP_EQUALVERIFY OP_CHECKSIG`. -/
+/-- The second output of the first rebuilt transaction (suffix 2501–2516): the pieces at depths 30, 13 and 136 and `OP_EQUALVERIFY OP_CHECKSIG`. -/
 def secondOutA (flag acc : Bytes) (rest : List Bytes) : Bytes :=
-  acc ++ rest[31]?.getD [] ++ rest[13]?.getD [] ++ rest[141]?.getD [] ++ [136, 172]
+  acc ++ rest[30]?.getD [] ++ rest[13]?.getD [] ++ rest[136]?.getD [] ++ [136, 172]
 
-/-- The arm `[2591, 2609)`, as one step: the flag popped; if it holds, the accumulator extended by `secondOutA`, else unchanged. -/
+/-- The arm `[2500, 2518)`, as one step: the flag popped; if it holds, the accumulator extended by `secondOutA`, else unchanged. -/
 theorem secondOutA_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {flag acc : Bytes}
     {rest A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
-    (h : run Eval.opExec env (SimpleMulti.c2591_if ++ (SimpleMulti.c2592 ++ (SimpleMulti.c2608_endif ++ k))) t (St (flag :: acc :: rest) A m C kk cs) = r) (hr : r.IsOk) :
+    (h : run Eval.opExec env (SimpleMulti.c2500_if ++ (SimpleMulti.c2501 ++ (SimpleMulti.c2517_endif ++ k))) t (St (flag :: acc :: rest) A m C kk cs) = r) (hr : r.IsOk) :
     ∃ m' k', run Eval.opExec env k t (St ((if castToBool flag then secondOutA flag acc rest else acc) :: rest) A m' C k' cs) = r := by
-  simp only [SimpleMulti.c2591_if, SimpleMulti.c2592, SimpleMulti.c2608_endif, List.cons_append, List.nil_append] at h
+  simp only [SimpleMulti.c2500_if, SimpleMulti.c2501, SimpleMulti.c2517_endif, List.cons_append, List.nil_append] at h
   cases hflag : castToBool flag
   · sym_all h hflag
     exact ⟨_, _, by simp only [hflag, Bool.false_eq_true, ↓reduceIte]; with_reducible exact h⟩
@@ -91,40 +91,40 @@ theorem secondOutA_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {
 /-- The arm inside an inactive arm: stepped over. -/
 theorem secondOutA_skip {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {S A : List Bytes} {D : Cond} {cs : Bytes}
     {m kk : Nat} (hin : D.isActive = false)
-    (h : run Eval.opExec env (SimpleMulti.c2591_if ++ (SimpleMulti.c2592 ++ (SimpleMulti.c2608_endif ++ k))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
+    (h : run Eval.opExec env (SimpleMulti.c2500_if ++ (SimpleMulti.c2501 ++ (SimpleMulti.c2517_endif ++ k))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
     ∃ k', run Eval.opExec env k t (St S A m D k' cs) = r := by
-  simp only [SimpleMulti.c2591_if, SimpleMulti.c2592, SimpleMulti.c2608_endif, List.cons_append, List.nil_append] at h
+  simp only [SimpleMulti.c2500_if, SimpleMulti.c2501, SimpleMulti.c2517_endif, List.cons_append, List.nil_append] at h
   sym_skip h hin
   exact ⟨_, h⟩
 
 macro_rules
-  | `(tactic| sym_blockrule "c2591_if" $h:ident $hact:ident) =>
+  | `(tactic| sym_blockrule "c2500_if" $h:ident $hact:ident) =>
     `(tactic| (obtain ⟨_, _, $h:ident⟩ := secondOutA_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr)))
 macro_rules
-  | `(tactic| sym_skipblockrule "c2591_if" $h:ident $hin:ident) =>
+  | `(tactic| sym_skipblockrule "c2500_if" $h:ident $hin:ident) =>
     `(tactic| (obtain ⟨_, $h:ident⟩ := secondOutA_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf,
       Bool.and_false, Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)))
 
-/-- The second input of the second rebuilt transaction (suffix 3187–3621), the pieces at depths 82–109. -/
-def secondInB (flag acc a1 a2 : Bytes) (rest : List Bytes) (w2 w3 w4 w5 w8 : Bytes) : Bytes :=
-  acc ++ rest[109]?.getD [] ++ 253 :: (List.take (((List.length w2 : Nat) : Int) - 1).toNat w2 ++ (a2 ++ optPush (encode 4) (rest[108]?.getD []) ++ optPush (encode 4) (rest[107]?.getD []) ++ optPush [20] (rest[106]?.getD []) ++ optPush [36] (rest[105]?.getD []) ++ optPush [36] (rest[104]?.getD []) ++ 36 :: rest[103]?.getD [] ++ 34 :: rest[102]?.getD [] ++ optPush [20] (rest[101]?.getD []) ++ optPush [20] (rest[100]?.getD []) ++ optPush (encode 16) (rest[99]?.getD []) ++ optPush [1] (rest[98]?.getD []) ++ optPush [1] (rest[97]?.getD []) ++ (encode ((List.length (rest[96]?.getD []) : Nat) : Int) ++ rest[96]?.getD []) ++ optPush [33] (rest[95]?.getD []) ++ 76 :: (List.take (((List.length w8 : Nat) : Int) - 1).toNat w8 ++ rest[94]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[93]?.getD [] ++ 16 :: rest[92]?.getD [] ++ 20 :: rest[91]?.getD [] ++ 20 :: rest[90]?.getD [] ++ 20 :: rest[89]?.getD [] ++ 36 :: rest[88]?.getD [] ++ 1 :: rest[87]?.getD [] ++ optPush [1] (rest[86]?.getD []) ++ 36 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD [])))) ++ (encode ((List.length (rest[83]?.getD []) : Nat) : Int) ++ rest[83]?.getD []) ++ 3 :: 253 :: w4 ++ a1)) ++ rest[82]?.getD []
+/-- The second input of the second rebuilt transaction (suffix 3073–3489), the pieces at depths 79–105. -/
+def secondInB (flag acc a1 a2 : Bytes) (rest : List Bytes) (w2 w3 w4 w5 w6 : Bytes) : Bytes :=
+  acc ++ rest[105]?.getD [] ++ 253 :: (List.take (((List.length w2 : Nat) : Int) - 1).toNat w2 ++ (a2 ++ optPush (encode 4) (rest[104]?.getD []) ++ optPush (encode 4) (rest[103]?.getD []) ++ optPush [20] (rest[102]?.getD []) ++ optPush [36] (rest[101]?.getD []) ++ optPush [36] (rest[100]?.getD []) ++ 36 :: rest[99]?.getD [] ++ 34 :: rest[98]?.getD [] ++ optPush [20] (rest[97]?.getD []) ++ optPush [20] (rest[96]?.getD []) ++ optPush (encode 16) (rest[95]?.getD []) ++ optPush [1] (rest[94]?.getD []) ++ optPush [1] (rest[93]?.getD []) ++ (encode ((List.length (rest[92]?.getD []) : Nat) : Int) ++ rest[92]?.getD []) ++ optPush [33] (rest[91]?.getD []) ++ 76 :: (List.take (((List.length w6 : Nat) : Int) - 1).toNat w6 ++ rest[90]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[89]?.getD [] ++ 16 :: rest[88]?.getD [] ++ 20 :: rest[87]?.getD [] ++ 20 :: rest[86]?.getD [] ++ 20 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ 1 :: rest[83]?.getD [] ++ 36 :: rest[82]?.getD [] ++ 36 :: rest[81]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD [])))) ++ (encode ((List.length (rest[80]?.getD []) : Nat) : Int) ++ rest[80]?.getD []) ++ 3 :: 253 :: w4 ++ a1)) ++ rest[79]?.getD []
 
-/-- The arm `[3186, 3623)`, as one step: the flag popped; if it holds, the accumulator extended by `secondInB` under the
+/-- The arm `[3072, 3491)`, as one step: the flag popped; if it holds, the accumulator extended by `secondInB` under the
 widths and bounds the arm fixes, else unchanged; the rest of the stack and the alt stack as they were. -/
 theorem secondInB_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {flag acc a1 a2 : Bytes}
     {rest A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
-    (h : run Eval.opExec env (SimpleMulti.c3186_if ++ (SimpleMulti.c3187 ++ (SimpleMulti.c3201_optTail ++ (SimpleMulti.c3215 ++ (SimpleMulti.c3219_optTail ++ (SimpleMulti.c3233 ++ (SimpleMulti.c3238_optTail ++ (SimpleMulti.c3252 ++ (SimpleMulti.c3257_optTail ++ (SimpleMulti.c3271 ++ (SimpleMulti.c3276_optTail ++ (SimpleMulti.c3290 ++ (SimpleMulti.c3311_optTail ++ (SimpleMulti.c3325 ++ (SimpleMulti.c3330_optTail ++ (SimpleMulti.c3344 ++ (SimpleMulti.c3348_optTail ++ (SimpleMulti.c3362 ++ (SimpleMulti.c3366_optTail ++ (SimpleMulti.c3380 ++ (SimpleMulti.c3384_optTail ++ (SimpleMulti.c3398 ++ (SimpleMulti.c3415_optTail ++ (SimpleMulti.c3429 ++ (SimpleMulti.c3509_optTail ++ (SimpleMulti.c3523 ++ (SimpleMulti.c3622_endif ++ k))))))))))))))))))))))))))) t (St (flag :: acc :: rest) (a1 :: a2 :: A) m C kk cs) = r) (hr : r.IsOk) :
-    ∃ (w2 w3 w4 w5 w8 : Bytes) (m' k' : Nat),
-      (castToBool flag = true → ( num2bin (encode ((List.length (a2 ++ optPush (encode 4) (rest[108]?.getD []) ++ optPush (encode 4) (rest[107]?.getD []) ++ optPush [20] (rest[106]?.getD []) ++ optPush [36] (rest[105]?.getD []) ++ optPush [36] (rest[104]?.getD []) ++ 36 :: rest[103]?.getD [] ++ 34 :: rest[102]?.getD [] ++ optPush [20] (rest[101]?.getD []) ++ optPush [20] (rest[100]?.getD []) ++ optPush (encode 16) (rest[99]?.getD []) ++ optPush [1] (rest[98]?.getD []) ++ optPush [1] (rest[97]?.getD []) ++ (encode ((List.length (rest[96]?.getD []) : Nat) : Int) ++ rest[96]?.getD []) ++ optPush [33] (rest[95]?.getD []) ++ 76 :: (List.take (((List.length w8 : Nat) : Int) - 1).toNat w8 ++ rest[94]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[93]?.getD [] ++ 16 :: rest[92]?.getD [] ++ 20 :: rest[91]?.getD [] ++ 20 :: rest[90]?.getD [] ++ 20 :: rest[89]?.getD [] ++ 36 :: rest[88]?.getD [] ++ 1 :: rest[87]?.getD [] ++ optPush [1] (rest[86]?.getD []) ++ 36 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD [])))) ++ (encode ((List.length (rest[83]?.getD []) : Nat) : Int) ++ rest[83]?.getD []) ++ 3 :: 253 :: w4 ++ a1) : Nat) : Int)) (decode (encode 3)).toNat = some w2) ∧
-      (encode ((List.length (rest[83]?.getD []) : Nat) : Int) = [52]) ∧
-      ( num2bin (encode (((rest[93]?.getD [] ++ 16 :: rest[92]?.getD [] ++ 20 :: rest[91]?.getD [] ++ 20 :: rest[90]?.getD [] ++ 20 :: rest[89]?.getD [] ++ 36 :: rest[88]?.getD [] ++ 1 :: rest[87]?.getD [] ++ optPush [1] (rest[86]?.getD []) ++ 36 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w3) ∧
-      ( num2bin (encode (((rest[93]?.getD [] ++ 16 :: rest[92]?.getD [] ++ 20 :: rest[91]?.getD [] ++ 20 :: rest[90]?.getD [] ++ 20 :: rest[89]?.getD [] ++ 36 :: rest[88]?.getD [] ++ 1 :: rest[87]?.getD [] ++ optPush [1] (rest[86]?.getD []) ++ 36 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w4) ∧
-      ( num2bin (encode ((((rest[93]?.getD [] ++ 16 :: rest[92]?.getD [] ++ 20 :: rest[91]?.getD [] ++ 20 :: rest[90]?.getD [] ++ 20 :: rest[89]?.getD [] ++ 36 :: rest[88]?.getD [] ++ 1 :: rest[87]?.getD [] ++ optPush [1] (rest[86]?.getD []) ++ 36 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD []).length + 1 : Nat) : Int) + 2)) (decode (encode 2)).toNat = some w5) ∧
-      (num2bin (encode ((List.length (rest[94]?.getD []) : Nat) : Int)) (decode (encode (((1 : Nat) : Int) + 1))).toNat = some w8) ∧
-      (encode ((List.length (rest[94]?.getD []) : Nat) : Int) = [104]) ∧
-      (castToBool (encode (if ((List.length (rest[96]?.getD []) : Nat) : Int) ≤ 75 then 1 else 0)) = true)) ∧
-      run Eval.opExec env k t (St ((if castToBool flag then secondInB flag acc a1 a2 rest w2 w3 w4 w5 w8 else acc) :: rest) (a1 :: a2 :: A) m' C k' cs) = r := by
-  simp only [SimpleMulti.c3186_if, SimpleMulti.c3187, SimpleMulti.c3215, SimpleMulti.c3233, SimpleMulti.c3252, SimpleMulti.c3271, SimpleMulti.c3290, SimpleMulti.c3325, SimpleMulti.c3344, SimpleMulti.c3362, SimpleMulti.c3380, SimpleMulti.c3398, SimpleMulti.c3429, SimpleMulti.c3523, SimpleMulti.c3622_endif, List.cons_append, List.nil_append] at h
+    (h : run Eval.opExec env (SimpleMulti.c3072_if ++ (SimpleMulti.c3073 ++ (SimpleMulti.c3087_optTail ++ (SimpleMulti.c3101 ++ (SimpleMulti.c3105_optTail ++ (SimpleMulti.c3119 ++ (SimpleMulti.c3124_optTail ++ (SimpleMulti.c3138 ++ (SimpleMulti.c3143_optTail ++ (SimpleMulti.c3157 ++ (SimpleMulti.c3162_optTail ++ (SimpleMulti.c3176 ++ (SimpleMulti.c3197_optTail ++ (SimpleMulti.c3211 ++ (SimpleMulti.c3216_optTail ++ (SimpleMulti.c3230 ++ (SimpleMulti.c3234_optTail ++ (SimpleMulti.c3248 ++ (SimpleMulti.c3252_optTail ++ (SimpleMulti.c3266 ++ (SimpleMulti.c3270_optTail ++ (SimpleMulti.c3284 ++ (SimpleMulti.c3301_optTail ++ (SimpleMulti.c3315 ++ (SimpleMulti.c3468 ++ (SimpleMulti.c3490_endif ++ k)))))))))))))))))))))))))) t (St (flag :: acc :: rest) (a1 :: a2 :: A) m C kk cs) = r) (hr : r.IsOk) :
+    ∃ (w2 w3 w4 w5 w6 : Bytes) (m' k' : Nat),
+      (castToBool flag = true → ( num2bin (encode ((List.length (a2 ++ optPush (encode 4) (rest[104]?.getD []) ++ optPush (encode 4) (rest[103]?.getD []) ++ optPush [20] (rest[102]?.getD []) ++ optPush [36] (rest[101]?.getD []) ++ optPush [36] (rest[100]?.getD []) ++ 36 :: rest[99]?.getD [] ++ 34 :: rest[98]?.getD [] ++ optPush [20] (rest[97]?.getD []) ++ optPush [20] (rest[96]?.getD []) ++ optPush (encode 16) (rest[95]?.getD []) ++ optPush [1] (rest[94]?.getD []) ++ optPush [1] (rest[93]?.getD []) ++ (encode ((List.length (rest[92]?.getD []) : Nat) : Int) ++ rest[92]?.getD []) ++ optPush [33] (rest[91]?.getD []) ++ 76 :: (List.take (((List.length w6 : Nat) : Int) - 1).toNat w6 ++ rest[90]?.getD [] ++ 3 :: 253 :: (w5 ++ [2, 173, 104] ++ 77 :: (w3 ++ 16 :: (rest[89]?.getD [] ++ 16 :: rest[88]?.getD [] ++ 20 :: rest[87]?.getD [] ++ 20 :: rest[86]?.getD [] ++ 20 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ 1 :: rest[83]?.getD [] ++ 36 :: rest[82]?.getD [] ++ 36 :: rest[81]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD [])))) ++ (encode ((List.length (rest[80]?.getD []) : Nat) : Int) ++ rest[80]?.getD []) ++ 3 :: 253 :: w4 ++ a1) : Nat) : Int)) (decode (encode 3)).toNat = some w2) ∧
+      (encode ((List.length (rest[80]?.getD []) : Nat) : Int) = [52]) ∧
+      ( num2bin (encode (((rest[89]?.getD [] ++ 16 :: rest[88]?.getD [] ++ 20 :: rest[87]?.getD [] ++ 20 :: rest[86]?.getD [] ++ 20 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ 1 :: rest[83]?.getD [] ++ 36 :: rest[82]?.getD [] ++ 36 :: rest[81]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w3) ∧
+      ( num2bin (encode (((rest[89]?.getD [] ++ 16 :: rest[88]?.getD [] ++ 20 :: rest[87]?.getD [] ++ 20 :: rest[86]?.getD [] ++ 20 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ 1 :: rest[83]?.getD [] ++ 36 :: rest[82]?.getD [] ++ 36 :: rest[81]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD []).length + 1 : Nat) : Int)) (decode (encode 2)).toNat = some w4) ∧
+      ( num2bin (encode ((((rest[89]?.getD [] ++ 16 :: rest[88]?.getD [] ++ 20 :: rest[87]?.getD [] ++ 20 :: rest[86]?.getD [] ++ 20 :: rest[85]?.getD [] ++ 36 :: rest[84]?.getD [] ++ 1 :: rest[83]?.getD [] ++ 36 :: rest[82]?.getD [] ++ 36 :: rest[81]?.getD [] ++ rest[17]?.getD [] ++ rest[16]?.getD []).length + 1 : Nat) : Int) + 2)) (decode (encode 2)).toNat = some w5) ∧
+      (num2bin (encode ((List.length (rest[90]?.getD []) : Nat) : Int)) (decode (encode (((1 : Nat) : Int) + 1))).toNat = some w6) ∧
+      (encode ((List.length (rest[90]?.getD []) : Nat) : Int) = [104]) ∧
+      (castToBool (encode (if ((List.length (rest[92]?.getD []) : Nat) : Int) ≤ 75 then 1 else 0)) = true)) ∧
+      run Eval.opExec env k t (St ((if castToBool flag then secondInB flag acc a1 a2 rest w2 w3 w4 w5 w6 else acc) :: rest) (a1 :: a2 :: A) m' C k' cs) = r := by
+  simp only [SimpleMulti.c3072_if, SimpleMulti.c3073, SimpleMulti.c3101, SimpleMulti.c3119, SimpleMulti.c3138, SimpleMulti.c3157, SimpleMulti.c3176, SimpleMulti.c3211, SimpleMulti.c3230, SimpleMulti.c3248, SimpleMulti.c3266, SimpleMulti.c3284, SimpleMulti.c3315, SimpleMulti.c3468, SimpleMulti.c3490_endif, List.cons_append, List.nil_append] at h
   cases hflag : castToBool flag
   · sym_all h hflag
     exact ⟨[], [], [], [], [], _, _, fun h => by simp at h, by simp only [hflag, Bool.false_eq_true, ↓reduceIte]; with_reducible exact h⟩
@@ -137,30 +137,30 @@ theorem secondInB_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {f
 /-- The arm inside an inactive arm: stepped over. -/
 theorem secondInB_skip {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {S A : List Bytes} {D : Cond} {cs : Bytes}
     {m kk : Nat} (hin : D.isActive = false)
-    (h : run Eval.opExec env (SimpleMulti.c3186_if ++ (SimpleMulti.c3187 ++ (SimpleMulti.c3201_optTail ++ (SimpleMulti.c3215 ++ (SimpleMulti.c3219_optTail ++ (SimpleMulti.c3233 ++ (SimpleMulti.c3238_optTail ++ (SimpleMulti.c3252 ++ (SimpleMulti.c3257_optTail ++ (SimpleMulti.c3271 ++ (SimpleMulti.c3276_optTail ++ (SimpleMulti.c3290 ++ (SimpleMulti.c3311_optTail ++ (SimpleMulti.c3325 ++ (SimpleMulti.c3330_optTail ++ (SimpleMulti.c3344 ++ (SimpleMulti.c3348_optTail ++ (SimpleMulti.c3362 ++ (SimpleMulti.c3366_optTail ++ (SimpleMulti.c3380 ++ (SimpleMulti.c3384_optTail ++ (SimpleMulti.c3398 ++ (SimpleMulti.c3415_optTail ++ (SimpleMulti.c3429 ++ (SimpleMulti.c3509_optTail ++ (SimpleMulti.c3523 ++ (SimpleMulti.c3622_endif ++ k))))))))))))))))))))))))))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
+    (h : run Eval.opExec env (SimpleMulti.c3072_if ++ (SimpleMulti.c3073 ++ (SimpleMulti.c3087_optTail ++ (SimpleMulti.c3101 ++ (SimpleMulti.c3105_optTail ++ (SimpleMulti.c3119 ++ (SimpleMulti.c3124_optTail ++ (SimpleMulti.c3138 ++ (SimpleMulti.c3143_optTail ++ (SimpleMulti.c3157 ++ (SimpleMulti.c3162_optTail ++ (SimpleMulti.c3176 ++ (SimpleMulti.c3197_optTail ++ (SimpleMulti.c3211 ++ (SimpleMulti.c3216_optTail ++ (SimpleMulti.c3230 ++ (SimpleMulti.c3234_optTail ++ (SimpleMulti.c3248 ++ (SimpleMulti.c3252_optTail ++ (SimpleMulti.c3266 ++ (SimpleMulti.c3270_optTail ++ (SimpleMulti.c3284 ++ (SimpleMulti.c3301_optTail ++ (SimpleMulti.c3315 ++ (SimpleMulti.c3468 ++ (SimpleMulti.c3490_endif ++ k)))))))))))))))))))))))))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
     ∃ k', run Eval.opExec env k t (St S A m D k' cs) = r := by
-  simp only [SimpleMulti.c3186_if, SimpleMulti.c3187, SimpleMulti.c3215, SimpleMulti.c3233, SimpleMulti.c3252, SimpleMulti.c3271, SimpleMulti.c3290, SimpleMulti.c3325, SimpleMulti.c3344, SimpleMulti.c3362, SimpleMulti.c3380, SimpleMulti.c3398, SimpleMulti.c3429, SimpleMulti.c3523, SimpleMulti.c3622_endif, List.cons_append, List.nil_append] at h
+  simp only [SimpleMulti.c3072_if, SimpleMulti.c3073, SimpleMulti.c3101, SimpleMulti.c3119, SimpleMulti.c3138, SimpleMulti.c3157, SimpleMulti.c3176, SimpleMulti.c3211, SimpleMulti.c3230, SimpleMulti.c3248, SimpleMulti.c3266, SimpleMulti.c3284, SimpleMulti.c3315, SimpleMulti.c3468, SimpleMulti.c3490_endif, List.cons_append, List.nil_append] at h
   sym_skip h hin
   exact ⟨_, h⟩
 
 macro_rules
-  | `(tactic| sym_blockrule "c3186_if" $h:ident $hact:ident) =>
+  | `(tactic| sym_blockrule "c3072_if" $h:ident $hact:ident) =>
     `(tactic| (obtain ⟨_, _, _, _, _, _, _, _, $h:ident⟩ := secondInB_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr)))
 macro_rules
-  | `(tactic| sym_skipblockrule "c3186_if" $h:ident $hin:ident) =>
+  | `(tactic| sym_skipblockrule "c3072_if" $h:ident $hin:ident) =>
     `(tactic| (obtain ⟨_, $h:ident⟩ := secondInB_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf,
       Bool.and_false, Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)))
 
-/-- The second output of the second rebuilt transaction (suffix 3774–3788): the pieces at depths 32, 14 and 67. -/
+/-- The second output of the second rebuilt transaction (suffix 3624–3638): the pieces at depths 31, 14 and 65. -/
 def secondOutB (flag acc : Bytes) (rest : List Bytes) : Bytes :=
-  acc ++ rest[32]?.getD [] ++ rest[14]?.getD [] ++ rest[67]?.getD [] ++ [136, 172]
+  acc ++ rest[31]?.getD [] ++ rest[14]?.getD [] ++ rest[65]?.getD [] ++ [136, 172]
 
-/-- The arm `[3773, 3790)`, as one step: the flag popped; if it holds, the accumulator extended by `secondOutB`, else unchanged. -/
+/-- The arm `[3623, 3640)`, as one step: the flag popped; if it holds, the accumulator extended by `secondOutB`, else unchanged. -/
 theorem secondOutB_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {flag acc : Bytes}
     {rest A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
-    (h : run Eval.opExec env (SimpleMulti.c3773_if ++ (SimpleMulti.c3774 ++ (SimpleMulti.c3789_endif ++ k))) t (St (flag :: acc :: rest) A m C kk cs) = r) (hr : r.IsOk) :
+    (h : run Eval.opExec env (SimpleMulti.c3623_if ++ (SimpleMulti.c3624 ++ (SimpleMulti.c3639_endif ++ k))) t (St (flag :: acc :: rest) A m C kk cs) = r) (hr : r.IsOk) :
     ∃ m' k', run Eval.opExec env k t (St ((if castToBool flag then secondOutB flag acc rest else acc) :: rest) A m' C k' cs) = r := by
-  simp only [SimpleMulti.c3773_if, SimpleMulti.c3774, SimpleMulti.c3789_endif, List.cons_append, List.nil_append] at h
+  simp only [SimpleMulti.c3623_if, SimpleMulti.c3624, SimpleMulti.c3639_endif, List.cons_append, List.nil_append] at h
   cases hflag : castToBool flag
   · sym_all h hflag
     exact ⟨_, _, by simp only [hflag, Bool.false_eq_true, ↓reduceIte]; with_reducible exact h⟩
@@ -170,17 +170,17 @@ theorem secondOutB_shape {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {
 /-- The arm inside an inactive arm: stepped over. -/
 theorem secondOutB_skip {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {S A : List Bytes} {D : Cond} {cs : Bytes}
     {m kk : Nat} (hin : D.isActive = false)
-    (h : run Eval.opExec env (SimpleMulti.c3773_if ++ (SimpleMulti.c3774 ++ (SimpleMulti.c3789_endif ++ k))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
+    (h : run Eval.opExec env (SimpleMulti.c3623_if ++ (SimpleMulti.c3624 ++ (SimpleMulti.c3639_endif ++ k))) t (St S A m D kk cs) = r) (hr : r.IsOk) :
     ∃ k', run Eval.opExec env k t (St S A m D k' cs) = r := by
-  simp only [SimpleMulti.c3773_if, SimpleMulti.c3774, SimpleMulti.c3789_endif, List.cons_append, List.nil_append] at h
+  simp only [SimpleMulti.c3623_if, SimpleMulti.c3624, SimpleMulti.c3639_endif, List.cons_append, List.nil_append] at h
   sym_skip h hin
   exact ⟨_, h⟩
 
 macro_rules
-  | `(tactic| sym_blockrule "c3773_if" $h:ident $hact:ident) =>
+  | `(tactic| sym_blockrule "c3623_if" $h:ident $hact:ident) =>
     `(tactic| (obtain ⟨_, _, $h:ident⟩ := secondOutB_shape $(Lean.mkIdent `he) $hact $h $(Lean.mkIdent `hr)))
 macro_rules
-  | `(tactic| sym_skipblockrule "c3773_if" $h:ident $hin:ident) =>
+  | `(tactic| sym_skipblockrule "c3623_if" $h:ident $hin:ident) =>
     `(tactic| (obtain ⟨_, $h:ident⟩ := secondOutB_skip $(Lean.mkIdent `he) (by simp only [isActive_opIf, isActive_opElse_opIf,
       Bool.and_false, Bool.and_true, Bool.false_and, Bool.not_true, Bool.not_false, $hin:ident]) $h $(Lean.mkIdent `hr)))
 

@@ -58,7 +58,8 @@ theorem framed_push2 (b1 b2 : Nat) : framed [2, b1, b2] = true := by
 
 /-- The depth bytes the three NFT covenants use decode to their indices. -/
 theorem decode_17 : decode [0x17] = 23 := by decide
-theorem decode_18 : decode [0x18] = 24 := by decide
+-- `decode_18 : decode [0x18] = 24` comes from `Parity` (imported): since the outputIndexN removal the fungible
+-- parity check picks the spent type at depth 0x18 too, so the lemma is declared once, there.
 
 /-! ## The flag -/
 

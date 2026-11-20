@@ -5,9 +5,9 @@ import BoltProof.Bridge.Glue.SimpleMulti.Spec
 
 Three pieces of the `SimpleMultiBOLT` suffix branch on the ancestor's data rather than on the
 arguments, so a path proof cannot decide their conditionals from its hypotheses: the pad-to-16
-loop after a balance sum or difference (suffix 797 and 950), the width-dependent optional push of
+loop after a balance sum or difference (suffix 795 and 948), the width-dependent optional push of
 an ancestor piece inside the two rebuilds (fifty times), and the balance anchor on the ancestor's
-type (2660 and 3835). Each is one exporter chunk (`lean/vectors/sections.ts`, the `auto`
+type (2569 and 3685). Each is one exporter chunk (`lean/vectors/sections.ts`, the `auto`
 landmarks), its run is read here as one step whose result is a function of the stack (`padN 16`,
 `optPush`, the predicate `AnchorOK`), and `sym_block` (`Sym/Tactic.lean`) applies these lemmas
 whenever `sym_all` meets one of the chunks folded.
@@ -114,13 +114,13 @@ theorem optTail_shape {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {w
 /-! ## The balance anchor -/
 
 /-- The anchor: on the ancestor's type (duplicated under its `0x25` test), the balance of the
-spent token against the ancestor's two balances and its input count, suffix 2660 and 3835. -/
-def anchor : Bytes := [0x63, 0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x93, 0x88, 0x67, 0x76, 0x01, 0x23, 0x87,
-  0x63, 0x75, 0x01, 0x42, 0x79, 0x81, 0x51, 0x87, 0x63, 0x94, 0x88, 0x67, 0x01, 0x42, 0x79, 0x81, 0x52, 0x88,
-  0x77, 0x87, 0x69, 0x68, 0x67, 0x01, 0x43, 0x79, 0x81, 0x51, 0x88, 0x75, 0x75, 0x88, 0x68, 0x68]
+spent token against the ancestor's two balances and its input count, suffix 2569 and 3685. -/
+def anchor : Bytes := [0x63, 0x01, 0x41, 0x79, 0x81, 0x51, 0x88, 0x75, 0x93, 0x88, 0x67, 0x76, 0x01, 0x23, 0x87,
+  0x63, 0x75, 0x01, 0x40, 0x79, 0x81, 0x51, 0x87, 0x63, 0x94, 0x88, 0x67, 0x01, 0x40, 0x79, 0x81, 0x52, 0x88,
+  0x77, 0x87, 0x69, 0x68, 0x67, 0x01, 0x41, 0x79, 0x81, 0x51, 0x88, 0x75, 0x75, 0x88, 0x68, 0x68]
 
 /-- What the anchor verifies, on the type test `c`, the type `ty`, the three balances and the
-item `x` at depth 63 of the stack below them (the ancestor's input count): a merge settle's balance
+item `x` at depth 61 of the stack below them (the ancestor's input count): a merge settle's balance
 is the sum, a split settle's the difference or the first piece, any other's the first balance. -/
 def AnchorOK (c ty n3 n2 n1 x : Bytes) : Prop :=
   (castToBool c = true ∧ encode (decode x) = [1] ∧ n1 = encode (decode n2 + decode n3)) ∨
@@ -153,12 +153,12 @@ theorem anchor_shape {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {cn
     {S A : List Bytes} {C : Cond} {cs : Bytes} {m kk : Nat} (hact : C.isActive = true)
     (h : run Eval.opExec env (c ++ k) t (St (cnd :: ty :: n3 :: n2 :: n1 :: S) A m C kk cs) = r) (hr : r.IsOk)
     (hc : c = anchor) :
-    AnchorOK cnd ty n3 n2 n1 (S[63]?.getD []) ∧ ∃ m' k', run Eval.opExec env k t (St S A m' C k' cs) = r := by
+    AnchorOK cnd ty n3 n2 n1 (S[61]?.getD []) ∧ ∃ m' k', run Eval.opExec env k t (St S A m' C k' cs) = r := by
   subst hc
   simp only [anchor, List.cons_append, List.nil_append] at h
   cases hcnd : castToBool cnd
   · by_cases h23 : ty = [0x23]
-    · by_cases h1 : encode (decode (S[63]?.getD [])) = [1]
+    · by_cases h1 : encode (decode (S[61]?.getD [])) = [1]
       · sym_all h hcnd h23 h1
         exact ⟨Or.inr (Or.inl ⟨hcnd, h23, Or.inl ⟨h1, ‹_›⟩⟩), _, _, h⟩
       · sym_all h hcnd h23 h1
@@ -172,7 +172,7 @@ theorem anchor_shape {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {cn
 /-! ## The conditional counts -/
 
 /-- `IF 3 ELSE 2 ENDIF`: the rebuilt transaction's input count, on the flag "the ancestor has a
-second input" (suffix 1439 and 2728); the result in the pushes' own form, `encode 3`/`encode 2`
+second input" (suffix 1405 and 2637); the result in the pushes' own form, `encode 3`/`encode 2`
 (`encode_three`, `encode_two` read them as bytes). -/
 def ite32 : Bytes := [0x63, 0x53, 0x67, 0x52, 0x68]
 /-- `IF 4 ELSE 3 ENDIF`: its output count, on "the ancestor has a second output" (2450 and 3643). -/
@@ -252,8 +252,8 @@ theorem ite43_skip {env : Env} (he : EnvOK env) {c k t : Bytes} {r : GOut} {S A 
 
 /-! ## The rules for the drivers
 
-The chunk's kind, the part of its name after the last underscore (`c797_pad16`, `c1465_optTail`,
-`c2660_anchor`), selects the rule; each applies the block lemma with the chunk identity by `rfl`. -/
+The chunk's kind, the part of its name after the last underscore (`c795_pad16`, `c1431_optTail`,
+`c2569_anchor`), selects the rule; each applies the block lemma with the chunk identity by `rfl`. -/
 
 macro_rules
   | `(tactic| sym_blockrule "pad16" $h:ident $hact:ident) =>
@@ -309,7 +309,7 @@ macro_rules
 /-- The rules apply: a pad loop skipped inside an inactive arm, then one run. -/
 example {env : Env} (he : EnvOK env) {k t : Bytes} {r : GOut} {x : Bytes} {S A : List Bytes} {C : Cond} {cs : Bytes}
     {m kk : Nat} (hact : C.isActive = true)
-    (h : run Eval.opExec env (0x00 :: (0x63 :: (SimpleMulti.c797_pad16 ++ (0x68 :: (SimpleMulti.c950_pad16 ++ k))))) t
+    (h : run Eval.opExec env (0x00 :: (0x63 :: (SimpleMulti.c795_pad16 ++ (0x68 :: (SimpleMulti.c948_pad16 ++ k))))) t
       (St (x :: S) A m C kk cs) = r) (hr : r.IsOk) :
     ∃ m' k', run Eval.opExec env k t (St (padN 16 x :: S) A m' C k' cs) = r := by
   sym_all h

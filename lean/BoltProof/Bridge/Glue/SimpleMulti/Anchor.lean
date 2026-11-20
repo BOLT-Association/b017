@@ -4,11 +4,11 @@ import BoltProof.Bridge.Glue.SimpleMulti.Weld
 /-!
 # The rebuilt grandparent's token and the balance anchor
 
-The first rebuild writes the grandparent's commit token as the pieces at depths 142–151 followed by the
+The first rebuild writes the grandparent's commit token as the pieces at depths 137–145 followed by the
 spend's own issuer push and suffix (`lkA`). With the pieces at their push widths (`LockWidthsA`) that is
 the fungible lock of `gpFieldsA` (`lkA_eq`), so the parsed grandparent's first output is that token, and
 its other outputs, being short, are not tokens (`gpTxA_token`). The anchor the run checks
-(`AnchorOK`, suffix 2660) is then the model's `settledBalance` of that token at the index the unlock
+(`AnchorOK`, suffix 2569) is then the model's `settledBalance` of that token at the index the unlock
 argument names, one below it (`anchorOK_settled`).
 -/
 
@@ -24,66 +24,63 @@ open BoltProof.Bridge.Generated
 
 /-- The grandparent token's fields as the first rebuild's pieces name them, with the spend's own issuer. -/
 def gpFieldsA (T : List Bytes) (issuer : Bytes) : Fields :=
-  { bal := item T 151, balCommit := item T 150, pkh := item T 149, com := item T 148, com2 := item T 147,
-    ogp := item T 146, ty := item T 145, outIdx := item T 144, parent := item T 143, gp := item T 142,
+  { bal := item T 145, balCommit := item T 144, pkh := item T 143, com := item T 142, com2 := item T 141,
+    ogp := item T 140, ty := item T 139, parent := item T 138, gp := item T 137,
     issuer := issuer }
 
 /-- The grandparent token's pieces at their push widths. -/
 structure LockWidthsA (T : List Bytes) : Prop where
-  bal : (item T 151).length = 16
-  balCommit : (item T 150).length = 16
-  pkh : (item T 149).length = 20
-  com : (item T 148).length = 20
-  com2 : (item T 147).length = 20
-  ogp : (item T 146).length = 36
-  ty : (item T 145).length = 1
-  outIdx : (item T 144).length = 1
-  parent : (item T 143).length = 36
-  gp : (item T 142).length = 36
+  bal : (item T 145).length = 16
+  balCommit : (item T 144).length = 16
+  pkh : (item T 143).length = 20
+  com : (item T 142).length = 20
+  com2 : (item T 141).length = 20
+  ogp : (item T 140).length = 36
+  ty : (item T 139).length = 1
+  parent : (item T 138).length = 36
+  gp : (item T 137).length = 36
 
 theorem gpFieldsA_wf {T : List Bytes} {issuer : Bytes} (hw : LockWidthsA T) (hi : issuer.length = 33) :
     WF (gpFieldsA T issuer) :=
-  ⟨hw.bal, hw.balCommit, hw.pkh, hw.com, hw.com2, hw.ogp, hw.ty, hw.outIdx, hw.parent, hw.gp, hi⟩
+  ⟨hw.bal, hw.balCommit, hw.pkh, hw.com, hw.com2, hw.ogp, hw.ty, hw.parent, hw.gp, hi⟩
 
 /-- The rebuilt token output's script is the fungible lock of the pieces. -/
 theorem lkA_eq {T : List Bytes} {issuer : Bytes} (hw : LockWidthsA T) (h15 : item T 15 = 33 :: issuer)
     (h14 : item T 14 = SimpleMulti.suffix) : lkA T = lockScript (gpFieldsA T issuer) := by
-  have hidx : encode (((item T 144).length : Nat) : Int) = [1] := by rw [hw.outIdx]; decide
-  simp only [lkA, lockScript, gpFieldsA, optPush_of_width hidx, h15, h14, List.append_assoc, List.cons_append,
-    List.nil_append]
+  simp only [lkA, lockScript, gpFieldsA, h15, h14, List.append_assoc, List.cons_append, List.nil_append]
 
 /-- A script shorter than the lock is no token. -/
-theorem decodeLock_short {s : Bytes} (h : s.length < 4946) : decodeLock s = none := by
+theorem decodeLock_short {s : Bytes} (h : s.length < 4757) : decodeLock s = none := by
   unfold decodeLock
   rw [ite_eq_right_iff]
   intro hc
   rw [suffix_length] at hc
   omega
 
-theorem outOf_short {o : TxOut} (h : o.scriptPubKey.length < 4946) (t : BoltProof.Token Bytes) :
+theorem outOf_short {o : TxOut} (h : o.scriptPubKey.length < 4757) (t : BoltProof.Token Bytes) :
     outOf o ≠ .token t := by
   unfold outOf
   rw [decodeLock_short h]
   split_ifs <;> simp
 
 /-- The parsed grandparent's token: its first output, and no other. -/
-theorem gpTxA_token {t0 : Bytes} {T : List Bytes} {w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46 : Bytes}
-    {issuer : Bytes} (hw : WidthsA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46) (hl : LockWidthsA T)
+theorem gpTxA_token {t0 : Bytes} {T : List Bytes} {w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42 : Bytes}
+    {issuer : Bytes} (hw : WidthsA t0 T w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42) (hl : LockWidthsA T)
     (hi : issuer.length = 33) (h15 : item T 15 = 33 :: issuer) (h14 : item T 14 = SimpleMulti.suffix)
     (j : Nat) (t : BoltProof.Token Bytes)
-    (hj : ((gpTxA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs.map outOf)[j]? = some (.token t)) :
+    (hj : ((gpTxA t0 T w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42).outputs.map outOf)[j]? = some (.token t)) :
     j = 0 ∧ t = tokenOf (gpFieldsA T issuer) := by
-  have h0 : outOf (outOfBytes (item T 30) (lkA T)) = .token (tokenOf (gpFieldsA T issuer)) := by
+  have h0 : outOf (outOfBytes (item T 29) (lkA T)) = .token (tokenOf (gpFieldsA T issuer)) := by
     simp only [outOf, outOfBytes, lkA_eq hl h15 h14, decodeLock_lockScript (gpFieldsA_wf hl hi)]
-  have h1 := outOf_short (o := outOfBytes (item T 30) ((item T 12).drop 1 ++ (item T 141 ++ [136, 172])))
+  have h1 := outOf_short (o := outOfBytes (item T 29) ((item T 12).drop 1 ++ (item T 136 ++ [136, 172])))
     (by simp [outOfBytes, hw.pt, hw.pkh])
-  have h3 := outOf_short (o := outOfBytes (item T 139) (item T 138)) (by simp [outOfBytes, hw.p2])
-  have houts : (gpTxA t0 T w10 w11 w12 w13 w14 w17 w18 w19 w20 w23 w46).outputs =
-      outOfBytes (item T 30) (lkA T) ::
-      outOfBytes (item T 30) ((item T 12).drop 1 ++ (item T 141 ++ [136, 172])) ::
-      ((if decode (item T 140) = 0 then [] else
-        [outOfBytes ((t0 :: T)[31]?.getD []) (((t0 :: T)[13]?.getD []).drop 1 ++ ((t0 :: T)[141]?.getD [] ++ [136, 172]))]) ++
-        [outOfBytes (item T 139) (item T 138)]) := rfl
+  have h3 := outOf_short (o := outOfBytes (item T 134) (item T 133)) (by simp [outOfBytes, hw.p2])
+  have houts : (gpTxA t0 T w8 w9 w10 w11 w12 w15 w16 w17 w18 w19 w42).outputs =
+      outOfBytes (item T 29) (lkA T) ::
+      outOfBytes (item T 29) ((item T 12).drop 1 ++ (item T 136 ++ [136, 172])) ::
+      ((if decode (item T 135) = 0 then [] else
+        [outOfBytes ((t0 :: T)[30]?.getD []) (((t0 :: T)[13]?.getD []).drop 1 ++ ((t0 :: T)[136]?.getD [] ++ [136, 172]))]) ++
+        [outOfBytes (item T 134) (item T 133)]) := rfl
   rw [houts] at hj
   rcases j with _ | _ | j
   · simp only [List.map_cons, List.getElem?_cons_zero, Option.some.injEq] at hj
@@ -91,15 +88,15 @@ theorem gpTxA_token {t0 : Bytes} {T : List Bytes} {w10 w11 w12 w13 w14 w17 w18 w
     exact ⟨rfl, (BoltProof.Out.token.inj hj).symm⟩
   · simp only [List.map_cons, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at hj
     exact absurd hj (h1 t)
-  · by_cases h140 : decode (item T 140) = 0
+  · by_cases h140 : decode (item T 135) = 0
     · simp only [h140, ↓reduceIte, List.nil_append, List.map_cons, List.map_nil, List.getElem?_cons_succ] at hj
       rcases j with _ | j
       · simp only [List.getElem?_cons_zero, Option.some.injEq] at hj; exact absurd hj (h3 t)
       · simp at hj
-    · have hp2 : ((t0 :: T)[141]?.getD []).length = 20 := hw.pkh2 h140
+    · have hp2 : ((t0 :: T)[136]?.getD []).length = 20 := hw.pkh2 h140
       have hpt : (t0 :: T)[13]?.getD [] = [29, 2, 176, 23, 136, 118, 169, 20] := hw.pt
-      have h2 := outOf_short (o := outOfBytes ((t0 :: T)[31]?.getD [])
-        (((t0 :: T)[13]?.getD []).drop 1 ++ ((t0 :: T)[141]?.getD [] ++ [136, 172])))
+      have h2 := outOf_short (o := outOfBytes ((t0 :: T)[30]?.getD [])
+        (((t0 :: T)[13]?.getD []).drop 1 ++ ((t0 :: T)[136]?.getD [] ++ [136, 172])))
         (by simp only [outOfBytes, hpt, List.length_append, hp2]; decide)
       simp only [h140, ↓reduceIte, List.singleton_append, List.map_cons, List.map_nil, List.getElem?_cons_succ] at hj
       rcases j with _ | _ | j

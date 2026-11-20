@@ -11,19 +11,19 @@ spent — `txoType` the *spent* token's type, `nextTxoType` the *produced* token
     if spentIsCommitTyped: assert nextTxoType == txoType − 1
     else:                  assert nextTxoType mod 2 == 1
 
-In the shipped `SimpleMultiBOLT` covenant this is the 29 bytes at offset 528 of the suffix
+In the shipped `SimpleMultiBOLT` covenant this is the 29 bytes at offset 526 of the suffix
 
-    01 1a 79 52 97 76 63 01 26 79 8b 01 1c 79 88 68 76 01 27 79 52 97 7c 63 00 67 51 68 88
+    01 18 79 52 97 76 63 01 24 79 8b 01 1a 79 88 68 76 01 25 79 52 97 7c 63 00 67 51 68 88
 
-    1a OP_PICK OP_2 OP_MOD OP_DUP
-    OP_IF 26 OP_PICK OP_1ADD 1c OP_PICK OP_EQUALVERIFY OP_ENDIF
-    OP_DUP 27 OP_PICK OP_2 OP_MOD OP_SWAP
+    18 OP_PICK OP_2 OP_MOD OP_DUP
+    OP_IF 24 OP_PICK OP_1ADD 1a OP_PICK OP_EQUALVERIFY OP_ENDIF
+    OP_DUP 25 OP_PICK OP_2 OP_MOD OP_SWAP
     OP_IF OP_0 OP_ELSE OP_1 OP_ENDIF OP_EQUALVERIFY
 
-`1a OP_PICK` copies the spent type (26 deep), `OP_2 OP_MOD` its parity bit `p`; inside the
-`OP_IF` (taken when `p = 1`, a commit-typed token being settled) `26 OP_PICK OP_1ADD` is the
-produced type plus one and `1c OP_PICK OP_EQUALVERIFY` asserts it is byte-for-byte the spent
-type; then `27 OP_PICK OP_2 OP_MOD` is the produced type's parity and the
+`18 OP_PICK` copies the spent type (24 deep), `OP_2 OP_MOD` its parity bit `p`; inside the
+`OP_IF` (taken when `p = 1`, a commit-typed token being settled) `24 OP_PICK OP_1ADD` is the
+produced type plus one and `1a OP_PICK OP_EQUALVERIFY` asserts it is byte-for-byte the spent
+type; then `25 OP_PICK OP_2 OP_MOD` is the produced type's parity and the
 `OP_IF OP_0 OP_ELSE OP_1 OP_ENDIF OP_EQUALVERIFY` asserts it equals `1 − p`. The parity bit `p`
 is left on the stack for the branches that follow.
 
@@ -46,15 +46,15 @@ macro "state_congr" : tactic =>
   `(tactic| (congr 1; all_goals (first | rfl | (congr 1 <;> (try simp only [List.length_cons, List.length_nil,
       Nat.add_zero, Nat.zero_add, elementOverhead] at *) <;> omega))))
 
-/-- The head: `1a OP_PICK OP_2 OP_MOD OP_DUP` — the spent type's parity bit, twice. -/
-def parityHead : Bytes := [1, 0x1a, Op.OP_PICK, Op.OP_2, Op.OP_MOD, Op.OP_DUP]
+/-- The head: `18 OP_PICK OP_2 OP_MOD OP_DUP` — the spent type's parity bit, twice. -/
+def parityHead : Bytes := [1, 0x18, Op.OP_PICK, Op.OP_2, Op.OP_MOD, Op.OP_DUP]
 
-/-- The settle-side branch: `OP_IF 26 OP_PICK OP_1ADD 1c OP_PICK OP_EQUALVERIFY OP_ENDIF`. -/
+/-- The settle-side branch: `OP_IF 24 OP_PICK OP_1ADD 1a OP_PICK OP_EQUALVERIFY OP_ENDIF`. -/
 def parityBranch : Bytes :=
-  [Op.OP_IF, 1, 0x26, Op.OP_PICK, Op.OP_1ADD, 1, 0x1c, Op.OP_PICK, Op.OP_EQUALVERIFY, Op.OP_ENDIF]
+  [Op.OP_IF, 1, 0x24, Op.OP_PICK, Op.OP_1ADD, 1, 0x1a, Op.OP_PICK, Op.OP_EQUALVERIFY, Op.OP_ENDIF]
 
-/-- The produced type's parity: `OP_DUP 27 OP_PICK OP_2 OP_MOD OP_SWAP`. -/
-def parityNext : Bytes := [Op.OP_DUP, 1, 0x27, Op.OP_PICK, Op.OP_2, Op.OP_MOD, Op.OP_SWAP]
+/-- The produced type's parity: `OP_DUP 25 OP_PICK OP_2 OP_MOD OP_SWAP`. -/
+def parityNext : Bytes := [Op.OP_DUP, 1, 0x25, Op.OP_PICK, Op.OP_2, Op.OP_MOD, Op.OP_SWAP]
 
 /-- The complement of the parity bit: `OP_IF OP_0 OP_ELSE OP_1 OP_ENDIF`. -/
 def parityFlip : Bytes := [Op.OP_IF, Op.OP_0, Op.OP_ELSE, Op.OP_1, Op.OP_ENDIF]
@@ -64,15 +64,15 @@ def parityCheck : Bytes := parityHead ++ parityBranch ++ parityNext ++ parityFli
 
 /-- The check is the 29 bytes quoted in the header. -/
 theorem parityCheck_bytes :
-    parityCheck = [0x01, 0x1a, 0x79, 0x52, 0x97, 0x76, 0x63, 0x01, 0x26, 0x79, 0x8b, 0x01, 0x1c, 0x79,
-      0x88, 0x68, 0x76, 0x01, 0x27, 0x79, 0x52, 0x97, 0x7c, 0x63, 0x00, 0x67, 0x51, 0x68, 0x88] := by
+    parityCheck = [0x01, 0x18, 0x79, 0x52, 0x97, 0x76, 0x63, 0x01, 0x24, 0x79, 0x8b, 0x01, 0x1a, 0x79,
+      0x88, 0x68, 0x76, 0x01, 0x25, 0x79, 0x52, 0x97, 0x7c, 0x63, 0x00, 0x67, 0x51, 0x68, 0x88] := by
   decide
 
 /-- The depth bytes the check pushes decode to their indices. -/
+theorem decode_18 : decode [0x18] = 24 := by decide
+theorem decode_24 : decode [0x24] = 36 := by decide
 theorem decode_1a : decode [0x1a] = 26 := by decide
-theorem decode_26 : decode [0x26] = 38 := by decide
-theorem decode_1c : decode [0x1c] = 28 := by decide
-theorem decode_27 : decode [0x27] = 39 := by decide
+theorem decode_25 : decode [0x25] = 37 := by decide
 theorem decode_2 : decode [2] = 2 := by decide
 
 /-- A non-push opcode reads no data: framing continues after it. -/
@@ -129,10 +129,10 @@ theorem isActive_opIf_false_opElse (c : Cond) (h : c.isActive = true) :
 
 /-! ## The head -/
 
-/-- `1a OP_PICK OP_2 OP_MOD OP_DUP` from a stack `s` whose 27th element is the spent type `ty`:
+/-- `18 OP_PICK OP_2 OP_MOD OP_DUP` from a stack `s` whose 27th element is the spent type `ty`:
 the parity bit of `ty`, twice, three opcodes charged. -/
 theorem parityHead_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty : Bytes)
-    (hstk : st.stack = s) (hty : s.getD 26 [] = ty) (hlen : 26 < s.length)
+    (hstk : st.stack = s) (hty : s.getD 24 [] = ty) (hlen : 24 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 3 ≤ env.params.limits.maxOpsPerScript)
     (hlt : ty.length ≤ env.params.limits.maxScriptNumLength)
@@ -146,28 +146,28 @@ theorem parityHead_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty
                         2 * elementOverhead } := by
   obtain ⟨hact, hret, hgen⟩ := he
   have hE : Exec env st := ⟨hact, hret, hgen⟩
-  -- 1. push 1a
-  have h1 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_DUP])) ++ t) st 0x1a hE hmin
+  -- 1. push 18
+  have h1 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_DUP])) ++ t) st 0x18 hE hmin
     (by mem_omega)
-  -- 2. pick 26 → ty
+  -- 2. pick 24 → ty
   have h2 := run_pick env ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_DUP]) ++ t)
-    { st with stack := [0x1a] :: s, memUsed := st.memUsed + 1 + elementOverhead }
-    [0x1a] s 26 rfl decode_1a hlen ⟨hact, hret, hgen⟩ hmin
+    { st with stack := [0x18] :: s, memUsed := st.memUsed + 1 + elementOverhead }
+    [0x18] s 24 rfl decode_18 hlen ⟨hact, hret, hgen⟩ hmin
     (by show st.opCount + 1 ≤ _; omega) (by mem_omega)
-    (by show st.memUsed + 1 + elementOverhead - ([0x1a].length + elementOverhead) +
-          ((s.getD 26 []).length + elementOverhead) ≤ _
+    (by show st.memUsed + 1 + elementOverhead - ([0x18].length + elementOverhead) +
+          ((s.getD 24 []).length + elementOverhead) ≤ _
         rw [hty]; mem_omega)
   rw [hty] at h2
   -- 3. OP_2
   have h3 := run_op2 env ([Op.OP_MOD] ++ [Op.OP_DUP] ++ t)
     { st with opCount := st.opCount + 1, stack := ty :: s,
-              memUsed := st.memUsed + 1 + elementOverhead - ([0x1a].length + elementOverhead) +
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x18].length + elementOverhead) +
                 (ty.length + elementOverhead) }
     ⟨hact, hret, hgen⟩ (by mem_omega)
   -- 4. mod
   have h4 := run_mod env ([Op.OP_DUP] ++ t)
     { st with opCount := st.opCount + 1, stack := [2] :: ty :: s,
-              memUsed := st.memUsed + 1 + elementOverhead - ([0x1a].length + elementOverhead) +
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x18].length + elementOverhead) +
                 (ty.length + elementOverhead) + 1 + elementOverhead }
     ty [2] s rfl ⟨hact, hret, hgen⟩ hmin (by rw [decode_2]; decide)
     (by show st.opCount + 1 + 1 ≤ _; omega) hlt (by mem_omega)
@@ -176,13 +176,13 @@ theorem parityHead_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty
   -- 5. dup
   have h5 := run_dup env t
     { st with opCount := st.opCount + 1 + 1, stack := encode (Int.tmod (decode ty) 2) :: s,
-              memUsed := st.memUsed + 1 + elementOverhead - ([0x1a].length + elementOverhead) +
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x18].length + elementOverhead) +
                 (ty.length + elementOverhead) + 1 + elementOverhead - ([2].length + elementOverhead) -
                 (ty.length + elementOverhead) + (encode (Int.tmod (decode ty) 2)).length + elementOverhead }
     (encode (Int.tmod (decode ty) 2)) s rfl ⟨hact, hret, hgen⟩
     (by show st.opCount + 1 + 1 + 1 ≤ _; omega) (by mem_omega)
   -- assemble
-  show run Eval.opExec env ([1, 0x1a] ++ ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_DUP])))) t st = _
+  show run Eval.opExec env ([1, 0x18] ++ ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_DUP])))) t st = _
   rw [run_append _ _ _ _ _ _ (framed_push1 _), h1]
   simp only [GOut.andThen]
   rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), hstk, h2]
@@ -200,8 +200,8 @@ theorem parityHead_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty
 type plus one equal, byte for byte, to the spent type: the branch runs through, leaving `p` on
 top, six opcodes charged. -/
 theorem parityBranch_one (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty nx ep : Bytes)
-    (hstk : st.stack = [1] :: ep :: s) (hty : s.getD 26 [] = ty) (hnx : s.getD 37 [] = nx)
-    (hlen : 37 < s.length) (heq : encode (decode nx + 1) = ty)
+    (hstk : st.stack = [1] :: ep :: s) (hty : s.getD 24 [] = ty) (hnx : s.getD 35 [] = nx)
+    (hlen : 35 < s.length) (heq : encode (decode nx + 1) = ty)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 6 ≤ env.params.limits.maxOpsPerScript)
     (hlt : ty.length ≤ env.params.limits.maxScriptNumLength)
@@ -215,72 +215,72 @@ theorem parityBranch_one (env : Env) (t : Bytes) (st : State) (s : List Bytes) (
   obtain ⟨hact, hret, hgen⟩ := he
   have hact' : (st.cond.opIf true).isActive = true := isActive_opIf_true st.cond hact
   -- 1. OP_IF on [1]
-  have h1 := run_if_one env ([1, 0x26] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++
+  have h1 := run_if_one env ([1, 0x24] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++
     ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))))) ++ t) st (ep :: s) hstk ⟨hact, hret, hgen⟩ (by omega)
-  -- 2. push 26
-  have h2 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++
+  -- 2. push 24
+  have h2 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++
     ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])))) ++ t)
     { st with opCount := st.opCount + 1, stack := ep :: s, memUsed := st.memUsed - (1 + elementOverhead),
               cond := st.cond.opIf true }
-    0x26 ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
-  -- 3. pick 38 → nx
-  have hget38 : (ep :: s).getD 38 [] = nx := by rw [List.getD_cons_succ]; exact hnx
-  have h3 := run_pick env ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))) ++ t)
-    { st with opCount := st.opCount + 1, stack := [0x26] :: ep :: s,
+    0x24 ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
+  -- 3. pick 36 → nx
+  have hget38 : (ep :: s).getD 36 [] = nx := by rw [List.getD_cons_succ]; exact hnx
+  have h3 := run_pick env ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))) ++ t)
+    { st with opCount := st.opCount + 1, stack := [0x24] :: ep :: s,
               memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead, cond := st.cond.opIf true }
-    [0x26] (ep :: s) 38 rfl decode_26 (by simp only [List.length_cons]; omega) ⟨hact', hret, hgen⟩ hmin
+    [0x24] (ep :: s) 36 rfl decode_24 (by simp only [List.length_cons]; omega) ⟨hact', hret, hgen⟩ hmin
     (by show st.opCount + 1 + 1 ≤ _; omega) (by mem_omega)
     (by rw [hget38]; (try dsimp only); mem_omega)
   rw [hget38] at h3
   -- 4. 1add → ty
-  have h4 := run_1add env ([1, 0x1c] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])) ++ t)
+  have h4 := run_1add env ([1, 0x1a] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])) ++ t)
     { st with opCount := st.opCount + 1 + 1, stack := nx :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead), cond := st.cond.opIf true }
     nx (ep :: s) rfl ⟨hact', hret, hgen⟩ hmin (by show st.opCount + 1 + 1 + 1 ≤ _; omega) hln
     (by rw [heq]; exact hlt) (by rw [heq]; (try dsimp only); mem_omega)
   rw [heq] at h4
-  -- 5. push 1c
+  -- 5. push 1a
   have h5 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]) ++ t)
     { st with opCount := st.opCount + 1 + 1 + 1, stack := ty :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead) - (nx.length + elementOverhead) + ty.length + elementOverhead,
               cond := st.cond.opIf true }
-    0x1c ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
-  -- 6. pick 28 → ty
-  have hget28 : (ty :: ep :: s).getD 28 [] = ty := by
+    0x1a ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
+  -- 6. pick 26 → ty
+  have hget28 : (ty :: ep :: s).getD 26 [] = ty := by
     rw [List.getD_cons_succ, List.getD_cons_succ]; exact hty
   have h6 := run_pick env ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF] ++ t)
-    { st with opCount := st.opCount + 1 + 1 + 1, stack := [0x1c] :: ty :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+    { st with opCount := st.opCount + 1 + 1 + 1, stack := [0x1a] :: ty :: ep :: s,
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead) - (nx.length + elementOverhead) + ty.length + elementOverhead + 1 +
                 elementOverhead,
               cond := st.cond.opIf true }
-    [0x1c] (ty :: ep :: s) 28 rfl decode_1c (by simp only [List.length_cons]; omega) ⟨hact', hret, hgen⟩ hmin
+    [0x1a] (ty :: ep :: s) 26 rfl decode_1a (by simp only [List.length_cons]; omega) ⟨hact', hret, hgen⟩ hmin
     (by show st.opCount + 1 + 1 + 1 + 1 ≤ _; omega) (by mem_omega)
     (by rw [hget28]; (try dsimp only); mem_omega)
   rw [hget28] at h6
   -- 7. equalverify, equal
   have h7 := HashLock.run_equalverify_same env ([Op.OP_ENDIF] ++ t)
     { st with opCount := st.opCount + 1 + 1 + 1 + 1, stack := ty :: ty :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead) - (nx.length + elementOverhead) + ty.length + elementOverhead + 1 +
-                elementOverhead - ([0x1c].length + elementOverhead) + (ty.length + elementOverhead),
+                elementOverhead - ([0x1a].length + elementOverhead) + (ty.length + elementOverhead),
               cond := st.cond.opIf true }
     ty (ep :: s) rfl hact' hret (by show st.opCount + 1 + 1 + 1 + 1 + 1 ≤ _; omega)
     (by (try dsimp only); mem_omega) hgen
   -- 8. endif
   have h8 := run_endif_if env t
     { st with opCount := st.opCount + 1 + 1 + 1 + 1 + 1, stack := ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead) - (nx.length + elementOverhead) + ty.length + elementOverhead + 1 +
-                elementOverhead - ([0x1c].length + elementOverhead) + (ty.length + elementOverhead) -
+                elementOverhead - ([0x1a].length + elementOverhead) + (ty.length + elementOverhead) -
                 (ty.length + elementOverhead) - (ty.length + elementOverhead) + 1 + elementOverhead -
                 (1 + elementOverhead),
               cond := st.cond.opIf true }
     st.cond true rfl hret hgen (by show st.opCount + 1 + 1 + 1 + 1 + 1 + 1 ≤ _; omega)
   -- assemble
-  show run Eval.opExec env ([Op.OP_IF] ++ ([1, 0x26] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++
+  show run Eval.opExec env ([Op.OP_IF] ++ ([1, 0x24] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++
     ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))))))) t st = _
   rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h1]
   simp only [GOut.andThen]
@@ -302,8 +302,8 @@ theorem parityBranch_one (env : Env) (t : Bytes) (st : State) (s : List Bytes) (
 /-- `OP_IF … OP_ENDIF` taken with the produced type plus one *different* from the spent type:
 `SCRIPT_ERR_EQUALVERIFY`. -/
 theorem parityBranch_one_refuses (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty nx ep : Bytes)
-    (hstk : st.stack = [1] :: ep :: s) (hty : s.getD 26 [] = ty) (hnx : s.getD 37 [] = nx)
-    (hlen : 37 < s.length) (hne : encode (decode nx + 1) ≠ ty)
+    (hstk : st.stack = [1] :: ep :: s) (hty : s.getD 24 [] = ty) (hnx : s.getD 35 [] = nx)
+    (hlen : 35 < s.length) (hne : encode (decode nx + 1) ≠ ty)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 6 ≤ env.params.limits.maxOpsPerScript)
     (hln : nx.length ≤ env.params.limits.maxScriptNumLength)
@@ -314,55 +314,55 @@ theorem parityBranch_one_refuses (env : Env) (t : Bytes) (st : State) (s : List 
     ∃ st', run Eval.opExec env parityBranch t st = .err .equalverify st' := by
   obtain ⟨hact, hret, hgen⟩ := he
   have hact' : (st.cond.opIf true).isActive = true := isActive_opIf_true st.cond hact
-  have h1 := run_if_one env ([1, 0x26] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++
+  have h1 := run_if_one env ([1, 0x24] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++
     ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))))) ++ t) st (ep :: s) hstk ⟨hact, hret, hgen⟩ (by omega)
-  have h2 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++
+  have h2 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++
     ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])))) ++ t)
     { st with opCount := st.opCount + 1, stack := ep :: s, memUsed := st.memUsed - (1 + elementOverhead),
               cond := st.cond.opIf true }
-    0x26 ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
-  have hget38 : (ep :: s).getD 38 [] = nx := by rw [List.getD_cons_succ]; exact hnx
-  have h3 := run_pick env ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))) ++ t)
-    { st with opCount := st.opCount + 1, stack := [0x26] :: ep :: s,
+    0x24 ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
+  have hget38 : (ep :: s).getD 36 [] = nx := by rw [List.getD_cons_succ]; exact hnx
+  have h3 := run_pick env ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))) ++ t)
+    { st with opCount := st.opCount + 1, stack := [0x24] :: ep :: s,
               memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead, cond := st.cond.opIf true }
-    [0x26] (ep :: s) 38 rfl decode_26 (by simp only [List.length_cons]; omega) ⟨hact', hret, hgen⟩ hmin
+    [0x24] (ep :: s) 36 rfl decode_24 (by simp only [List.length_cons]; omega) ⟨hact', hret, hgen⟩ hmin
     (by show st.opCount + 1 + 1 ≤ _; omega) (by mem_omega)
     (by rw [hget38]; (try dsimp only); mem_omega)
   rw [hget38] at h3
-  have h4 := run_1add env ([1, 0x1c] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])) ++ t)
+  have h4 := run_1add env ([1, 0x1a] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])) ++ t)
     { st with opCount := st.opCount + 1 + 1, stack := nx :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead), cond := st.cond.opIf true }
     nx (ep :: s) rfl ⟨hact', hret, hgen⟩ hmin (by show st.opCount + 1 + 1 + 1 ≤ _; omega) hln hl1
     (by (try dsimp only); mem_omega)
   have h5 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]) ++ t)
     { st with opCount := st.opCount + 1 + 1 + 1, stack := encode (decode nx + 1) :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead) - (nx.length + elementOverhead) + (encode (decode nx + 1)).length +
                 elementOverhead,
               cond := st.cond.opIf true }
-    0x1c ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
-  have hget28 : (encode (decode nx + 1) :: ep :: s).getD 28 [] = ty := by
+    0x1a ⟨hact', hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
+  have hget28 : (encode (decode nx + 1) :: ep :: s).getD 26 [] = ty := by
     rw [List.getD_cons_succ, List.getD_cons_succ]; exact hty
   have h6 := run_pick env ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF] ++ t)
-    { st with opCount := st.opCount + 1 + 1 + 1, stack := [0x1c] :: encode (decode nx + 1) :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+    { st with opCount := st.opCount + 1 + 1 + 1, stack := [0x1a] :: encode (decode nx + 1) :: ep :: s,
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead) - (nx.length + elementOverhead) + (encode (decode nx + 1)).length +
                 elementOverhead + 1 + elementOverhead,
               cond := st.cond.opIf true }
-    [0x1c] (encode (decode nx + 1) :: ep :: s) 28 rfl decode_1c (by simp only [List.length_cons]; omega)
+    [0x1a] (encode (decode nx + 1) :: ep :: s) 26 rfl decode_1a (by simp only [List.length_cons]; omega)
     ⟨hact', hret, hgen⟩ hmin (by show st.opCount + 1 + 1 + 1 + 1 ≤ _; omega) (by mem_omega)
     (by rw [hget28]; (try dsimp only); mem_omega)
   rw [hget28] at h6
   have h7 := run_equalverify_ne env ([Op.OP_ENDIF] ++ t)
     { st with opCount := st.opCount + 1 + 1 + 1 + 1, stack := ty :: encode (decode nx + 1) :: ep :: s,
-              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x26].length + elementOverhead) +
+              memUsed := st.memUsed - (1 + elementOverhead) + 1 + elementOverhead - ([0x24].length + elementOverhead) +
                 (nx.length + elementOverhead) - (nx.length + elementOverhead) + (encode (decode nx + 1)).length +
-                elementOverhead + 1 + elementOverhead - ([0x1c].length + elementOverhead) + (ty.length + elementOverhead),
+                elementOverhead + 1 + elementOverhead - ([0x1a].length + elementOverhead) + (ty.length + elementOverhead),
               cond := st.cond.opIf true }
     (encode (decode nx + 1)) ty (ep :: s) hne rfl ⟨hact', hret, hgen⟩
     (by show st.opCount + 1 + 1 + 1 + 1 + 1 ≤ _; omega) (by (try dsimp only); mem_omega)
-  show ∃ st', run Eval.opExec env ([Op.OP_IF] ++ ([1, 0x26] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++
+  show ∃ st', run Eval.opExec env ([Op.OP_IF] ++ ([1, 0x24] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++
     ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))))))) t st = _
   rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h1]
   simp only [GOut.andThen]
@@ -389,25 +389,25 @@ theorem parityBranch_nil (env : Env) (t : Bytes) (st : State) (s : List Bytes) (
       .next { st with opCount := st.opCount + 6, stack := ep :: s, memUsed := st.memUsed - elementOverhead } := by
   obtain ⟨hact, hret, hgen⟩ := he
   have hin : (st.cond.opIf false).isActive = false := isActive_opIf_false st.cond
-  have h1 := run_if_nil env ([1, 0x26] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++
+  have h1 := run_if_nil env ([1, 0x24] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++
     ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))))) ++ t) st (ep :: s) hstk ⟨hact, hret, hgen⟩ (by omega)
-  have h2 := run_skip_push1 env ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++
+  have h2 := run_skip_push1 env ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++
     ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])))) ++ t)
     { st with opCount := st.opCount + 1, stack := ep :: s, memUsed := st.memUsed - (0 + elementOverhead),
               cond := st.cond.opIf false }
-    0x26 ⟨hin, hret, hgen⟩
-  have h3 := run_skip_op env ([Op.OP_1ADD] ++ ([1, 0x1c] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))) ++ t)
+    0x24 ⟨hin, hret, hgen⟩
+  have h3 := run_skip_op env ([Op.OP_1ADD] ++ ([1, 0x1a] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))) ++ t)
     { st with opCount := st.opCount + 1, stack := ep :: s, memUsed := st.memUsed - (0 + elementOverhead),
               cond := st.cond.opIf false }
     Op.OP_PICK ⟨hin, hret, hgen⟩ (Or.inl rfl) (by show st.opCount + 1 + 1 ≤ _; omega)
-  have h4 := run_skip_op env ([1, 0x1c] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])) ++ t)
+  have h4 := run_skip_op env ([1, 0x1a] ++ ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF])) ++ t)
     { st with opCount := st.opCount + 1 + 1, stack := ep :: s, memUsed := st.memUsed - (0 + elementOverhead),
               cond := st.cond.opIf false }
     Op.OP_1ADD ⟨hin, hret, hgen⟩ (Or.inr (Or.inl rfl)) (by show st.opCount + 1 + 1 + 1 ≤ _; omega)
   have h5 := run_skip_push1 env ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]) ++ t)
     { st with opCount := st.opCount + 1 + 1 + 1, stack := ep :: s, memUsed := st.memUsed - (0 + elementOverhead),
               cond := st.cond.opIf false }
-    0x1c ⟨hin, hret, hgen⟩
+    0x1a ⟨hin, hret, hgen⟩
   have h6 := run_skip_op env ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF] ++ t)
     { st with opCount := st.opCount + 1 + 1 + 1, stack := ep :: s, memUsed := st.memUsed - (0 + elementOverhead),
               cond := st.cond.opIf false }
@@ -420,7 +420,7 @@ theorem parityBranch_nil (env : Env) (t : Bytes) (st : State) (s : List Bytes) (
     { st with opCount := st.opCount + 1 + 1 + 1 + 1 + 1, stack := ep :: s, memUsed := st.memUsed - (0 + elementOverhead),
               cond := st.cond.opIf false }
     st.cond false rfl hret hgen (by show st.opCount + 1 + 1 + 1 + 1 + 1 + 1 ≤ _; omega)
-  show run Eval.opExec env ([Op.OP_IF] ++ ([1, 0x26] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1c] ++
+  show run Eval.opExec env ([Op.OP_IF] ++ ([1, 0x24] ++ ([Op.OP_PICK] ++ ([Op.OP_1ADD] ++ ([1, 0x1a] ++
     ([Op.OP_PICK] ++ ([Op.OP_EQUALVERIFY] ++ [Op.OP_ENDIF]))))))) t st = _
   rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h1]
   simp only [GOut.andThen]
@@ -441,10 +441,10 @@ theorem parityBranch_nil (env : Env) (t : Bytes) (st : State) (s : List Bytes) (
 
 /-! ## The produced type's parity -/
 
-/-- `OP_DUP 27 OP_PICK OP_2 OP_MOD OP_SWAP` from `p :: s` whose 38th element is the produced
+/-- `OP_DUP 25 OP_PICK OP_2 OP_MOD OP_SWAP` from `p :: s` whose 36th element is the produced
 type `nx`: `p :: (nx mod 2) :: p :: s`, four opcodes charged. -/
 theorem parityNext_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (nx ep : Bytes)
-    (hstk : st.stack = ep :: s) (hnx : s.getD 37 [] = nx) (hlen : 37 < s.length)
+    (hstk : st.stack = ep :: s) (hnx : s.getD 35 [] = nx) (hlen : 35 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 4 ≤ env.params.limits.maxOpsPerScript)
     (hln : nx.length ≤ env.params.limits.maxScriptNumLength)
@@ -457,30 +457,30 @@ theorem parityNext_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (nx
                       memUsed := st.memUsed + ep.length + (encode (Int.tmod (decode nx) 2)).length +
                         2 * elementOverhead } := by
   obtain ⟨hact, hret, hgen⟩ := he
-  have h1 := run_dup env ([1, 0x27] ++ ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_SWAP]))) ++ t)
+  have h1 := run_dup env ([1, 0x25] ++ ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_SWAP]))) ++ t)
     st ep s hstk ⟨hact, hret, hgen⟩ (by omega) (by mem_omega)
   have h2 := run_push1 env ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_SWAP])) ++ t)
     { st with opCount := st.opCount + 1, stack := ep :: ep :: s,
               memUsed := st.memUsed + ep.length + elementOverhead }
-    0x27 ⟨hact, hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
-  have hget39 : (ep :: ep :: s).getD 39 [] = nx := by
+    0x25 ⟨hact, hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
+  have hget39 : (ep :: ep :: s).getD 37 [] = nx := by
     rw [List.getD_cons_succ, List.getD_cons_succ]; exact hnx
   have h3 := run_pick env ([Op.OP_2] ++ ([Op.OP_MOD] ++ [Op.OP_SWAP]) ++ t)
-    { st with opCount := st.opCount + 1, stack := [0x27] :: ep :: ep :: s,
+    { st with opCount := st.opCount + 1, stack := [0x25] :: ep :: ep :: s,
               memUsed := st.memUsed + ep.length + elementOverhead + 1 + elementOverhead }
-    [0x27] (ep :: ep :: s) 39 rfl decode_27 (by simp only [List.length_cons]; omega) ⟨hact, hret, hgen⟩ hmin
+    [0x25] (ep :: ep :: s) 37 rfl decode_25 (by simp only [List.length_cons]; omega) ⟨hact, hret, hgen⟩ hmin
     (by show st.opCount + 1 + 1 ≤ _; omega) (by mem_omega)
     (by rw [hget39]; (try dsimp only); mem_omega)
   rw [hget39] at h3
   have h4 := run_op2 env ([Op.OP_MOD] ++ [Op.OP_SWAP] ++ t)
     { st with opCount := st.opCount + 1 + 1, stack := nx :: ep :: ep :: s,
               memUsed := st.memUsed + ep.length + elementOverhead + 1 + elementOverhead -
-                ([0x27].length + elementOverhead) + (nx.length + elementOverhead) }
+                ([0x25].length + elementOverhead) + (nx.length + elementOverhead) }
     ⟨hact, hret, hgen⟩ (by (try dsimp only); mem_omega)
   have h5 := run_mod env ([Op.OP_SWAP] ++ t)
     { st with opCount := st.opCount + 1 + 1, stack := [2] :: nx :: ep :: ep :: s,
               memUsed := st.memUsed + ep.length + elementOverhead + 1 + elementOverhead -
-                ([0x27].length + elementOverhead) + (nx.length + elementOverhead) + 1 + elementOverhead }
+                ([0x25].length + elementOverhead) + (nx.length + elementOverhead) + 1 + elementOverhead }
     nx [2] (ep :: ep :: s) rfl ⟨hact, hret, hgen⟩ hmin (by rw [decode_2]; decide)
     (by show st.opCount + 1 + 1 + 1 ≤ _; omega) hln (by mem_omega)
     (by rw [decode_2]; (try dsimp only); mem_omega)
@@ -488,12 +488,12 @@ theorem parityNext_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (nx
   have h6 := run_swap env t
     { st with opCount := st.opCount + 1 + 1 + 1, stack := encode (Int.tmod (decode nx) 2) :: ep :: ep :: s,
               memUsed := st.memUsed + ep.length + elementOverhead + 1 + elementOverhead -
-                ([0x27].length + elementOverhead) + (nx.length + elementOverhead) + 1 + elementOverhead -
+                ([0x25].length + elementOverhead) + (nx.length + elementOverhead) + 1 + elementOverhead -
                 ([2].length + elementOverhead) - (nx.length + elementOverhead) +
                 (encode (Int.tmod (decode nx) 2)).length + elementOverhead }
     (encode (Int.tmod (decode nx) 2)) ep (ep :: s) rfl ⟨hact, hret, hgen⟩
     (by show st.opCount + 1 + 1 + 1 + 1 ≤ _; omega)
-  show run Eval.opExec env ([Op.OP_DUP] ++ ([1, 0x27] ++ ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++
+  show run Eval.opExec env ([Op.OP_DUP] ++ ([1, 0x25] ++ ([Op.OP_PICK] ++ ([Op.OP_2] ++ ([Op.OP_MOD] ++
     [Op.OP_SWAP]))))) t st = _
   rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), h1]
   simp only [GOut.andThen]
@@ -606,7 +606,7 @@ theorem encode_inj {x y : Int} (h : encode x = encode y) : x = y := by
 plus one is, byte for byte, the spent type: the check runs through, leaving the parity bit `[1]`
 on top with seventeen opcodes charged. -/
 theorem parityCheck_accepts_commit (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty nx : Bytes)
-    (hstk : st.stack = s) (hty : s.getD 26 [] = ty) (hnx : s.getD 37 [] = nx) (hlen : 37 < s.length)
+    (hstk : st.stack = s) (hty : s.getD 24 [] = ty) (hnx : s.getD 35 [] = nx) (hlen : 35 < s.length)
     (hodd : Int.tmod (decode ty) 2 = 1) (heq : encode (decode nx + 1) = ty) (hnn : 0 ≤ decode nx)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 17 ≤ env.params.limits.maxOpsPerScript)
@@ -668,7 +668,7 @@ theorem parityCheck_accepts_commit (env : Env) (t : Bytes) (st : State) (s : Lis
 type is odd: the check runs through, leaving the parity bit `[]` on top with seventeen opcodes
 charged. -/
 theorem parityCheck_accepts_settle (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty nx : Bytes)
-    (hstk : st.stack = s) (hty : s.getD 26 [] = ty) (hnx : s.getD 37 [] = nx) (hlen : 37 < s.length)
+    (hstk : st.stack = s) (hty : s.getD 24 [] = ty) (hnx : s.getD 35 [] = nx) (hlen : 35 < s.length)
     (heven : Int.tmod (decode ty) 2 = 0) (hqodd : Int.tmod (decode nx) 2 = 1)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 17 ≤ env.params.limits.maxOpsPerScript)
@@ -724,7 +724,7 @@ theorem parityCheck_accepts_settle (env : Env) (t : Bytes) (st : State) (s : Lis
 the spent type: `SCRIPT_ERR_EQUALVERIFY` — a commit-typed token settles only to its own
 settle type. -/
 theorem parityCheck_refuses_commit (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty nx : Bytes)
-    (hstk : st.stack = s) (hty : s.getD 26 [] = ty) (hnx : s.getD 37 [] = nx) (hlen : 37 < s.length)
+    (hstk : st.stack = s) (hty : s.getD 24 [] = ty) (hnx : s.getD 35 [] = nx) (hlen : 35 < s.length)
     (hodd : Int.tmod (decode ty) 2 = 1) (hne : encode (decode nx + 1) ≠ ty)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 17 ≤ env.params.limits.maxOpsPerScript)
@@ -755,7 +755,7 @@ theorem parityCheck_refuses_commit (env : Env) (t : Bytes) (st : State) (s : Lis
 /-- **Lemma 7, refused at a commit.** The spent type is even and so is the produced type:
 `SCRIPT_ERR_EQUALVERIFY` — a settle-typed token is followed only by a commit-typed one. -/
 theorem parityCheck_refuses_settle (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty nx : Bytes)
-    (hstk : st.stack = s) (hty : s.getD 26 [] = ty) (hnx : s.getD 37 [] = nx) (hlen : 37 < s.length)
+    (hstk : st.stack = s) (hty : s.getD 24 [] = ty) (hnx : s.getD 35 [] = nx) (hlen : 35 < s.length)
     (heven : Int.tmod (decode ty) 2 = 0) (hqeven : Int.tmod (decode nx) 2 = 0)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 17 ≤ env.params.limits.maxOpsPerScript)
@@ -809,7 +809,7 @@ theorem parityCheck_refuses_settle (env : Env) (t : Bytes) (st : State) (s : Lis
 runs to its end iff the hand proof's predicate holds: an odd (commit-typed) spent type forces the
 produced type to be one less, byte for byte; an even (settle-typed) spent type forces an odd one. -/
 theorem parityCheck_next_iff (env : Env) (t : Bytes) (st : State) (s : List Bytes) (ty nx : Bytes)
-    (hstk : st.stack = s) (hty : s.getD 26 [] = ty) (hnx : s.getD 37 [] = nx) (hlen : 37 < s.length)
+    (hstk : st.stack = s) (hty : s.getD 24 [] = ty) (hnx : s.getD 35 [] = nx) (hlen : 35 < s.length)
     (hnt : 0 ≤ decode ty) (hnn : 0 ≤ decode nx)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 17 ≤ env.params.limits.maxOpsPerScript)
@@ -851,8 +851,8 @@ Layer-1 interface's `commit_type`/`settle_type` clauses are what these 29 bytes 
 theorem parityCheck_edge_iff (env : Env) (t : Bytes) (st : State) (s : List Bytes) (a b : Nat)
     (ha : a ∈ Fam.fungible.settleTypes ∨ a ∈ Fam.fungible.commitTypes)
     (hb : b ∈ Fam.fungible.settleTypes ∨ b ∈ Fam.fungible.commitTypes)
-    (hstk : st.stack = s) (hty : s.getD 26 [] = encode a) (hnx : s.getD 37 [] = encode b)
-    (hlen : 37 < s.length)
+    (hstk : st.stack = s) (hty : s.getD 24 [] = encode a) (hnx : s.getD 35 [] = encode b)
+    (hlen : 35 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 17 ≤ env.params.limits.maxOpsPerScript)
     (hlt : (encode (a : Int)).length ≤ env.params.limits.maxScriptNumLength)

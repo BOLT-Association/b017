@@ -7,7 +7,7 @@ _os.makedirs(WORK, exist_ok=True)
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chunks as C
-ARMS = [(1961, 2426), (2591, 2609), (3186, 3623), (3773, 3790), (1426, 2715), (2715, 3897), (3899, 4652)]
+ARMS = [(1908, 2354), (2500, 2518), (3072, 3491), (3623, 3640), (1392, 2624), (2624, 3740), (3742, 4465)]
 UNFOLD = C.unfold(423, 5000, keep=ARMS)
 TYPES = [0x20, 0x21, 0x22, 0x23, 0x24, 0x25]
 def refused(ty, nty):
@@ -19,7 +19,7 @@ out = ["""import BoltProof.Bridge.Glue.SimpleMulti.Enforced
 /-!
 # The refused type pairs
 
-The parity check (suffix 528, `Gadgets/Parity.lean`) admits a commit only from a settle-typed token and a settle
+The parity check (suffix 526, `Gadgets/Parity.lean`) admits a commit only from a settle-typed token and a settle
 only into the spent commit type's own settle type (`nextTxoType + 1 = txoType`). Each theorem here runs the suffix
 symbolically on a refused pair until the driver stops and refutes the check's `OP_EQUALVERIFY` fact, a closed
 equation `decide` evaluates to false (`refuteLit`). A run that carries such a fact cannot succeed: the symbolic

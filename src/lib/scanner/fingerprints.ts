@@ -46,9 +46,9 @@ export interface TypeSpec {
 const LAYOUTS: Record<TokenType, readonly number[]> = Object.freeze({
   MinSimpleBOLT: [20, 20, 1, 36, 36, 33],
   AuthBOLT: [20, 20, 1, 36, 36, 33], // same lock layout as MinSimpleBOLT: told apart by the suffix hash alone
-  SimpleMultiBOLT: [16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
-  FixedBOLT: [36, 0, 16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
-  OpenBOLT: [36, 0, 16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33],
+  SimpleMultiBOLT: [16, 16, 20, 20, 20, 36, 1, 36, 36, 33], // the outputIndexN push removed (CHANGELOG, Unreleased)
+  FixedBOLT: [36, 0, 16, 16, 20, 20, 20, 36, 1, 36, 36, 33],
+  OpenBOLT: [36, 0, 16, 16, 20, 20, 20, 36, 1, 36, 36, 33],
   SerialBOLT: [36, 0, 20, 20, 1, 36, 36, 33],
 });
 const GENESIS: ReadonlySet<TokenType> = new Set<TokenType>(["FixedBOLT", "OpenBOLT", "SerialBOLT"]);

@@ -29,12 +29,12 @@ const FLOW: Record<number, string> = { [OP_IF]: 'if', [OP_NOTIF]: 'notif', [OP_E
 // The fragment literals, byte for byte as the Gadgets files define them (NullAncestor.lean, Parity.lean,
 // BalanceGuards.lean, BalanceBounds.lean, NftType.lean), with the suffix offsets they sit at.
 const nullTail = '82770088'
-const parityCheck = '011a79529776630126798b011c798868760127795297' + '7c6300675168' + '88'
+const parityCheck = '011879529776630124798b011a798868760125795297' + '7c6300675168' + '88'
 const boundCheck = (d: string) => `01${d}797600a2695579a169`
-const mergeGuard = '012d79013479935b79a169'
-const splitGuard = '012d790134799400a269'
-const mergeSettle = '012f79012f797600a26993765e79a169'
-const splitSettle = '012f79012f797600a269947600a269'
+const mergeGuard = '012b79013279935b79a169'
+const splitGuard = '012b790132799400a269'
+const mergeSettle = '012d79012d797600a26993765e79a169'
+const splitSettle = '012d79012d797600a269947600a269'
 const nftFlag = '768192'
 const nftTypeSel = (d: string) => `01${d}796302010067020121687e`
 // The fungible rebuild's blocks whose conditionals turn on the ancestor's data rather than on the arguments
@@ -43,7 +43,7 @@ const nftTypeSel = (d: string) => `01${d}796302010067020121687e`
 // ENDIF CAT`), and the balance anchor on the ancestor's type.
 const pad16 = '82609f6301007e68'.repeat(16)
 const optTail = '7c827b876382' + '7c7e6775010068' + '7e'
-const anchor = '63014379815188759388677601238763750142798151876394886701427981528877876968670143798151887575886868'
+const anchor = '63014179815188759388677601238763750140798151876394886701407981528877876968670141798151887575886868'
 // `IF 3 ELSE 2 ENDIF` and `IF 4 ELSE 3 ENDIF`: the rebuilt transaction's input and output counts, on the flags
 // "the ancestor has a second input" and "a second output" (ancestor data again).
 const ite32 = '6353675268'
@@ -51,19 +51,20 @@ const ite43 = '6354675368'
 
 export const LANDMARKS: Record<string, Landmark[]> = {
   simpleMulti: [
-    { name: 'parityCheck', hex: parityCheck, at: [528] },
-    { name: 'boundCheck27', hex: boundCheck('27'), at: [610] },
-    { name: 'boundCheck2d', hex: boundCheck('2d'), at: [621] },
-    { name: 'mergeGuard', hex: mergeGuard, at: [672] },
-    { name: 'splitGuard', hex: splitGuard, at: [687] },
-    { name: 'mergeSettle', hex: mergeSettle, at: [781] },
-    { name: 'splitSettle', hex: splitSettle, at: [935] },
+    // offsets and depths as of the outputIndexN removal (each -2 against 0.1.0: the deleted scriptCode slice)
+    { name: 'parityCheck', hex: parityCheck, at: [526] },
+    { name: 'boundCheck25', hex: boundCheck('25'), at: [608] },
+    { name: 'boundCheck2b', hex: boundCheck('2b'), at: [619] },
+    { name: 'mergeGuard', hex: mergeGuard, at: [670] },
+    { name: 'splitGuard', hex: splitGuard, at: [685] },
+    { name: 'mergeSettle', hex: mergeSettle, at: [779] },
+    { name: 'splitSettle', hex: splitSettle, at: [933] },
     { name: 'pad16', hex: pad16, at: [], auto: 2 },
-    { name: 'optTail', hex: optTail, at: [], auto: 50 },
+    { name: 'optTail', hex: optTail, at: [], auto: 44 }, // 50 before the six index-byte mirror pieces went
     { name: 'anchor', hex: anchor, at: [], auto: 2 },
     { name: 'ite32', hex: ite32, at: [], auto: 2 },
     { name: 'ite43', hex: ite43, at: [], auto: 2 },
-    { name: 'nullTail', hex: nullTail, at: [4648] },
+    { name: 'nullTail', hex: nullTail, at: [4461] },
   ],
   minSimple: [
     { name: 'nftFlag', hex: nftFlag, at: [6] },

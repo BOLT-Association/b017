@@ -104,7 +104,7 @@ theorem outs_commit_split {tx : Tx} {i amt : Nat} {f : Fields} {a : Args} (other
     simp [spendOf, com2Of, hpkh2]
 
 theorem settleFieldsT_wf {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a) : WF (settleFieldsT f a) :=
-  ⟨hwf.bal, zeros_length 16, hwf.com, zeros_length 20, zeros_length 20, zeros_length 36, rfl, rfl, ha.outpoint,
+  ⟨hwf.bal, zeros_length 16, hwf.com, zeros_length 20, zeros_length 20, zeros_length 36, rfl, ha.outpoint,
     hwf.parent, hwf.issuer⟩
 
 theorem splitFieldsA_wf {f : Fields} {a : Args} (hwf : WF f) (ha : ArgsWF a)

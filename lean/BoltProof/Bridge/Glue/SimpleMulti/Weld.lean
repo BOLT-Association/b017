@@ -23,9 +23,9 @@ open BoltProof.Glue.MinSimple (sc scLen preOutpoint preValue proofScript outpoin
 open BoltProof.Glue.Serial
 open BsvScript.Tx BsvScript.Sighash
 
-theorem suffix_length : SimpleMulti.suffix.length = 4700 := by decide +kernel
+theorem suffix_length : SimpleMulti.suffix.length = 4513 := by decide +kernel
 
-theorem lockScript_length_eq {f : Fields} (hwf : WF f) : (lockScript f).length = 4946 := by
+theorem lockScript_length_eq {f : Fields} (hwf : WF f) : (lockScript f).length = 4757 := by
   rw [lockScript_length hwf, suffix_length]
 
 /-- The push of `bal`, read off the scriptCode at offset 0. -/
@@ -63,30 +63,25 @@ theorem scPush_ty {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre = lockSc
     List.take 2 (List.drop 134 (sc pre)) = 1 :: f.ty := by
   simp only [hsc, lockScript_drop_134 hwf, List.take_succ_cons, List.take_left' hwf.ty]
 
-/-- The push of `outIdx`, read off the scriptCode at offset 136. -/
-theorem scPush_outIdx {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre = lockScript f) :
-    List.take 2 (List.drop 136 (sc pre)) = 1 :: f.outIdx := by
-  simp only [hsc, lockScript_drop_136 hwf, List.take_succ_cons, List.take_left' hwf.outIdx]
-
-/-- The push of `parent`, read off the scriptCode at offset 138. -/
+/-- The push of `parent`, read off the scriptCode at offset 136. -/
 theorem scPush_parent {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre = lockScript f) :
-    List.take 37 (List.drop 138 (sc pre)) = 36 :: f.parent := by
-  simp only [hsc, lockScript_drop_138 hwf, List.take_succ_cons, List.take_left' hwf.parent]
+    List.take 37 (List.drop 136 (sc pre)) = 36 :: f.parent := by
+  simp only [hsc, lockScript_drop_136 hwf, List.take_succ_cons, List.take_left' hwf.parent]
 
-/-- The push of `gp`, read off the scriptCode at offset 175. -/
+/-- The push of `gp`, read off the scriptCode at offset 173. -/
 theorem scPush_gp {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre = lockScript f) :
-    List.take 37 (List.drop 175 (sc pre)) = 36 :: f.gp := by
-  simp only [hsc, lockScript_drop_175 hwf, List.take_succ_cons, List.take_left' hwf.gp]
+    List.take 37 (List.drop 173 (sc pre)) = 36 :: f.gp := by
+  simp only [hsc, lockScript_drop_173 hwf, List.take_succ_cons, List.take_left' hwf.gp]
 
-/-- The push of `issuer`, read off the scriptCode at offset 212. -/
+/-- The push of `issuer`, read off the scriptCode at offset 210. -/
 theorem scPush_issuer {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre = lockScript f) :
-    List.take 34 (List.drop 212 (sc pre)) = 33 :: f.issuer := by
-  simp only [hsc, lockScript_drop_212 hwf, List.take_succ_cons, List.take_left' hwf.issuer]
+    List.take 34 (List.drop 210 (sc pre)) = 33 :: f.issuer := by
+  simp only [hsc, lockScript_drop_210 hwf, List.take_succ_cons, List.take_left' hwf.issuer]
 
 /-- The suffix, read off the scriptCode after the pushes. -/
 theorem scSuffix_of_sc {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre = lockScript f) :
     scSuffix pre = SimpleMulti.suffix := by
-  simp only [scSuffix, hsc, lockScript_drop_246 hwf]
+  simp only [scSuffix, hsc, lockScript_drop_244 hwf]
 
 theorem scBalPush_of_sc {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre = lockScript f) :
     scBalPush pre = 16 :: f.bal := scPush_bal hwf hsc
@@ -103,10 +98,10 @@ theorem scIssuerPush_of_sc {f : Fields} (hwf : WF f) {pre : Bytes} (hsc : sc pre
 
 /-- The fields of the token a commit creates at the first token input: the old balance, the committed balance
 `balCommit`, the old owner, `com = pkh1`, the second commitment `com2`, the other lineage `ogp`, the next type,
-the index byte, this outpoint as parent, the old parent as grandparent, the issuer. -/
+this outpoint as parent, the old parent as grandparent, the issuer. -/
 def commitFields (f : Fields) (a : Args) (balCommit com2 ogp : Bytes) : Fields :=
   { bal := f.bal, balCommit := balCommit, pkh := f.pkh, com := a.pkh1, com2 := com2, ogp := ogp, ty := a.nty,
-    outIdx := [inIdxByte a], parent := preOutpoint a.pre, gp := f.parent, issuer := f.issuer }
+    parent := preOutpoint a.pre, gp := f.parent, issuer := f.issuer }
 
 /-- The widths of the unlocking arguments the commit copies into the new lock unchecked, each where the next type
 reads it: the committed balance on a split or merge, the recipient on any commit, the second recipient on a split,
@@ -126,7 +121,7 @@ theorem commitFields_wf {f : Fields} {a : Args} {balCommit com2 ogp : Bytes} (hw
     (hcm : a.nty = [0x21] ∨ a.nty = [0x23] ∨ a.nty = [0x25])
     (hb : balCommit.length = 16) (hc : com2.length = 20) (ho : ogp.length = 36) :
     WF (commitFields f a balCommit com2 ogp) :=
-  ⟨hwf.bal, hb, hwf.pkh, ha.pkh1 hcm, hc, ho, ha.nty, rfl, ha.outpoint, hwf.parent, hwf.issuer⟩
+  ⟨hwf.bal, hb, hwf.pkh, ha.pkh1 hcm, hc, ho, ha.nty, ha.outpoint, hwf.parent, hwf.issuer⟩
 
 /-- The commit lock the covenant builds is the fungible lock of `commitFields`. -/
 theorem commitLock_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = lockScript f) (balCommit com2 ogp : Bytes) :
@@ -137,14 +132,14 @@ theorem commitLock_eq {f : Fields} {a : Args} (hwf : WF f) (hsc : sc a.pre = loc
 
 /-! ## The outputs as serialised outputs -/
 
-theorem compactSize_4946 : compactSize 4946 = [253, 0x52, 0x13] := by decide
+theorem compactSize_4757 : compactSize 4757 = [253, 0x95, 0x12] := by decide
 theorem compactSize_29 : compactSize 29 = [29] := by decide
-theorem encode_4946 : encode ((4946 : Nat) : Int) = [0x52, 0x13] := by decide
+theorem encode_4757 : encode ((4757 : Nat) : Int) = [0x95, 0x12] := by decide
 
 /-- A token output the covenant builds is the serialised output of its lock, worth the spent value. -/
 theorem tokenOut_eq {pre : Bytes} {g : Fields} (hwf : WF g) {amt : Nat} (hval : preValue pre = le64 amt) :
     tokenOut pre (lockScript g) = serTxOut ⟨amt, lockScript g⟩ := by
-  simp only [tokenOut, serTxOut, serScript, lockScript_length_eq hwf, hval, compactSize_4946, encode_4946,
+  simp only [tokenOut, serTxOut, serScript, lockScript_length_eq hwf, hval, compactSize_4757, encode_4757,
     List.append_assoc, List.cons_append, List.singleton_append, List.nil_append]
 
 /-- A pay-to-proof output the covenant builds is the serialised proof output, worth the spent value. -/
@@ -272,16 +267,15 @@ theorem decode_padN16_encode (x : Int) (hx : 0 ≤ x) : decode (padN 16 (encode 
 commitments and the other lineage are cleared, the type is `0x20`, this outpoint is the parent. -/
 def settleFieldsT (f : Fields) (a : Args) : Fields :=
   { bal := f.bal, balCommit := zeros 16, pkh := f.com, com := zeros 20, com2 := zeros 20, ogp := zeros 36,
-    ty := [0x20], outIdx := [inIdxByte a], parent := preOutpoint a.pre, gp := f.parent, issuer := f.issuer }
+    ty := [0x20], parent := preOutpoint a.pre, gp := f.parent, issuer := f.issuer }
 
 /-- The first token a split settle creates: the remainder `bal - balCommit` to the first recipient. -/
 def splitFieldsA (f : Fields) (a : Args) : Fields :=
   { settleFieldsT f a with bal := padN 16 (encode (decode f.bal - decode f.balCommit)), ty := [0x22] }
 
-/-- The second token a split settle creates: the committed balance to the second recipient, its index byte by
-`i2`. -/
+/-- The second token a split settle creates: the committed balance to the second recipient. -/
 def splitFieldsB (f : Fields) (a : Args) : Fields :=
-  { settleFieldsT f a with bal := f.balCommit, pkh := f.com2, ty := [0x22], outIdx := [splitIdx a] }
+  { settleFieldsT f a with bal := f.balCommit, pkh := f.com2, ty := [0x22] }
 
 /-- The token a merge settle creates: the sum `bal + balCommit` to the recipient. -/
 def mergeFieldsS (f : Fields) (a : Args) : Fields :=

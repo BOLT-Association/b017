@@ -21,7 +21,6 @@ export class SimpleMultiBOLT extends BOLT {
   verifier: VerifierType = 'bsv';
   balance: number[] = [];
   balanceCommit: number[] = new Array(16).fill(0x00);
-  outputIndexN: number[] = [0x00];
   /** Lock pushes that lead the SimpleMultiBolt fields (0 here; FixedBOLT / OpenBOLT 2). */
   protected readonly leading: number = 0;
 
@@ -73,7 +72,6 @@ export class SimpleMultiBOLT extends BOLT {
       new Array(20).fill(0x00), // pubKeyHashCommit2
       new Array(36).fill(0x00), // otherGrandparentOutpoint
       [0x20], // txoType = settle (genesis)
-      [0x00], // outputIndexN
     );
     const tokenOut = {
       lockingScript: tokenLocking,
@@ -174,7 +172,6 @@ export class SimpleMultiBOLT extends BOLT {
       new Array(20).fill(0x00), // pubKeyHashCommit2
       new Array(36).fill(0x00), // otherGrandparentOutpoint
       isCommitTx ? [0x21] : [0x20], // txoType
-      [0x00], // outputIndexN
       isCommitTx ? (this.voutIdx || 0) : 0, // prevVoutIdx: commit reads from current token vout, settle reads from commit vout 0
     );
     const tokenOut = { lockingScript: tokenLocking, satoshis: 1 };
@@ -331,9 +328,9 @@ export class SimpleMultiBOLT extends BOLT {
     return cleanTx;
   }
 
-  // Get the parent outpoint from a token's locking script (SMB lock chunk 8, + leading pushes)
+  // Get the parent outpoint from a token's locking script (SMB lock chunk 7, + leading pushes)
   protected getParentOutpoint(): number[] {
-    return this.tx!.outputs[this.voutIdx!].lockingScript.chunks[8 + this.leading].data as number[];
+    return this.tx!.outputs[this.voutIdx!].lockingScript.chunks[7 + this.leading].data as number[];
   }
 
   // Merge: absorb other token into this one
@@ -409,7 +406,6 @@ export class SimpleMultiBOLT extends BOLT {
       new Array(20).fill(0x00),
       other.getParentOutpoint(),     // otherGrandparentOutpoint = other token's parentOutpoint
       [0x25],
-      [0x00],
       this.voutIdx,
     );
 
@@ -485,7 +481,6 @@ export class SimpleMultiBOLT extends BOLT {
       new Array(20).fill(0x00),
       new Array(36).fill(0x00),
       [0x24],
-      [0x00],
       0,
     );
 
@@ -563,7 +558,6 @@ export class SimpleMultiBOLT extends BOLT {
       toPubKeyHashB,
       new Array(36).fill(0x00),
       [0x23],
-      [0x00],
       this.voutIdx,
     );
 
@@ -625,7 +619,6 @@ export class SimpleMultiBOLT extends BOLT {
       new Array(20).fill(0x00),
       new Array(36).fill(0x00),
       [0x22],
-      [0x00],
       0,
     );
 
@@ -638,7 +631,6 @@ export class SimpleMultiBOLT extends BOLT {
       new Array(20).fill(0x00),
       new Array(36).fill(0x00),
       [0x22],
-      [0x01],
       0,
     );
 

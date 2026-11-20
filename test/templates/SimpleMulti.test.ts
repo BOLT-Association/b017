@@ -1,5 +1,5 @@
 // SimpleMulti template — the fungible contract's runtime lock/unlock assembler. A minted token's
-// lock must lead with the 11-push fungible layout, the static suffix must agree with the scanner
+// lock must lead with the 10-push fungible layout, the static suffix must agree with the scanner
 // registry (single source of truth), and melt must be exposed.
 import { describe, it, expect } from 'vitest'
 import { Hash, P2PKH, PrivateKey, Transaction } from '@bsv/sdk'
@@ -29,15 +29,15 @@ describe('SimpleMulti template', () => {
     await expect(tpl.melt(k).sign(noSats, 0)).rejects.toThrow(/sourceSatoshis/)
   })
 
-  it('a minted token lock leads with the 11-push fungible layout and is recognised', async () => {
+  it('a minted token lock leads with the 10-push fungible layout and is recognised', async () => {
     const k = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000001', 'hex')
     const src = new Transaction(1, [], [
       { satoshis: 1000, change: true, lockingScript: new P2PKH().lock(Hash.hash160(k.toPublicKey().encode(true))) },
     ])
     const token = await new SimpleMultiBOLT().mint(k, src, '')
     const lock = token.tx!.outputs[0].lockingScript
-    const lens = lock.chunks.slice(0, 11).map((c: any) => c.data?.length ?? 0)
-    expect(lens).toEqual([16, 16, 20, 20, 20, 36, 1, 1, 36, 36, 33])
+    const lens = lock.chunks.slice(0, 10).map((c: any) => c.data?.length ?? 0)
+    expect(lens).toEqual([16, 16, 20, 20, 20, 36, 1, 36, 36, 33])
     expect(recognizeType(lock)).toBe('SimpleMultiBOLT')
   })
 })

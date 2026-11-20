@@ -13,7 +13,7 @@ chunks=open(LEAN + '/BoltProof/Bridge/Generated/Chunks.lean').read()
 blk=chunks[chunks.index('namespace BoltProof.Bridge.Generated.SimpleMulti'):chunks.index('end BoltProof.Bridge.Generated.SimpleMulti')]
 names=re.findall(r'^def (c\d+\w*) : List Nat', blk, re.M)
 start=lambda n:int(re.match(r'c(\d+)',n).group(1))
-ARMS=[(1961,2426),(2591,2609),(3186,3623),(3773,3790),(1426,2715),(2715,3897),(3899,4652)]+[tuple(map(int,r.split('-'))) for r in os.environ.get('PROBE_KEEP','').split(',') if r]
+ARMS=[(1908,2354),(2500,2518),(3072,3491),(3623,3640),(1392,2624),(2624,3740),(3742,4465)]+[tuple(map(int,r.split('-'))) for r in os.environ.get('PROBE_KEEP','').split(',') if r]
 unfold=', '.join('SimpleMulti.'+n for n in names if start(n)>=423 and not re.search(r'_(pad16|optTail|anchor|ite32|ite43)$', n) and not any(s<=start(n)<e for s,e in ARMS))
 extra=os.environ.get('PROBE_EXTRA','')
 lean=f"""import BoltProof.Bridge.Glue.SimpleMulti.Reaches
@@ -48,7 +48,7 @@ end BoltProof.Glue.SimpleMulti
 """
 os.makedirs(LEAN + '/Scratch', exist_ok=True)
 open(f'{LEAN}/Scratch/{name}.lean','w').write(lean)
-out=subprocess.run(["bash","-c",f'export PATH="$HOME/.elan/bin:$PATH"; cd {LEAN} && time lake env lean Scratch/{name}.lean'],capture_output=True,text=True)
+out=subprocess.run([os.environ.get('LAKE', 'lake'), 'env', 'lean', f'Scratch/{name}.lean'], cwd=LEAN,capture_output=True,text=True)
 full=out.stdout+out.stderr
 open(f'{WORK}/{name}.out','w').write(full)
 keep=[]; inh=False

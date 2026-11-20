@@ -10,12 +10,12 @@ the split settle re-asserts `remainder ≥ 0`. In the shipped `SimpleMultiBOLT` 
     01 d 79 76 00 a2 69 55 79 a1 69                  (d = 0x27 at offset 610, d = 0x2d at 621)
     d OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_5 OP_PICK OP_LESSTHANOREQUAL OP_VERIFY
 
-    01 2f 79 01 2f 79 76 00 a2 69 93 76 5e 79 a1 69  (offset 781, inside the merge-settle branch)
-    2f OP_PICK 2f OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_ADD OP_DUP OP_14 OP_PICK
+    01 2d 79 01 2d 79 76 00 a2 69 93 76 5e 79 a1 69  (offset 779, inside the merge-settle branch)
+    2d OP_PICK 2d OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_ADD OP_DUP OP_14 OP_PICK
     OP_LESSTHANOREQUAL OP_VERIFY
 
-    01 2f 79 01 2f 79 76 00 a2 69 94 76 00 a2 69     (offset 935, inside the split-settle branch)
-    2f OP_PICK 2f OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_SUB OP_DUP OP_0
+    01 2d 79 01 2d 79 76 00 a2 69 94 76 00 a2 69     (offset 933, inside the split-settle branch)
+    2d OP_PICK 2d OP_PICK OP_DUP OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_SUB OP_DUP OP_0
     OP_GREATERTHANOREQUAL OP_VERIFY
 
 The bound check copies a balance field (`d` deep), asserts it is non-negative, then asserts it is
@@ -43,8 +43,8 @@ open BsvScript BsvScript.Params BsvScript.Numbers BsvScript.Machine BsvScript.Ga
 /-- `OP_DUP OP_0 OP_GREATERTHANOREQUAL`: the boolean `top ≥ 0` above the top. -/
 def nonNeg : Bytes := [Op.OP_DUP, Op.OP_0, Op.OP_GREATERTHANOREQUAL]
 
-/-- `2f OP_PICK 2f OP_PICK`: the balance field (47 deep) and the field below it, copied up. -/
-def pickPair : Bytes := [1, 0x2f, Op.OP_PICK, 1, 0x2f, Op.OP_PICK]
+/-- `2d OP_PICK 2d OP_PICK`: the balance field (45 deep) and the field below it, copied up. -/
+def pickPair : Bytes := [1, 0x2d, Op.OP_PICK, 1, 0x2d, Op.OP_PICK]
 
 /-- `OP_5 OP_PICK OP_LESSTHANOREQUAL`: the boolean `top ≤ bound` with the bound five deep. -/
 def leBound5 : Bytes := [Op.OP_5, Op.OP_PICK, Op.OP_LESSTHANOREQUAL]
@@ -66,12 +66,12 @@ def splitSettle : Bytes := pickPair ++ nonNeg ++ [Op.OP_VERIFY] ++ [Op.OP_SUB] +
 theorem boundCheck_bytes (d : Nat) :
     boundCheck d = [0x01, d, 0x79, 0x76, 0x00, 0xa2, 0x69, 0x55, 0x79, 0xa1, 0x69] := rfl
 theorem mergeSettle_bytes :
-    mergeSettle = [0x01, 0x2f, 0x79, 0x01, 0x2f, 0x79, 0x76, 0x00, 0xa2, 0x69, 0x93, 0x76, 0x5e, 0x79, 0xa1, 0x69] :=
+    mergeSettle = [0x01, 0x2d, 0x79, 0x01, 0x2d, 0x79, 0x76, 0x00, 0xa2, 0x69, 0x93, 0x76, 0x5e, 0x79, 0xa1, 0x69] :=
   rfl
 theorem splitSettle_bytes :
-    splitSettle = [0x01, 0x2f, 0x79, 0x01, 0x2f, 0x79, 0x76, 0x00, 0xa2, 0x69, 0x94, 0x76, 0x00, 0xa2, 0x69] := rfl
+    splitSettle = [0x01, 0x2d, 0x79, 0x01, 0x2d, 0x79, 0x76, 0x00, 0xa2, 0x69, 0x94, 0x76, 0x00, 0xa2, 0x69] := rfl
 
-theorem decode_2f : decode [0x2f] = 47 := by decide
+theorem decode_2d : decode [0x2d] = 45 := by decide
 theorem decode_05 : decode [5] = 5 := by decide
 theorem decode_0e : decode [14] = 14 := by decide
 
@@ -176,10 +176,10 @@ theorem nonNegVerify_refuses (env : Env) (t : Bytes) (st : State) (v : Bytes) (r
               memUsed := st.memUsed + ([] : Bytes).length + elementOverhead }
     [] (v :: rest) (by decide) rfl ⟨hact, hret, hgen⟩ (by show st.opCount + 2 + 1 ≤ _; omega)⟩
 
-/-- `2f OP_PICK 2f OP_PICK` from `s`: the field 47 deep (`x`) and the one below it (`y`) copied
+/-- `2d OP_PICK 2d OP_PICK` from `s`: the field 45 deep (`x`) and the one below it (`y`) copied
 up, `y :: x :: s`, two opcodes charged. -/
 theorem pickPair_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y : Bytes)
-    (hstk : st.stack = s) (hx : s.getD 47 [] = x) (hy : s.getD 46 [] = y) (hlen : 47 < s.length)
+    (hstk : st.stack = s) (hx : s.getD 45 [] = x) (hy : s.getD 44 [] = y) (hlen : 45 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 2 ≤ env.params.limits.maxOpsPerScript)
     (hone : 1 ≤ env.params.limits.maxScriptNumLength)
@@ -188,27 +188,27 @@ theorem pickPair_run (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y 
       .next { st with opCount := st.opCount + 2, stack := y :: x :: s,
                       memUsed := st.memUsed + x.length + y.length + 2 * elementOverhead } := by
   obtain ⟨hact, hret, hgen⟩ := he
-  have h1 := run_push1 env ([Op.OP_PICK] ++ ([1, 0x2f] ++ [Op.OP_PICK]) ++ t) st 0x2f ⟨hact, hret, hgen⟩ hmin
+  have h1 := run_push1 env ([Op.OP_PICK] ++ ([1, 0x2d] ++ [Op.OP_PICK]) ++ t) st 0x2d ⟨hact, hret, hgen⟩ hmin
     (by mem_omega)
-  have h2 := run_pick env ([1, 0x2f] ++ [Op.OP_PICK] ++ t)
-    { st with stack := [0x2f] :: s, memUsed := st.memUsed + 1 + elementOverhead }
-    [0x2f] s 47 rfl decode_2f hlen ⟨hact, hret, hgen⟩ hmin (by show st.opCount + 1 ≤ _; omega) (by mem_omega)
+  have h2 := run_pick env ([1, 0x2d] ++ [Op.OP_PICK] ++ t)
+    { st with stack := [0x2d] :: s, memUsed := st.memUsed + 1 + elementOverhead }
+    [0x2d] s 45 rfl decode_2d hlen ⟨hact, hret, hgen⟩ hmin (by show st.opCount + 1 ≤ _; omega) (by mem_omega)
     (by rw [hx]; (try dsimp only); mem_omega)
   rw [hx] at h2
   have h3 := run_push1 env ([Op.OP_PICK] ++ t)
     { st with opCount := st.opCount + 1, stack := x :: s,
-              memUsed := st.memUsed + 1 + elementOverhead - ([0x2f].length + elementOverhead) + (x.length + elementOverhead) }
-    0x2f ⟨hact, hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
-  have hget : (x :: s).getD 47 [] = y := by rw [List.getD_cons_succ]; exact hy
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (x.length + elementOverhead) }
+    0x2d ⟨hact, hret, hgen⟩ hmin (by (try dsimp only); mem_omega)
+  have hget : (x :: s).getD 45 [] = y := by rw [List.getD_cons_succ]; exact hy
   have h4 := run_pick env t
-    { st with opCount := st.opCount + 1, stack := [0x2f] :: x :: s,
-              memUsed := st.memUsed + 1 + elementOverhead - ([0x2f].length + elementOverhead) + (x.length + elementOverhead) +
+    { st with opCount := st.opCount + 1, stack := [0x2d] :: x :: s,
+              memUsed := st.memUsed + 1 + elementOverhead - ([0x2d].length + elementOverhead) + (x.length + elementOverhead) +
                 1 + elementOverhead }
-    [0x2f] (x :: s) 47 rfl decode_2f (by simp only [List.length_cons]; omega) ⟨hact, hret, hgen⟩ hmin
+    [0x2d] (x :: s) 45 rfl decode_2d (by simp only [List.length_cons]; omega) ⟨hact, hret, hgen⟩ hmin
     (by show st.opCount + 1 + 1 ≤ _; omega) (by mem_omega)
     (by rw [hget]; (try dsimp only); mem_omega)
   rw [hget] at h4
-  show run Eval.opExec env ([1, 0x2f] ++ ([Op.OP_PICK] ++ ([1, 0x2f] ++ [Op.OP_PICK]))) t st = _
+  show run Eval.opExec env ([1, 0x2d] ++ ([Op.OP_PICK] ++ ([1, 0x2d] ++ [Op.OP_PICK]))) t st = _
   rw [run_append _ _ _ _ _ _ (framed_push1 _), h1]
   simp only [GOut.andThen]
   rw [run_append _ _ _ _ _ _ (HashLock.framed_single _ (by decide)), hstk, h2]
@@ -472,8 +472,8 @@ theorem boundCheck_next_iff (env : Env) (t : Bytes) (st : State) (s : List Bytes
 /-- **Lemma 6's merge re-check, accepted.** With `0 ≤ other` and `balance + other ≤ bound` the
 fragment runs to its end, leaving the sum on top and ten opcodes charged. -/
 theorem mergeSettle_accepts (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y bound : Bytes)
-    (hstk : st.stack = s) (hx : s.getD 47 [] = x) (hy : s.getD 46 [] = y) (hb : s.getD 12 [] = bound)
-    (hlen : 47 < s.length)
+    (hstk : st.stack = s) (hx : s.getD 45 [] = x) (hy : s.getD 44 [] = y) (hb : s.getD 12 [] = bound)
+    (hlen : 45 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 10 ≤ env.params.limits.maxOpsPerScript)
     (hxl : x.length ≤ env.params.limits.maxScriptNumLength)
@@ -521,8 +521,8 @@ theorem mergeSettle_accepts (env : Env) (t : Bytes) (st : State) (s : List Bytes
 /-- **Lemma 6's merge re-check, refused.** A negative other balance, or a sum above the bound,
 fails with `SCRIPT_ERR_VERIFY`. -/
 theorem mergeSettle_refuses (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y bound : Bytes)
-    (hstk : st.stack = s) (hx : s.getD 47 [] = x) (hy : s.getD 46 [] = y) (hb : s.getD 12 [] = bound)
-    (hlen : 47 < s.length)
+    (hstk : st.stack = s) (hx : s.getD 45 [] = x) (hy : s.getD 44 [] = y) (hb : s.getD 12 [] = bound)
+    (hlen : 45 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 10 ≤ env.params.limits.maxOpsPerScript)
     (hxl : x.length ≤ env.params.limits.maxScriptNumLength)
@@ -579,8 +579,8 @@ theorem mergeSettle_refuses (env : Env) (t : Bytes) (st : State) (s : List Bytes
 /-- **Lemma 6's merge re-check as an equivalence.** Under the fragment's preconditions, it runs
 to its end iff `0 ≤ other` and `balance + other ≤ bound`. -/
 theorem mergeSettle_next_iff (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y bound : Bytes)
-    (hstk : st.stack = s) (hx : s.getD 47 [] = x) (hy : s.getD 46 [] = y) (hb : s.getD 12 [] = bound)
-    (hlen : 47 < s.length)
+    (hstk : st.stack = s) (hx : s.getD 45 [] = x) (hy : s.getD 44 [] = y) (hb : s.getD 12 [] = bound)
+    (hlen : 45 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 10 ≤ env.params.limits.maxOpsPerScript)
     (hxl : x.length ≤ env.params.limits.maxScriptNumLength)
@@ -607,7 +607,7 @@ theorem mergeSettle_next_iff (env : Env) (t : Bytes) (st : State) (s : List Byte
 /-- **Lemma 6's split re-check, accepted.** With `0 ≤ piece ≤ balance` the fragment runs to its
 end, leaving the remainder on top and nine opcodes charged. -/
 theorem splitSettle_accepts (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y : Bytes)
-    (hstk : st.stack = s) (hx : s.getD 47 [] = x) (hy : s.getD 46 [] = y) (hlen : 47 < s.length)
+    (hstk : st.stack = s) (hx : s.getD 45 [] = x) (hy : s.getD 44 [] = y) (hlen : 45 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 9 ≤ env.params.limits.maxOpsPerScript)
     (hxl : x.length ≤ env.params.limits.maxScriptNumLength)
@@ -652,7 +652,7 @@ theorem splitSettle_accepts (env : Env) (t : Bytes) (st : State) (s : List Bytes
 /-- **Lemma 6's split re-check, refused.** A negative piece, or a piece above the balance, fails
 with `SCRIPT_ERR_VERIFY`. -/
 theorem splitSettle_refuses (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y : Bytes)
-    (hstk : st.stack = s) (hx : s.getD 47 [] = x) (hy : s.getD 46 [] = y) (hlen : 47 < s.length)
+    (hstk : st.stack = s) (hx : s.getD 45 [] = x) (hy : s.getD 44 [] = y) (hlen : 45 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 9 ≤ env.params.limits.maxOpsPerScript)
     (hxl : x.length ≤ env.params.limits.maxScriptNumLength)
@@ -706,7 +706,7 @@ theorem splitSettle_refuses (env : Env) (t : Bytes) (st : State) (s : List Bytes
 /-- **Lemma 6's split re-check as an equivalence.** Under the fragment's preconditions, it runs
 to its end iff `0 ≤ piece ≤ balance`. -/
 theorem splitSettle_next_iff (env : Env) (t : Bytes) (st : State) (s : List Bytes) (x y : Bytes)
-    (hstk : st.stack = s) (hx : s.getD 47 [] = x) (hy : s.getD 46 [] = y) (hlen : 47 < s.length)
+    (hstk : st.stack = s) (hx : s.getD 45 [] = x) (hy : s.getD 44 [] = y) (hlen : 45 < s.length)
     (he : Exec env st) (hmin : env.requireMinimal = false)
     (hops : st.opCount + 9 ≤ env.params.limits.maxOpsPerScript)
     (hxl : x.length ≤ env.params.limits.maxScriptNumLength)

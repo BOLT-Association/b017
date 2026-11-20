@@ -27,7 +27,7 @@ const data = (c: any): number[] => (c?.data as number[]) ?? []
 
 const FUNGIBLE: Record<string, MultiLayout> = { FixedBolt: FIXED_BOLT_LAYOUT, OpenBolt: OPEN_BOLT_LAYOUT }
 // contract -> [unlock arg count, lock parentOutpoint chunk index, lock push count]
-const SHAPE = { FixedBolt: [174, 10, 13], OpenBolt: [180, 10, 13], SerialBolt: [38, 5, 8] } as const
+const SHAPE = { FixedBolt: [168, 9, 12], OpenBolt: [174, 9, 12], SerialBolt: [38, 5, 8] } as const // the outputIndexN push removed
 
 function load(name: string) {
   const { contract, txs } = FIX[name]
@@ -40,15 +40,19 @@ function load(name: string) {
 }
 
 describe('layout constants', () => {
-  it('SimpleMultiBolt keeps 75 pieces, skip 150, ctxHeader 164, txoType 6', () => {
-    expect([SIMPLE_MULTI_LAYOUT.pieces.length, skipOf(SIMPLE_MULTI_LAYOUT), args2ctxOf(SIMPLE_MULTI_LAYOUT), txoTypeIdxOf(SIMPLE_MULTI_LAYOUT)]).toEqual([75, 150, 164, 6])
+  // The outputIndexN lock field is gone, and with it the three *OutputIndexN pieces per ancestor (Vin1CTX,
+  // Vin2CTX, Vout1): the layouts were 75/150/164, 77/154/168 and 80/160/174 (CHANGELOG, Unreleased).
+  it('SimpleMultiBolt keeps 72 pieces, skip 144, ctxHeader 158, txoType 6 (sx unlockArgs 164)', () => {
+    expect([SIMPLE_MULTI_LAYOUT.pieces.length, skipOf(SIMPLE_MULTI_LAYOUT), args2ctxOf(SIMPLE_MULTI_LAYOUT), txoTypeIdxOf(SIMPLE_MULTI_LAYOUT)]).toEqual([72, 144, 158, 6])
     expect(SIMPLE_MULTI_LAYOUT.pieces).toBe(PIECE_NAMES)
+    expect(PIECE_NAMES.filter((n) => /OutputIndexN/.test(n))).toEqual([])
+    expect(args2ctxOf(SIMPLE_MULTI_LAYOUT) + 6).toBe(164)
   })
-  it('FixedBolt 77 / 154 / 168 / 8 and OpenBolt 80 / 160 / 174 / 8 (sx unlockArgs 174 and 180)', () => {
-    expect([FIXED_BOLT_LAYOUT.pieces.length, skipOf(FIXED_BOLT_LAYOUT), args2ctxOf(FIXED_BOLT_LAYOUT), txoTypeIdxOf(FIXED_BOLT_LAYOUT)]).toEqual([77, 154, 168, 8])
-    expect([OPEN_BOLT_LAYOUT.pieces.length, skipOf(OPEN_BOLT_LAYOUT), args2ctxOf(OPEN_BOLT_LAYOUT), txoTypeIdxOf(OPEN_BOLT_LAYOUT)]).toEqual([80, 160, 174, 8])
-    expect(args2ctxOf(FIXED_BOLT_LAYOUT) + 6).toBe(174)
-    expect(args2ctxOf(OPEN_BOLT_LAYOUT) + 6).toBe(180)
+  it('FixedBolt 74 / 148 / 162 / 8 and OpenBolt 77 / 154 / 168 / 8 (sx unlockArgs 168 and 174)', () => {
+    expect([FIXED_BOLT_LAYOUT.pieces.length, skipOf(FIXED_BOLT_LAYOUT), args2ctxOf(FIXED_BOLT_LAYOUT), txoTypeIdxOf(FIXED_BOLT_LAYOUT)]).toEqual([74, 148, 162, 8])
+    expect([OPEN_BOLT_LAYOUT.pieces.length, skipOf(OPEN_BOLT_LAYOUT), args2ctxOf(OPEN_BOLT_LAYOUT), txoTypeIdxOf(OPEN_BOLT_LAYOUT)]).toEqual([77, 154, 168, 8])
+    expect(args2ctxOf(FIXED_BOLT_LAYOUT) + 6).toBe(168)
+    expect(args2ctxOf(OPEN_BOLT_LAYOUT) + 6).toBe(174)
   })
   it('SerialBolt 27 pieces, current args at 27 (sx unlockArgs 38)', () => {
     expect(SERIAL_PIECE_NAMES.length).toBe(27)

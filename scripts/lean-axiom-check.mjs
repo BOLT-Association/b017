@@ -11,8 +11,10 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url).pathname
+// fileURLToPath, not URL.pathname: on Windows the pathname is `/C:/...`, which `join` turns into `C:\C:\...`
+const root = fileURLToPath(new URL('..', import.meta.url))
 const lean = join(root, 'lean')
 
 const allowed = new Set()

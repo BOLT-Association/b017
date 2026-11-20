@@ -1,17 +1,20 @@
-// No dead tokens: a fungible token whose index byte is not its output position stays spendable.
+// No dead tokens: the spends that used to give a fungible token an index byte other than its position stay valid,
+// and so does every later operation on the token they make.
 //
-// The fungible script writes a token's index byte (lock chunk 7, `outputIndexN`) from the spender's `inputIndexN`
-// argument, or from the `i2` interop slot for a split settle's second token, and never reads it back; with `pkh1`
-// set a split settle's two tokens come out swapped. The Lean development found this and proved the script's
-// reading (lean/README.md, Finding 6); its `smb_probe_idx_*` vectors judge the same transactions in Lean. This suite
-// keeps the fact under the fast test run: every shape of mismatch, then every later operation on the mismatched
-// token, built with the honest builders and judged by verifyTx (the @bsv/sdk Spend engine).
+// Until the outputIndexN removal the fungible script wrote a token's index byte (lock chunk 7, `outputIndexN`) from
+// the spender's `inputIndexN` argument, or from the `i2` interop slot for a split settle's second token, and never
+// read it back. The Lean development found this and proved the script's reading (lean/README.md, Finding 6), and the
+// byte was then removed. The shapes still exist: `inputIndexN` (the merge-role flag), `i2` and `pkh1` (which swaps a
+// split settle's two tokens) can still be set where an honest spend leaves them empty. So this suite now pins that
+// the byte is gone (10 data pushes, chunk 7 the parent outpoint) and that every such spend, and every later
+// operation on its token, still verifies. Built with the honest builders and judged by verifyTx (the @bsv/sdk Spend
+// engine); the `smb_probe_idx_*` vectors judge the same transactions in Lean.
 import { describe, it, expect } from 'vitest'
 import { PrivateKey, Transaction } from '@bsv/sdk'
 import { SimpleMultiBOLT } from '../../src/tokens/MultiBOLT.js'
 import { verifyTx } from '../../src/lib/boltLib.js'
 import {
-  splitSettleWithFlags, tokenAt, spendIdx1, fundFor, sourceFor, last2, meltOf, indexByteAt,
+  splitSettleWithFlags, tokenAt, spendIdx1, fundFor, sourceFor, last2, meltOf, lockDataPushes, parentOutpointAt,
 } from '../helpers/indexByte.js'
 
 const issuer = PrivateKey.fromString('0000000000000000000000000000000000000000000000000000000000000003', 'hex')
@@ -51,13 +54,15 @@ async function splitWith(seed: string, swapped: boolean, i2: boolean) {
   return { ...r, keyA, keyB, piece, main }
 }
 
-describe('index byte: a token whose index byte is not its position stays spendable (no dead tokens)', () => {
-  it('S1: the swapped split settle (pkh1 set) verifies, and its second token at output 0 with index byte 1 transfers', async () => {
+describe('index byte (removed): the spends that used to mismatch it stay valid and their tokens spendable (no dead tokens)', () => {
+  it('S1: the swapped split settle (pkh1 set) verifies, carries no index byte, and its second token at output 0 transfers', async () => {
     const { settle, lineage, keyB, piece, main, bVout, aVout } = await splitWith('1', true, false)
     assertValid('swapped split settle', settle)
     expect(bVout).toBe(0)
-    expect(indexByteAt(settle, bVout)).toBe(1)
-    expect(indexByteAt(settle, aVout)).toBe(0)
+    expect(lockDataPushes(settle, bVout)).toBe(10)
+    expect(lockDataPushes(settle, aVout)).toBe(10)
+    expect(parentOutpointAt(settle, bVout)).toEqual(parentOutpointAt(settle, aVout)) // both name the split commit
+    expect(parentOutpointAt(settle, bVout).length).toBe(36)
     const b = tokenAt(settle, bVout, keyB, piece, lineage, main)
     const to = child(issuer, '14')
     await b.commit(to, '', false, fundFor(keyB))
@@ -67,11 +72,11 @@ describe('index byte: a token whose index byte is not its position stays spendab
     assertValid('second token transfer settle (rebuilds the swapped settle)', s)
   })
 
-  it('S2: the i2 split settle verifies; its second token at output 1 with index byte 0 transfers, splits, merges as either input, and melts', async () => {
+  it('S2: the i2 split settle verifies and carries no index byte; its second token at output 1 transfers, splits, merges as either input, and melts', async () => {
     const { settle, lineage, keyB, piece, main, bVout } = await splitWith('2', false, true)
     assertValid('i2 split settle', settle)
     expect(bVout).toBe(1)
-    expect(indexByteAt(settle, bVout)).toBe(0)
+    expect(lockDataPushes(settle, bVout)).toBe(10)
     // transfer
     {
       const x = tokenAt(settle, bVout, keyB, piece, lineage, main)
@@ -112,12 +117,12 @@ describe('index byte: a token whose index byte is not its position stays spendab
     assertValid('melt', await meltOf(settle, bVout, keyB))
   })
 
-  it('S3: a transfer commit with inputIndexN = 1 writes index byte 1 at output 0; its settle and a further transfer verify', async () => {
+  it('S3: a transfer commit with inputIndexN = 1 verifies and its token carries no index byte; its settle and a further transfer verify', async () => {
     const owner = child(issuer, '31'), to = child(issuer, '32'), next = child(issuer, '33')
     const t = await minted(owner, '3')
     const c1 = await spendIdx1(t, to, true)
     assertValid('commit with inputIndexN = 1', c1)
-    expect(indexByteAt(c1, 0)).toBe(1)
+    expect(lockDataPushes(c1, 0)).toBe(10)
     await t.settle(to)
     assertValid('its honest settle', t.prevTxs[t.prevTxs.length - 1])
     await t.transfer(next)
@@ -126,13 +131,13 @@ describe('index byte: a token whose index byte is not its position stays spendab
     assertValid('further transfer settle (rebuilds the index-1 commit)', s)
   })
 
-  it('S4: a transfer settle with inputIndexN = 1 writes index byte 1 at output 0; a further transfer verifies', async () => {
+  it('S4: a transfer settle with inputIndexN = 1 verifies and its token carries no index byte; a further transfer verifies', async () => {
     const owner = child(issuer, '41'), to = child(issuer, '42'), next = child(issuer, '43')
     const t = await minted(owner, '4')
     await t.commit(to)
     const s1 = await spendIdx1(t, to, false)
     assertValid('settle with inputIndexN = 1', s1)
-    expect(indexByteAt(s1, 0)).toBe(1)
+    expect(lockDataPushes(s1, 0)).toBe(10)
     await t.transfer(next)
     const [c, s] = last2(t)
     assertValid('further transfer commit', c)

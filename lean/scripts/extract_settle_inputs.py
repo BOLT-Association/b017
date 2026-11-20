@@ -4,20 +4,32 @@ usage: extract_settle_inputs.py [--dest DIR] [--head] [PROBE ...]   (default pro
 
 Reads `$GLUE_WORK/<probe>.out` (the `probe_sm.py` output: the one goal `trace_state` prints after `sym_all`) and writes
 to DIR (default `$GLUE_WORK`):
-  <probe>.gateT.txt  the stack under the gate flag: the second argument `T` of `rebuildA_fact0 t0 T w10 ... w46`, the
-                     first rebuild's fact the block rule `c1426` (`rebuildA_shape`) leaves, in parentheses;
+  <probe>.gateT.txt  the stack under the gate flag: the second argument `T` of `rebuildA_fact0 t0 T w8 ... w42`, the
+                     first rebuild's fact the block rule `c1392` (`rebuildA_shape`) leaves, in parentheses;
   <probe>.outs.txt   the outputs fact: the hypothesis `Hash.hash256 (... ++ a.chg) = ...` (the settled outputs and the
-                     change blob against `hashOutputs`), the only `Hash.hash256` hypothesis whose argument ends in `a.chg`.
-Both are written on one line, whitespace collapsed as `facts.rename` does (gen_settle.py collapses it again).
+                     change blob against `hashOutputs`), the only `Hash.hash256` hypothesis whose argument ends in `a.chg`;
+  <probe>.zeros.txt  the zero pads: one line `<name> <n>` per hypothesis `num2bin [] (decode n) = some <name>` in the
+                     first 400000 characters (the run's `OP_NUM2BIN` of an empty push, `zeros n`), which gen_settle.py
+                     substitutes into the two facts above.
+The facts are written on one line, whitespace collapsed as `facts.rename` does (gen_settle.py collapses it again).
+These three files are all gen_settle.py reads of a probe, so lean/scripts/settle-inputs/ (where they are committed)
+regenerates the settle files without rerunning the probes (`check_generated.py` does exactly that).
 With --head, also writes DIR/<probe>.out: the first lines of the output, up to the end of both facts and at least the
-400000 characters gen_settle.py's `zero_map` reads, so DIR alone is enough to run gen_settle.py and this script again.
-The full outputs are 180-210 MB; the head is what any script reads of them."""
+400000 characters the zero pads are read from, so DIR alone is enough to run this script again.
+The full outputs are 90-210 MB; the head is what any script reads of them."""
 import os as _os
 LEAN = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 WORK = _os.environ.get('GLUE_WORK', _os.path.join(LEAN, '.lake', 'glue-work'))
-import argparse, os
+import argparse, os, re
 
-ZERO_MAP_CHARS = 400000   # gen_settle.py: zero_map reads open(...).read(400000)
+ZERO_MAP_CHARS = 400000   # the zero pads are named in the goal's first hypotheses
+# a zero pad: the run's `OP_NUM2BIN` of an empty push to `n` bytes, named by an inaccessible width variable
+ZERO_RE = re.compile(r'num2bin \[\] \(decode (\(encode (\d+)\)|\[(\d+)(?:, 0)?\])\)\.toNat = some (w✝[⁰¹²³⁴⁵⁶⁷⁸⁹]*)')
+
+
+def zero_pads(text):
+    """[(name, n)] of the zero pads named in `text`, in order of appearance."""
+    return [(w, int(a or b)) for _, a, b, w in ZERO_RE.findall(text)]
 PROBES = ['F1_settle21', 'F7_settle23', 'F8_settle25']
 
 def balanced(s, i):
@@ -79,7 +91,10 @@ def extract(probe, src, dest, head):
     os.makedirs(dest, exist_ok=True)
     open(os.path.join(dest, probe + '.gateT.txt'), 'w', encoding='utf-8').write(T + '\n')
     open(os.path.join(dest, probe + '.outs.txt'), 'w', encoding='utf-8').write(outs[0] + '\n')
-    msg = f'{probe}: gateT {len(T)} chars (t0 = {t0}), outs {len(outs[0])} chars'
+    zs = zero_pads(''.join(lines)[:ZERO_MAP_CHARS])
+    assert zs, (probe, 'no zero pads')
+    open(os.path.join(dest, probe + '.zeros.txt'), 'w', encoding='utf-8').write(''.join(f'{w} {n}\n' for w, n in zs))
+    msg = f'{probe}: gateT {len(T)} chars (t0 = {t0}), outs {len(outs[0])} chars, {len(zs)} zero pads'
     if head:
         assert os.path.abspath(dest) != os.path.abspath(src), '--head would overwrite the full output'
         need = max(ZERO_MAP_CHARS, max(e for s, e in hs if s in (g, outs[0])))

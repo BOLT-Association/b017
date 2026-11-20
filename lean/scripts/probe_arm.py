@@ -11,7 +11,11 @@ import chunks as C
 name, a, b, stack, alt = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], sys.argv[5]
 hyps = sys.argv[6:]
 hnames = [re.match(r'\((\w+)', h).group(1) for h in hyps]
-lean = f"""import BoltProof.Bridge.Glue.SimpleMulti.Arms
+# PROBE_IMPORT: the module the probe imports (default the arms' own file). The arm probes themselves need only the
+# folded blocks, so after a covenant change they run with PROBE_IMPORT=BoltProof.Bridge.Glue.SimpleMulti.Blocks
+# before Arms.lean is regenerated from them.
+IMPORT = os.environ.get('PROBE_IMPORT', 'BoltProof.Bridge.Glue.SimpleMulti.Arms')
+lean = f"""import {IMPORT}
 set_option autoImplicit false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 100000000
@@ -26,14 +30,14 @@ theorem probe {{env : Env}} (he : EnvOK env) {{k t : Bytes}} {{r : GOut}} {{flag
     {' '.join(hyps)}
     (h : run Eval.opExec env ({C.seq(C.names(a, b))}) t (St ({stack}) ({alt}) m C kk cs) = r)
     (hr : r.IsOk) : True := by
-  simp only [{C.unfold(a, b, keep=[(1961, 2426), (2591, 2609), (3186, 3623), (3773, 3790)])}, List.cons_append, List.nil_append] at h
+  simp only [{C.unfold(a, b, keep=[r for r in [(1908, 2354), (2500, 2518), (3072, 3491), (3623, 3640)] if r != (a, b)])}, List.cons_append, List.nil_append] at h
   sym_all h {' '.join(hnames)}
   trace_state
   trivial
 end BoltProof.Glue.SimpleMulti
 """
 open(f'{LEAN}/Scratch/{name}.lean', 'w').write(lean)
-out = subprocess.run(["bash", "-c", f'export PATH="$HOME/.elan/bin:$PATH"; cd {LEAN} && time lake env lean Scratch/{name}.lean'], capture_output=True, text=True)
+out = subprocess.run([os.environ.get('LAKE', 'lake'), 'env', 'lean', f'Scratch/{name}.lean'], cwd=LEAN, capture_output=True, text=True)
 full = out.stdout + out.stderr
 open(f'{WORK}/{name}.out', 'w').write(full)
 keep = []; inh = False

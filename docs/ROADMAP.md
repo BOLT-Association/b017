@@ -115,8 +115,14 @@ does refuse — so this is an **optimisation, not a fix**, and it sits on the lo
 - **Do it when** the NFT bytecode is being rebuilt for another reason (the NFT token classes or
   `SerialBOLT` work above), never on its own.
 
-## Deferred: drop the fungible lock's index byte (`outputIndexN`)
-The fungible lock carries an index byte (`outputIndexN`, lock chunk 7) that nothing reads. On chain,
+## Done: drop the fungible lock's index byte (`outputIndexN`)
+**Done** (see the CHANGELOG): the byte, its writers and its three ancestor mirror pieces are gone from
+`SimpleMultiBOLT`, `FixedBOLT` and `OpenBOLT` (suffix 4700 -> 4513 bytes), and the Lean development is ported to
+the new bytecode: the glue's stack offsets and piece counts recounted (75 -> 72 pieces per ancestor), the second
+rebuild reduced to one case, the settle probes rerun without the index-byte hypotheses
+(`lean/scripts/settle-inputs/`), the vectors regenerated. What follows is the record of why.
+
+The fungible lock carried an index byte (`outputIndexN`, lock chunk 7) that nothing read. On chain,
 each spend writes the new token's byte afresh from its own `inputIndexN` argument (or from the `i2`
 slot for a split settle's second token), never from the spent token's; the ancestor rebuild hashes the
 ancestor's bytes as supplied; the balance anchor's index comes from the proof-vout argument `i5`; and

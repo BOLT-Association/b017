@@ -72,8 +72,8 @@ open BoltProof
 #print axioms Glue.SerialBolt.chain_proof_gating
 #print axioms Glue.SerialBolt.chain_fabricated_hop_excluded
 #print axioms Glue.SimpleMulti.reaches_parityCheck
-#print axioms Glue.SimpleMulti.reaches_boundCheck_610
-#print axioms Glue.SimpleMulti.reaches_boundCheck_621
+#print axioms Glue.SimpleMulti.reaches_boundCheck_608
+#print axioms Glue.SimpleMulti.reaches_boundCheck_619
 #print axioms Glue.SimpleMulti.reaches_mergeGuard
 #print axioms Glue.SimpleMulti.reaches_splitGuard
 #print axioms Glue.SimpleMulti.reaches_mergeSettle
