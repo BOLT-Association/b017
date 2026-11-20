@@ -6,6 +6,12 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+- **npm publishing uses trusted publishing (OIDC) instead of an `NPM_TOKEN` secret.** The token-based publish of
+  0.2.0 was refused by the registry (`E404` on the upload, the answer for a token that cannot publish the package);
+  CI's `publish` job now exchanges the run's GitHub identity token for a short-lived publish token, so no secret can
+  expire. Setup and reruns are in `scripts/MAINTAINERS.md`, "Releasing".
+
 ## [0.2.0] - 2026-11-20
 
 ### Added

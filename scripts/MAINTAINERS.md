@@ -38,3 +38,19 @@ Consumers never need any of this — the package ships the pre-compiled template
   rebuild, re-run `boltvectors` and re-triage any changed verdict. Never run a bare `lake update`.
 - An unexpected verdict in `boltvectors` is a **finding** about the bytes or the engine, not a reason to edit an
   expectation silently: record it in `lean/README.md` and `CHANGELOG.md` first.
+- `python3 lean/scripts/check_generated.py` reruns the glue's generators and fails if any no longer writes its
+  committed file (CI runs it too). Never edit a generated glue file by hand: change its generator and regenerate
+  (`lean/scripts/README.md`).
+
+## Releasing
+
+- Bump `version` in `package.json` (and `package-lock.json`), move the CHANGELOG's Unreleased entries under the new
+  version with the date, update the README status line, and merge to `main`. CI's `publish` job publishes the new
+  version after `build-test` passes; a version already on npm is skipped. Under 0.x a breaking change bumps the
+  minor version.
+- Publishing uses npm **trusted publishing** (OIDC), not a token: on npmjs.com, the `b017` package's settings list a
+  trusted publisher of type GitHub Actions with organization `BOLT-Association`, repository `b017` and workflow
+  `ci.yml` (no environment). Each run exchanges its GitHub identity token (`id-token: write`) for a short-lived
+  publish token, with provenance attached automatically. There is no `NPM_TOKEN` secret to rotate; the job needs npm
+  11.5.1 or later, which it installs. If the workflow file is renamed, update the trusted publisher on npmjs.com.
+- A failed publish is rerun with `gh run rerun <run id> --failed`: the version check makes it safe to repeat.

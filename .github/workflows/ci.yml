@@ -155,41 +155,42 @@ jobs:
           git -C bw push origin badges
 
   # Publish to npm when the version in package.json is new. Runs only on a push to main (i.e. after a
-  # PR is merged), and only after build-test passes. Safely no-ops if NPM_TOKEN isn't set yet or the
-  # version is already published, so it never reds-out main.
+  # PR is merged), and only after build-test passes; a version already on npm is a no-op, so it never
+  # reds-out main. Authentication is npm trusted publishing (OIDC): npmjs.com trusts this workflow file
+  # (`ci.yml` in BOLT-Association/b017) to publish `b017`, and each run exchanges its GitHub identity token
+  # for a short-lived publish token, so there is no NPM_TOKEN secret to expire. Provenance is automatic.
+  # See scripts/MAINTAINERS.md, "Releasing".
   publish:
     needs: build-test
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # required for npm provenance
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      id-token: write # the GitHub identity token npm's trusted publishing exchanges
     steps:
       - uses: actions/checkout@v5
 
+      # no `registry-url`: it would write an `_authToken` line into .npmrc, and a token there is not what
+      # trusted publishing uses
       - name: Use Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22.x
-          registry-url: https://registry.npmjs.org
           cache: npm
+
+      - name: Use an npm with trusted publishing (11.5.1 or later; Node 22 bundles npm 10)
+        run: npm install -g npm@^11.5.1 && npm --version
 
       - name: Install
         run: npm ci
 
       - name: Publish if the version is new
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN secret not set — skipping publish."
-            exit 0
-          fi
           NAME=$(node -p "require('./package.json').name")
           VERSION=$(node -p "require('./package.json').version")
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
             echo "$NAME@$VERSION is already on npm — nothing to publish."
           else
             echo "Publishing $NAME@$VERSION…"
-            npm publish --provenance --access public
+            npm publish --access public
           fi
