@@ -6,6 +6,8 @@ All notable changes to **b017** are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
 ### Added
 - **`lean/scripts/check_generated.py`: the glue's generated files stay reproducible.** It runs, in dependency order,
   the twelve glue generators whose inputs are committed and fails if any output differs from the committed file
@@ -549,7 +551,8 @@ before `0.1.0`.
 - Build now cleans `dist/` before `tsc` so the published tarball contains no stale artifacts.
 - Added `repository`, `bugs`, `homepage`, and `keywords` metadata.
 
-[Unreleased]: https://github.com/BOLT-Association/b017/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/BOLT-Association/b017/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/BOLT-Association/b017/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/BOLT-Association/b017/compare/v0.0.0-b2...v0.1.0
 [0.0.0-b2]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b2
 [0.0.0-b1]: https://github.com/BOLT-Association/b017/releases/tag/v0.0.0-b1
